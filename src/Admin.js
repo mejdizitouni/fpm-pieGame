@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import Header from "./Header";
+import Footer from "./Footer";
 
 function Admin() {
   const API_URL = process.env.REACT_APP_API_URL;
@@ -66,59 +68,63 @@ function Admin() {
   };
 
   return (
-    <div>
-      <h1>{message}</h1>
+    <>
+      <Header />
+      <div className="container">
+        <h1>{message}</h1>
 
-      <h2>Game Sessions</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Title</th>
-            <th>Date</th>
-          </tr>
-        </thead>
-        <tbody>
-          {Array.isArray(gameSessions) && gameSessions.length > 0 ? (
-            gameSessions.map((session) => (
-              <tr
-                key={session.id}
-                onClick={() => navigate(`/session/${session.id}`)}
-                style={{ cursor: "pointer" }}
-              >
-                <td>{session.id}</td>
-                <td>{session.title}</td>
-                <td>{session.date}</td>
-              </tr>
-            ))
-          ) : (
+        <h2>Game Sessions</h2>
+        <table>
+          <thead>
             <tr>
-              <td colSpan="3">No game sessions found.</td>
+              <th>ID</th>
+              <th>Title</th>
+              <th>Date</th>
             </tr>
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {Array.isArray(gameSessions) && gameSessions.length > 0 ? (
+              gameSessions.map((session) => (
+                <tr
+                  key={session.id}
+                  onClick={() => navigate(`/session/${session.id}`)}
+                  style={{ cursor: "pointer" }}
+                >
+                  <td>{session.id}</td>
+                  <td>{session.title}</td>
+                  <td>{session.date}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="3">No game sessions found.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
 
-      <h2>Create New Game Session</h2>
-      <form onSubmit={createGameSession}>
-        <input
-          type="text"
-          placeholder="Title"
-          value={newSession.title}
-          onChange={(e) =>
-            setNewSession({ ...newSession, title: e.target.value })
-          }
-        />
-        <input
-          type="date"
-          value={newSession.date}
-          onChange={(e) =>
-            setNewSession({ ...newSession, date: e.target.value })
-          }
-        />
-        <button type="submit">Create</button>
-      </form>
-    </div>
+        <h2>Create New Game Session</h2>
+        <form onSubmit={createGameSession}>
+          <input
+            type="text"
+            placeholder="Title"
+            value={newSession.title}
+            onChange={(e) =>
+              setNewSession({ ...newSession, title: e.target.value })
+            }
+          />
+          <input
+            type="date"
+            value={newSession.date}
+            onChange={(e) =>
+              setNewSession({ ...newSession, date: e.target.value })
+            }
+          />
+          <button type="submit">Create</button>
+        </form>
+      </div>
+      <Footer />
+    </>
   );
 }
 

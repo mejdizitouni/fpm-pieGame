@@ -101,26 +101,95 @@ app.post("/game-sessions", (req, res) => {
   });
 });
 
-// Fetch questions for a specific session
-app.get("/sessions/:id/questions", (req, res) => {
-  const token = req.headers["authorization"];
+app.post('/questions', (req, res) => {
+  const token = req.headers['authorization'];
   if (!token) {
-    return res.status(401).json({ message: "Access denied" });
+    return res.status(401).json({ message: 'Access denied' });
   }
 
   jwt.verify(token, SECRET_KEY, (err) => {
     if (err) {
-      return res.status(403).json({ message: "Invalid token" });
+      return res.status(403).json({ message: 'Invalid token' });
+    }
+
+    const { type, title, expected_answer, allocated_time } = req.body;
+
+    db.run(
+      `INSERT INTO questions (type, title, expected_answer, allocated_time)
+       VALUES (?, ?, ?, ?)`,
+      [type, title, expected_answer, allocated_time],
+      function (err) {
+        if (err) {
+          console.error('Insert Error:', err);
+          return res.status(500).json({ message: 'Database error' });
+        }
+        res.json({
+          id: this.lastID,
+          type,
+          title,
+          expected_answer,
+          allocated_time,
+        });
+      }
+    );
+  });
+});
+
+// Fetch question details by ID
+app.get('/questions/:id', (req, res) => {
+  const token = req.headers['authorization'];
+  if (!token) {
+    return res.status(401).json({ message: 'Access denied' });
+  }
+
+  jwt.verify(token, SECRET_KEY, (err) => {
+    if (err) {
+      return res.status(403).json({ message: 'Invalid token' });
+    }
+
+    const questionId = req.params.id;
+    db.get(
+      `SELECT * FROM questions WHERE id = ?`,
+      [questionId],
+      (err, row) => {
+        if (err) {
+          console.error('Database Error:', err);
+          return res.status(500).json({ message: 'Database error' });
+        }
+        if (!row) {
+          return res.status(404).json({ message: 'Question not found' });
+        }
+        res.json(row);
+      }
+    );
+  });
+});
+
+// Fetch all questions not linked to the current session
+app.get('/sessions/:id/available-questions', (req, res) => {
+  const token = req.headers['authorization'];
+  if (!token) {
+    return res.status(401).json({ message: 'Access denied' });
+  }
+
+  jwt.verify(token, SECRET_KEY, (err) => {
+    if (err) {
+      return res.status(403).json({ message: 'Invalid token' });
     }
 
     const sessionId = req.params.id;
     db.all(
-      `SELECT * FROM questions WHERE session_id = ?`,
+      `
+      SELECT * FROM questions
+      WHERE id NOT IN (
+        SELECT question_id FROM session_questions WHERE session_id = ?
+      )
+      `,
       [sessionId],
       (err, rows) => {
         if (err) {
-          console.error("Database Error:", err);
-          return res.status(500).json({ message: "Database error" });
+          console.error('Database Error:', err);
+          return res.status(500).json({ message: 'Database error' });
         }
         res.json(rows || []);
       }
@@ -128,37 +197,64 @@ app.get("/sessions/:id/questions", (req, res) => {
   });
 });
 
-// Add a new question to a session
-app.post("/sessions/:id/questions", (req, res) => {
-  const token = req.headers["authorization"];
+// Fetch questions for a specific session
+app.get('/sessions/:id/questions', (req, res) => {
+  const token = req.headers['authorization'];
   if (!token) {
-    return res.status(401).json({ message: "Access denied" });
+    return res.status(401).json({ message: 'Access denied' });
   }
 
   jwt.verify(token, SECRET_KEY, (err) => {
     if (err) {
-      return res.status(403).json({ message: "Invalid token" });
+      return res.status(403).json({ message: 'Invalid token' });
     }
 
     const sessionId = req.params.id;
-    const { type, title, expected_answer, allocated_time } = req.body;
+    db.all(
+      `
+      SELECT q.* FROM questions q
+      JOIN session_questions sq ON q.id = sq.question_id
+      WHERE sq.session_id = ?
+      `,
+      [sessionId],
+      (err, rows) => {
+        if (err) {
+          console.error('Database Error:', err);
+          return res.status(500).json({ message: 'Database error' });
+        }
+        res.json(rows || []);
+      }
+    );
+  });
+});
+
+
+// Add a new question to a session
+app.post('/sessions/:id/questions', (req, res) => {
+  const token = req.headers['authorization'];
+  if (!token) {
+    return res.status(401).json({ message: 'Access denied' });
+  }
+
+  jwt.verify(token, SECRET_KEY, (err) => {
+    if (err) {
+      return res.status(403).json({ message: 'Invalid token' });
+    }
+
+    const sessionId = req.params.id;
+    const { question_id } = req.body; // Existing question ID
     db.run(
-      `INSERT INTO questions (session_id, type, title, expected_answer, allocated_time)
-       VALUES (?, ?, ?, ?, ?)`,
-      [sessionId, type, title, expected_answer, allocated_time],
+      `
+      INSERT INTO session_questions (session_id, question_id)
+      VALUES (?, ?)
+      `,
+      [sessionId, question_id],
       function (err) {
         if (err) {
-          console.error("Insert Error:", err);
-          return res.status(500).json({ message: "Database error" });
+          console.error('Insert Error:', err);
+          return res.status(500).json({ message: 'Database error' });
         }
-        res.json({
-          id: this.lastID,
-          session_id: sessionId,
-          type,
-          title,
-          expected_answer,
-          allocated_time,
-        });
+        res.json({ id: this.lastID, session_id: sessionId, question_id });
       }
     );
   });
