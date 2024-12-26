@@ -3,6 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
 function Admin() {
+  const API_URL = process.env.REACT_APP_API_URL;
   const [message, setMessage] = useState("");
   const [gameSessions, setGameSessions] = useState([]);
   const [newSession, setNewSession] = useState({ title: "", date: "" });
@@ -17,14 +18,14 @@ function Admin() {
       }
 
       try {
-        const response = await axios.get("http://localhost:3001/admin", {
+        const response = await axios.get(`${API_URL}/admin`, {
           headers: { Authorization: token },
         });
         setMessage(response.data.message);
 
         // Fetch game sessions
         const sessionsResponse = await axios.get(
-          "http://localhost:3001/game-sessions",
+          `${API_URL}/game-sessions`,
           {
             headers: { Authorization: token },
           }
@@ -46,7 +47,7 @@ function Admin() {
 
     try {
       const response = await axios.post(
-        "http://localhost:3001/game-sessions",
+        `${API_URL}/game-sessions`,
         newSession,
         {
           headers: { Authorization: token },

@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import axios from "axios";
 
 function Session() {
+  const API_URL = process.env.REACT_APP_API_URL;
   const { id } = useParams(); // Get the session ID from the URL
   const [questions, setQuestions] = useState([]);
   const [newQuestion, setNewQuestion] = useState({
@@ -25,7 +26,7 @@ function Session() {
       try {
         // Fetch questions
         const questionsResponse = await axios.get(
-          `http://localhost:3001/sessions/${id}/questions`,
+          `${API_URL}/sessions/${id}/questions`,
           {
             headers: { Authorization: token },
           }
@@ -34,7 +35,7 @@ function Session() {
 
         // Fetch groups
         const groupsResponse = await axios.get(
-          `http://localhost:3001/sessions/${id}/groups`,
+          `${API_URL}/sessions/${id}/groups`,
           {
             headers: { Authorization: token },
           }
@@ -54,7 +55,7 @@ function Session() {
 
     try {
       const response = await axios.post(
-        `http://localhost:3001/sessions/${id}/questions`,
+        `${API_URL}/sessions/${id}/questions`,
         newQuestion,
         {
           headers: { Authorization: token },
@@ -78,7 +79,7 @@ function Session() {
 
     try {
       const response = await axios.post(
-        `http://localhost:3001/sessions/${id}/groups`,
+        `${API_URL}/sessions/${id}/groups`,
         newGroup,
         {
           headers: { Authorization: token },
