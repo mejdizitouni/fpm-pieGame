@@ -1,33 +1,48 @@
-import './App.css';
-import './App.scss';
-import { useState, useEffect } from 'react';
-import axios from 'axios';
+import "./App.css";
+import { useState } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 function App() {
-  const [ bubble, setBubble ] = useState("Please give me pets!");
-  const [ hasPetted, setHasPetted ] = useState(false);
-  const [ imageURL, setImageURL ] = useState('sadpanda');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    const petPanda = async () => {
-      try {
-        const getPandaResponse = await axios.post('https://fpm-piegame.onrender.com/pet', {hasPetted: hasPetted}, {});
-        setBubble(getPandaResponse.data.message);
-        setImageURL(getPandaResponse.data.image);
-      } catch(e) {
-        alert("Unable to pet panda :(");
-      }
-    };
-    petPanda();
-  });
+  const handleLogin = async (e) => {
+    e.preventDefault();
+
+    try {
+      const response = await axios.post("http://localhost:3001/login", {
+        username,
+        password,
+      });
+      localStorage.setItem("token", response.data.token); // Save JWT in local storage
+      navigate("/admin"); // Redirect to /admin
+    } catch (err) {
+      setError("Invalid credentials");
+    }
+  };
 
   return (
     <div className="App">
-      <nav>.Meet Panda</nav>
-      <header className="App-header">
-        <p>{bubble}</p>
-        <img src={`/images/${imageURL}.png`} className="App-logo" alt="panda" onClick={() => setHasPetted(!hasPetted)}/>
-      </header>
+      <h1>Login</h1>
+      <form onSubmit={handleLogin}>
+        <input
+          type="text"
+          placeholder="Username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <button type="submit">Login</button>
+      </form>
+      {error && <p>{error}</p>}
     </div>
   );
 }
