@@ -1,100 +1,10 @@
-/* General Styles */
+/* body */
 body {
   font-family: 'Arial', sans-serif;
   margin: 0;
   padding: 0;
   background-color: #f9f9f9;
 }
-
-
-footer {
-  background-color: lightgoldenrodyellow;
-  color: #714c16;
-  text-align: center;
-  padding: 10px 0;
-  position: fixed;
-  bottom: 0;
-  width: 100%;
-  font-size: 14px;
-}
-
-
-.container {
-  max-width: 800px;
-  margin: 20px auto;
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-}
-
-/* Form Styles */
-form {
-  margin: 20px 0;
-}
-
-form input,
-form select,
-form button {
-  display: block;
-  width: 100%;
-  margin: 10px 0;
-  padding: 10px;
-  border-radius: 5px;
-  border: 1px solid #ddd;
-}
-
-form button {
-  background-color: #4caf50;
-  color: white;
-  border: none;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-form button:hover {
-  background-color: lightgoldenrodyellow;
-}
-
-/* Table Styles */
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 20px 0;
-}
-
-table th,
-table td {
-  border: 1px solid #ddd;
-  padding: 10px;
-  text-align: left;
-}
-
-table th {
-  background-color: #f2f2f2;
-  font-weight: bold;
-}
-
-table tr:nth-child(even) {
-  background-color: #f9f9f9;
-}
-
-table tr:hover {
-  background-color: #f1f1f1;
-}
-
-/* Titles */
-h1,
-h2 {
-  color: #714c16;
-  margin-bottom: 10px;
-  text-align: center;
-}
-
-
-
-
-
 
 /* header */
 header {
@@ -148,78 +58,212 @@ header .dropdown-menu button {
   width: 100%; /* Make the button fill the dropdown width */
 }
 
-/* login */
-.login-container {
-  margin: 0 !important;
-  background: white !important;
-  padding: 20px !important;
-  border-radius: 8px !important;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1) !important;
-  position: absolute !important;
-  top: 50% !important;
-  left: 50% !important;
-  transform: translate(-50%, -50%) !important;
+/* footer */
+footer {
+  background-color: lightgoldenrodyellow;
+  color: #714c16;
+  text-align: center;
+  position: fixed;
+  padding: 10px 0;
+  bottom: 0;
+  width: 100%;
+  font-size: 14px;
 }
 
-.login-container form input {
-  width: unset !important;
+/* login */
+.login-container {
+  margin: 0;
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.login-container form input,
+.login-container form select {
+  width: unset;
+  display: block;
+  margin: 10px 0;
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid #ddd;
 }
 
 .login-container form button {
-  background-color: lightgoldenrodyellow !important;
-  color: #714c16 !important;
-  border: none !important;
-  cursor: pointer !important;
-  transition: background-color 0.3s ease !important;
-  width: -webkit-fill-available !important;
-  border-radius: 5px !important;
-  display: block !important;
-  margin: 10px 0 !important;
-  padding: 10px !important;
+  background-color: lightgoldenrodyellow;
+  color: #714c16;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  width: -webkit-fill-available;
+  border-radius: 5px;
+  display: block;
+  margin: 10px 0;
+  padding: 10px;
 }
 
 /* admin */
 .admin-container {
-  max-width: 90% !important;
-  margin: 20px auto !important;
-  background: white !important;
-  padding: 20px !important;
-  border-radius: 8px !important;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1) !important;
+  max-width: 90%;
+  margin: 20px auto;
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
 .admin-container button {
-  background-color: lightgoldenrodyellow !important;
-  color: #714c16 !important;
-  border: none !important;
-  cursor: pointer !important;
-  transition: background-color 0.3s ease !important;
-  width: -webkit-fill-available !important;
-  border-radius: 5px !important;
-  display: block !important;
-  margin: 10px 0 !important;
-  padding: 10px !important;
+  background-color: lightgoldenrodyellow;
+  color: #714c16;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  width: -webkit-fill-available;
+  border-radius: 5px;
+  display: block;
+  margin: 10px 0;
+  padding: 10px;
 }
 
-/* admin */
+.admin-container .actions {
+  display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.admin-container h1,
+.admin-container h2 {
+  color: #714c16;
+  margin-bottom: 10px;
+  text-align: center;
+} 
+
+.admin-container table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+}
+
+.admin-container table th,
+.admin-container table td {
+  border: 1px solid #ddd;
+  padding: 10px;
+  text-align: left;
+}
+
+.admin-container table th {
+  background-color: #f2f2f2;
+  font-weight: bold;
+}
+
+.admin-container table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.admin-container form input,
+.admin-container form select {
+  width: -webkit-fill-available;
+  display: block;
+  margin: 10px 0;
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid #ddd;
+}
+
+.admin-container form button {
+  background-color: lightgoldenrodyellow;
+  color: #714c16;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  width: -webkit-fill-available;
+  border-radius: 5px;
+  display: block;
+  margin: 10px 0;
+  padding: 10px;
+}
+
+/* session */
 .session-container {
-  max-width: 90% !important;
-  margin: 20px auto !important;
-  background: white !important;
-  padding: 20px !important;
-  border-radius: 8px !important;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1) !important;
+  max-width: 90%;
+  margin: 20px auto;
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
 .session-container button {
-  background-color: lightgoldenrodyellow !important;
-  color: #714c16 !important;
-  border: none !important;
-  cursor: pointer !important;
-  transition: background-color 0.3s ease !important;
-  width: -webkit-fill-available !important;
-  border-radius: 5px !important;
-  display: block !important;
-  margin: 10px 0 !important;
-  padding: 10px !important;
+  background-color: lightgoldenrodyellow;
+  color: #714c16;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  width: 100%;
+  border-radius: 5px;
+  display: block;
+  margin: 10px 0;
+  padding: 10px;
+}
+
+.session-container .actions {
+  display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.session-container h1,
+.session-container h2 {
+  color: #714c16;
+  margin-bottom: 10px;
+  text-align: center;
+} 
+
+.session-container table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+}
+
+.session-container table th,
+.session-container table td {
+  border: 1px solid #ddd;
+  padding: 10px;
+  text-align: left;
+}
+
+.session-container table th {
+  background-color: #f2f2f2;
+  font-weight: bold;
+}
+
+.session-container table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.session-container form input,
+.session-container form select {
+  width: -webkit-fill-available;
+  display: block;
+  margin: 10px 0;
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid #ddd;
+}
+
+.session-container form button {
+  background-color: lightgoldenrodyellow;
+  color: #714c16;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  width: 100%;
+  border-radius: 5px;
+  display: block;
+  margin: 10px 0;
+  padding: 10px;
 }

@@ -6,7 +6,6 @@ import Footer from "./Footer";
 
 function Admin() {
   const API_URL = process.env.REACT_APP_API_URL;
-  const [message, setMessage] = useState("");
   const [gameSessions, setGameSessions] = useState([]);
   const [activeSessionGroups, setActiveSessionGroups] = useState([]);
   const [newSession, setNewSession] = useState({ title: "", date: "" });
@@ -23,10 +22,9 @@ function Admin() {
       }
 
       try {
-        const response = await axios.get(`${API_URL}/admin-check`, {
+        await axios.get(`${API_URL}/admin-check`, {
           headers: { Authorization: token },
         });
-        setMessage(response.data.message);
 
         // Fetch game sessions
         const sessionsResponse = await axios.get(`${API_URL}/game-sessions`, {
@@ -264,19 +262,20 @@ function Admin() {
                   <td>{session.title}</td>
                   <td>{session.date}</td>
                   <td>{session.status}</td>
-                  <td>
+                  <td class="actions"> 
                     {/* Conditionally render buttons based on session status */}
-                    {session.status === 'Draft' && (
-                      <button onClick={() => activateSession(session.id)}>
-                        Activate
-                      </button>
-                    )}
+                    <button onClick={() => handleEdit(session)}>Edit</button>
                     {(session.status === 'Draft') && (
                       <>
                       <button onClick={() => navigate(`/session/${session.id}`)}>
                       View Details
                     </button>
                       </>
+                    )}
+                    {session.status === 'Draft' && (
+                      <button onClick={() => activateSession(session.id)}>
+                        Activate
+                      </button>
                     )}
                     
                     {(session.status === 'Activated' || session.status === 'In Progress') && (
@@ -290,7 +289,6 @@ function Admin() {
                       </>
                     )}
                     <button onClick={() => cloneSession(session.id)}>Clone</button>
-                    <button onClick={() => handleEdit(session)}>Edit</button>
                   </td>
                 </tr>
               ))
@@ -351,7 +349,7 @@ function Admin() {
           </>
         )}
       </div>
-      <Footer />
+      {/* <Footer /> */}
     </>
   );
 }

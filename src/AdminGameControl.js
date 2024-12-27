@@ -6,7 +6,7 @@ function AdminGameControl() {
   const API_URL = process.env.REACT_APP_API_URL;
   const { sessionId } = useParams();
 
-  const [groups, setGroups] = useState([]);
+  const [setGroups] = useState([]);
   const [camemberts, setCamemberts] = useState([]);
   const [answers, setAnswers] = useState([]);
   const [currentQuestion, setCurrentQuestion] = useState(null);

@@ -57,7 +57,7 @@ function App() {
         </form>
         {error && <p style={{ color: "red" }}>{error}</p>}
       </div>
-      <Footer />
+      {/* <Footer /> */}
     </>
   );
 }

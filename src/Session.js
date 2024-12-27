@@ -182,14 +182,14 @@ function Session() {
         }
       );
 
-      // Update the question list with the updated question
-      setQuestions((prev) =>
-        prev.map((q) =>
+      // After the question is successfully updated, update the state to reflect the changes
+      setQuestions((prevQuestions) =>
+        prevQuestions.map((q) =>
           q.id === editingQuestion.id ? { ...q, ...response.data } : q
         )
       );
 
-      setEditingQuestion(null); // Clear the editing state
+      setEditingQuestion(null); // Clear the editing state after the update
     } catch (err) {
       console.error("Failed to update question:", err);
     }
@@ -210,20 +210,17 @@ function Session() {
       console.error("Failed to fetch group details:", err);
     }
   };
-  
-  
-  
 
   const updateGroup = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem("token");
-  
+
     // Ensure editingGroup has the correct id before making the update
     if (!editingGroup || !editingGroup.id) {
       console.error("Group ID is missing");
       return;
     }
-  
+
     try {
       const response = await axios.put(
         `${API_URL}/sessions/${id}/groups/${editingGroup.id}`,
@@ -232,20 +229,19 @@ function Session() {
           headers: { Authorization: token },
         }
       );
-  
+
       // Update the groups list with the updated group
       setGroups((prev) =>
         prev.map((g) =>
           g.id === editingGroup.id ? { ...g, ...response.data } : g
         )
       );
-  
+
       setEditingGroup(null); // Clear the editing state after the update
     } catch (err) {
       console.error("Failed to update group:", err);
     }
   };
-  
 
   // Cancel the question edit and reset state
   const cancelQuestionEdit = () => {
@@ -289,7 +285,6 @@ function Session() {
     }
   };
 
-  
   return (
     <>
       <Header />
@@ -319,11 +314,15 @@ function Session() {
                   <td>{question.title}</td>
                   <td>{question.expected_answer}</td>
                   <td>{question.allocated_time}</td>
-                  <td>
+                  <td class="actions">
                     <button onClick={() => editQuestion(question.id)}>
                       Edit
                     </button>
-                    <button onClick={() => removeQuestionFromSession(question.id)}>Remove</button>
+                    <button
+                      onClick={() => removeQuestionFromSession(question.id)}
+                    >
+                      Remove
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -390,6 +389,18 @@ function Session() {
         {/* Editing a Question */}
         {editingQuestion && (
           <form onSubmit={updateQuestion}>
+            <select
+              value={editingQuestion.type}
+              onChange={(e) =>
+                setEditingQuestion({
+                  ...editingQuestion,
+                  type: e.target.value,
+                })
+              }
+            >
+              <option value="red">Red</option>
+              <option value="green">Green</option>
+            </select>
             <input
               type="text"
               value={editingQuestion.title}
@@ -427,6 +438,31 @@ function Session() {
           </form>
         )}
 
+        <h2>Link Existing Question</h2>
+        <form onSubmit={linkExistingQuestion}>
+          <select
+            value={selectedQuestionId}
+            onChange={(e) => setSelectedQuestionId(e.target.value)}
+            required
+          >
+            <option value="">Select a question</option>
+            {Array.isArray(allQuestions) && allQuestions.length > 0 ? (
+              allQuestions.map((question) => (
+                <option key={question.id} value={question.id}>
+                  {question.title}
+                </option>
+              ))
+            ) : (
+              <option value="" disabled>
+                No questions available
+              </option>
+            )}
+          </select>
+          <button type="submit" disabled={allQuestions.length === 0}>
+            Link Question
+          </button>
+        </form>
+
         <h2>Groups</h2>
         {groups.length === 0 ? (
           <p>No groups available for this session.</p>
@@ -441,17 +477,19 @@ function Session() {
               </tr>
             </thead>
             <tbody>
-            {groups.map((group) => (
-  <tr key={group.id}>
-    <td>{group.id}</td>
-    <td>{group.name}</td>
-    <td>{group.description}</td>
-    <td>
-      <button onClick={() => editGroup(group.id)}>Edit</button>
-      <button onClick={() => deleteGroup(group.id)}>Delete</button>
-    </td>
-  </tr>
-))}
+              {groups.map((group) => (
+                <tr key={group.id}>
+                  <td>{group.id}</td>
+                  <td>{group.name}</td>
+                  <td>{group.description}</td>
+                  <td class="actions">
+                    <button onClick={() => editGroup(group.id)}>Edit</button>
+                    <button onClick={() => deleteGroup(group.id)}>
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         )}
@@ -486,34 +524,33 @@ function Session() {
           </form>
         )}
 
-{editingGroup && (
-  <form onSubmit={updateGroup}>
-    <input
-      type="text"
-      value={editingGroup.name}
-      onChange={(e) =>
-        setEditingGroup({ ...editingGroup, name: e.target.value })
-      }
-    />
-    <input
-      type="text"
-      value={editingGroup.description}
-      onChange={(e) =>
-        setEditingGroup({
-          ...editingGroup,
-          description: e.target.value,
-        })
-      }
-    />
-    <button type="submit">Update</button>
-    <button type="button" onClick={cancelGroupEdit}>
-      Cancel
-    </button>
-  </form>
-)}
-
+        {editingGroup && (
+          <form onSubmit={updateGroup}>
+            <input
+              type="text"
+              value={editingGroup.name}
+              onChange={(e) =>
+                setEditingGroup({ ...editingGroup, name: e.target.value })
+              }
+            />
+            <input
+              type="text"
+              value={editingGroup.description}
+              onChange={(e) =>
+                setEditingGroup({
+                  ...editingGroup,
+                  description: e.target.value,
+                })
+              }
+            />
+            <button type="submit">Update</button>
+            <button type="button" onClick={cancelGroupEdit}>
+              Cancel
+            </button>
+          </form>
+        )}
       </div>
-      <Footer />
+      {/* <Footer /> */}
     </>
   );
 }
