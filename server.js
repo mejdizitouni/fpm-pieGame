@@ -135,7 +135,7 @@ app.post("/login", (req, res) => {
 });
 
 // Protected admin route
-app.get("/admin", (req, res) => {
+app.get("/admin-check", (req, res) => {
   const token = req.headers["authorization"];
   if (!token) {
     return res.status(401).json({ message: "Access denied" });
@@ -145,10 +145,10 @@ app.get("/admin", (req, res) => {
     if (err) {
       return res.status(403).json({ message: "Invalid token" });
     }
-
     res.json({ message: `Hello, ${decoded.username}` });
   });
 });
+
 
 // Fetch all game sessions
 app.get("/game-sessions", (req, res) => {

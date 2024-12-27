@@ -1,5 +1,5 @@
 import "./App.css";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Header from "./Header";
@@ -12,6 +12,15 @@ function App() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
+  // Check if the user is already authenticated
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      // If a token exists, redirect to the admin page
+      navigate("/admin");
+    }
+  }, [navigate]); // This will run once when the component is mounted
+
   const handleLogin = async (e) => {
     e.preventDefault();
 
@@ -21,7 +30,7 @@ function App() {
         password,
       });
       localStorage.setItem("token", response.data.token); // Save JWT in local storage
-      navigate("/admin"); // Redirect to /admin
+      navigate("/admin"); // Redirect to /admin after successful login
     } catch (err) {
       setError("Invalid credentials");
     }
@@ -30,8 +39,7 @@ function App() {
   return (
     <>
       <Header />
-      <div className="container">
-        <h1>Login</h1>
+      <div className="login-container">
         <form onSubmit={handleLogin}>
           <input
             type="text"

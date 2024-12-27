@@ -1,7 +1,7 @@
 function Footer() {
     return (
       <footer>
-        <p>© 2024 Game Management App. All rights reserved.</p>
+        <p>© 2024 Pie Game App. All rights reserved.</p>
       </footer>
     );
   }

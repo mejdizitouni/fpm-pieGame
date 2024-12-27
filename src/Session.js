@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import Header from "./Header";
 import Footer from "./Footer";
@@ -21,11 +21,15 @@ function Session() {
     name: "",
     description: "",
   });
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
       const token = localStorage.getItem("token");
-      if (!token) return;
+      if (!token) {
+        navigate("/");
+        return;
+      }
 
       try {
         // Fetch questions for the current session

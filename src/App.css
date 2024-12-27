@@ -6,17 +6,10 @@ body {
   background-color: #f9f9f9;
 }
 
-header {
-  background-color: #4caf50;
-  color: white;
-  text-align: center;
-  padding: 15px 0;
-  font-size: 24px;
-}
 
 footer {
-  background-color: #4caf50;
-  color: white;
+  background-color: lightgoldenrodyellow;
+  color: #714c16;
   text-align: center;
   padding: 10px 0;
   position: fixed;
@@ -25,7 +18,7 @@ footer {
   font-size: 14px;
 }
 
-/* Container */
+
 .container {
   max-width: 800px;
   margin: 20px auto;
@@ -60,7 +53,7 @@ form button {
 }
 
 form button:hover {
-  background-color: #45a049;
+  background-color: lightgoldenrodyellow;
 }
 
 /* Table Styles */
@@ -93,7 +86,87 @@ table tr:hover {
 /* Titles */
 h1,
 h2 {
-  color: #333;
+  color: #714c16;
   margin-bottom: 10px;
   text-align: center;
+}
+
+
+
+/* login */
+.login-container {
+  margin: 0 !important;
+  background: white !important;
+  padding: 20px !important;
+  border-radius: 8px !important;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1) !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+}
+
+.login-container form input {
+  width: unset !important;
+}
+
+.login-container form button {
+  background-color: lightgoldenrodyellow !important;
+  color: #714c16 !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: background-color 0.3s ease !important;
+  width: -webkit-fill-available !important;
+}
+
+/* header */
+header {
+  background-color: lightgoldenrodyellow;
+  color: #714c16;
+  text-align: left;
+  font-size: 24px;
+  position: relative;
+  padding: 10px 20px; /* Add some padding for spacing */
+  display: flex;
+  align-items: center; /* Align content vertically */
+}
+
+header>img {
+  max-width: 60px; /* Make the image smaller and responsive */
+  height: auto;
+}
+
+header .burger-menu {
+  background: none;
+  border: none;
+  font-size: 30px;
+  cursor: pointer;
+  color: #714c16;
+  position: absolute; /* Position the burger menu on the right */
+  right: 20px; /* Move the burger menu to the right side */
+  top: 50%; /* Center the burger menu vertically */
+  transform: translateY(-50%);
+  z-index: 101; /* Ensure burger menu is on top */
+}
+
+header .dropdown-menu {
+  position: absolute;
+  top: 60px; /* Position dropdown directly under the burger menu */
+  right: 20px; /* Align it to the right side of the burger menu */
+  background-color: lightgoldenrodyellow;
+  color: #714c16;
+  border-radius: 5px;
+  padding: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  width: 150px; /* Optionally set a fixed width for the dropdown */
+  z-index: 102; /* Ensure dropdown is above the burger menu */
+}
+
+header .dropdown-menu button {
+  background-color: lightgoldenrodyellow;
+  color: #714c16;
+  border: none;
+  padding: 10px;
+  cursor: pointer;
+  width: 100%; /* Make the button fill the dropdown width */
 }

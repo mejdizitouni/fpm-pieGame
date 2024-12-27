@@ -6,6 +6,7 @@ import Admin from "./Admin"; // Admin Dashboard
 import Session from "./Session"; // Session Details
 import AdminGameControl from "./AdminGameControl"; // Admin Game Control
 import Game from "./Game"; // Group Game Page
+import ProtectedRoute from './ProtectedRoute'; // Protected Route component for authentication check
 
 ReactDOM.render(
   <BrowserRouter>

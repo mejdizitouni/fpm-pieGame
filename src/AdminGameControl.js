@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { io } from "socket.io-client";
 
 function AdminGameControl() {
@@ -12,11 +12,17 @@ function AdminGameControl() {
   const [currentQuestion, setCurrentQuestion] = useState(null);
   const [timer, setTimer] = useState(30);
   const socket = io(API_URL);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Fetch initial data and join the session
     const fetchInitialData = async () => {
       const token = localStorage.getItem("token");
+      if (!token) {
+        navigate("/");
+        return;
+      }
+
       try {
         const groupsRes = await fetch(`${API_URL}/sessions/${sessionId}/groups`, {
           headers: { Authorization: token },

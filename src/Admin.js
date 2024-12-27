@@ -21,7 +21,7 @@ function Admin() {
       }
 
       try {
-        const response = await axios.get(`${API_URL}/admin`, {
+        const response = await axios.get(`${API_URL}/admin-check`, {
           headers: { Authorization: token },
         });
         setMessage(response.data.message);
