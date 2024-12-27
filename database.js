@@ -44,7 +44,7 @@ db.serialize(() => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT,
       date TEXT,
-      status TEXT DEFAULT 'waiting'
+      status TEXT DEFAULT 'Draft'
     )
   `);
 
@@ -113,7 +113,7 @@ db.serialize(() => {
   db.serialize(() => {
     // Add a game session
     db.run(
-      `INSERT INTO game_sessions (title, date, status) VALUES ('Test Session', '2024-01-01', 'waiting')`
+      `INSERT INTO game_sessions (title, date, status) VALUES ('Test Session', '2024-01-01', 'Draft')`
     );
 
     // Get the session ID

@@ -16,14 +16,13 @@ const server = http.createServer(app); // Create an HTTP server
 const io = new Server(server); // Attach Socket.IO to the server
 
 io.on("connection", (socket) => {
-
   let nextQuestionType = "green"; // Start with green
   const askedQuestions = new Set(); // Track asked questions to prevent repetition
 
   socket.on("startGame", (sessionId) => {
     fetchNextQuestion(sessionId); // Ensure this is working properly and emitting the data
   });
-  
+
   const fetchNextQuestion = (sessionId) => {
     db.get(
       `
@@ -39,62 +38,77 @@ io.on("connection", (socket) => {
           console.error("Database error:", err);
           return;
         }
-  
+
         if (question) {
           askedQuestions.add(question.id); // Mark question as asked
-          io.to(sessionId).emit("newQuestion", { question, timer: question.allocated_time || 30 });
+          io.to(sessionId).emit("newQuestion", {
+            question,
+            timer: question.allocated_time || 30,
+          });
           nextQuestionType = nextQuestionType === "green" ? "red" : "green"; // Alternate type
         } else {
-          io.to(sessionId).emit("noQuestions", { message: "No more questions available." });
+          io.to(sessionId).emit("noQuestions", {
+            message: "No more questions available.",
+          });
         }
       }
     );
   };
-  
 
-  socket.on("submitAnswer", ({ sessionId, groupId, questionId, answer, stoppedTimer }) => {
-    const timeSubmitted = new Date().toISOString();
-    const groupName = "Group Name"; // Replace with group lookup if needed
+  socket.on(
+    "submitAnswer",
+    ({ sessionId, groupId, questionId, answer, stoppedTimer }) => {
+      const timeSubmitted = new Date().toISOString();
+      const groupName = "Group Name"; // Replace with group lookup if needed
 
-    const submittedAnswer = {
-      sessionId,
-      groupId,
-      questionId,
-      answer,
-      stoppedTimer,
-      groupName,
-      timeSubmitted,
-    };
+      const submittedAnswer = {
+        sessionId,
+        groupId,
+        questionId,
+        answer,
+        stoppedTimer,
+        groupName,
+        timeSubmitted,
+      };
 
-    io.to(`${sessionId}`).emit("answerSubmitted", submittedAnswer);
-  });
+      io.to(`${sessionId}`).emit("answerSubmitted", submittedAnswer);
+    }
+  );
 
-  socket.on("validateAnswer", ({ sessionId, groupId, questionId, isCorrect, multiplier }) => {
-    db.get(`SELECT type FROM questions WHERE id = ?`, [questionId], (err, question) => {
-      if (err || !question) {
-        console.error("Error fetching question type:", err);
-        return;
-      }
-  
-      const triangleType = question.type === "red" ? "red_triangles" : "green_triangles";
-      const scoreChange = isCorrect ? multiplier : -1;
-  
-      db.run(
-        `UPDATE camembert_progress SET ${triangleType} = MAX(0, ${triangleType} + ?) WHERE group_id = ?`,
-        [scoreChange, groupId],
-        (err) => {
-          if (err) console.error("Error updating camembert:", err);
+  socket.on(
+    "validateAnswer",
+    ({ sessionId, groupId, questionId, isCorrect, multiplier }) => {
+      db.get(
+        `SELECT type FROM questions WHERE id = ?`,
+        [questionId],
+        (err, question) => {
+          if (err || !question) {
+            console.error("Error fetching question type:", err);
+            return;
+          }
+
+          const triangleType =
+            question.type === "red" ? "red_triangles" : "green_triangles";
+          const scoreChange = isCorrect ? multiplier : -1;
+
+          db.run(
+            `UPDATE camembert_progress SET ${triangleType} = MAX(0, ${triangleType} + ?) WHERE group_id = ?`,
+            [scoreChange, groupId],
+            (err) => {
+              if (err) console.error("Error updating camembert:", err);
+            }
+          );
+
+          io.to(sessionId).emit("camembertUpdated", {
+            groupId,
+            triangleType,
+            scoreChange,
+          });
         }
       );
-  
-      io.to(sessionId).emit("camembertUpdated", {
-        groupId,
-        triangleType,
-        scoreChange,
-      });
-    });
-  });
-  
+    }
+  );
+
   socket.on("nextQuestion", (sessionId) => {
     fetchNextQuestion(sessionId);
   });
@@ -104,8 +118,7 @@ io.on("connection", (socket) => {
     socket.join(roomName);
   });
 
-  socket.on("disconnect", () => {
-  });
+  socket.on("disconnect", () => {});
 });
 
 app.use(express.json());
@@ -148,7 +161,6 @@ app.get("/admin-check", (req, res) => {
     res.json({ message: `Hello, ${decoded.username}` });
   });
 });
-
 
 // Fetch all game sessions
 app.get("/game-sessions", (req, res) => {
@@ -235,6 +247,192 @@ app.post("/questions", (req, res) => {
   });
 });
 
+// Update a question
+app.put("/questions/:id", (req, res) => {
+  const token = req.headers["authorization"];
+  if (!token) {
+    return res.status(401).json({ message: "Access denied" });
+  }
+
+  // Verify the token
+  jwt.verify(token, SECRET_KEY, (err) => {
+    if (err) {
+      return res.status(403).json({ message: "Invalid token" });
+    }
+
+    const questionId = req.params.id;
+    const { title, expected_answer, allocated_time } = req.body;
+
+    // Check if required fields are provided
+    if (!title || !expected_answer || !allocated_time) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    // Update the question in the database
+    db.run(
+      `UPDATE questions SET title = ?, expected_answer = ?, allocated_time = ? WHERE id = ?`,
+      [title, expected_answer, allocated_time, questionId],
+      function (err) {
+        if (err) {
+          console.error("Database Error:", err);
+          return res.status(500).json({ message: "Failed to update question" });
+        }
+
+        if (this.changes === 0) {
+          return res.status(404).json({ message: "Question not found" });
+        }
+
+        // Respond with the updated question data
+        res.json({ id: questionId, title, expected_answer, allocated_time });
+      }
+    );
+  });
+});
+
+// Fetch group details by ID
+app.get("/sessions/:id/groups/:groupId", (req, res) => {
+  const sessionId = req.params.id;
+  const groupId = req.params.groupId;
+  db.get(
+    `SELECT * FROM groups WHERE session_id = ? AND id = ?`,
+    [sessionId, groupId],
+    (err, row) => {
+      if (err) {
+        console.error("Database Error:", err);
+        return res.status(500).json({ message: "Database error" });
+      }
+      if (!row) {
+        return res.status(404).json({ message: "Group not found" });
+      }
+      res.json(row);
+    }
+  );
+});
+
+// Delete a group from the database
+app.delete("/sessions/:sessionId/groups/:groupId", (req, res) => {
+  const token = req.headers["authorization"];
+  if (!token) {
+    return res.status(401).json({ message: "Access denied" });
+  }
+
+  jwt.verify(token, SECRET_KEY, (err) => {
+    if (err) {
+      return res.status(403).json({ message: "Invalid token" });
+    }
+
+    const sessionId = req.params.sessionId;
+    const groupId = req.params.groupId;
+
+    // Delete related camembert_progress records (if needed)
+    db.run(
+      `DELETE FROM camembert_progress WHERE group_id = ?`,
+      [groupId],
+      (err) => {
+        if (err) {
+          console.error("Error deleting camembert progress:", err);
+          return res.status(500).json({ message: "Database error" });
+        }
+
+        // Delete the group from the database
+        db.run(
+          `DELETE FROM groups WHERE id = ? AND session_id = ?`,
+          [groupId, sessionId],
+          function (err) {
+            if (err) {
+              console.error("Error deleting group:", err);
+              return res.status(500).json({ message: "Failed to delete group" });
+            }
+
+            if (this.changes === 0) {
+              return res.status(404).json({ message: "Group not found" });
+            }
+
+            res.json({ message: "Group deleted successfully" });
+          }
+        );
+      }
+    );
+  });
+});
+
+// Remove a question from a session (without deleting the question itself)
+app.delete("/sessions/:sessionId/questions/:questionId", (req, res) => {
+  const token = req.headers["authorization"];
+  if (!token) {
+    return res.status(401).json({ message: "Access denied" });
+  }
+
+  jwt.verify(token, SECRET_KEY, (err) => {
+    if (err) {
+      return res.status(403).json({ message: "Invalid token" });
+    }
+
+    const sessionId = req.params.sessionId;
+    const questionId = req.params.questionId;
+
+    // Remove the link between the session and the question
+    db.run(
+      `DELETE FROM session_questions WHERE session_id = ? AND question_id = ?`,
+      [sessionId, questionId],
+      function (err) {
+        if (err) {
+          console.error("Error removing question from session:", err);
+          return res.status(500).json({ message: "Database error" });
+        }
+
+        if (this.changes === 0) {
+          return res.status(404).json({ message: "Question not found in session" });
+        }
+
+        res.json({ message: "Question removed from session successfully" });
+      }
+    );
+  });
+});
+
+
+// Update a group
+app.put("/sessions/:sessionId/groups/:groupId", (req, res) => {
+  const token = req.headers["authorization"];
+  if (!token) {
+    return res.status(401).json({ message: "Access denied" });
+  }
+
+  jwt.verify(token, SECRET_KEY, (err) => {
+    if (err) {
+      return res.status(403).json({ message: "Invalid token" });
+    }
+
+    const sessionId = req.params.sessionId;
+    const groupId = req.params.groupId;
+    const { name, description } = req.body;
+
+    if (!name || !description) {
+      return res
+        .status(400)
+        .json({ message: "Both name and description are required" });
+    }
+
+    db.run(
+      `UPDATE groups SET name = ?, description = ? WHERE id = ? AND session_id = ?`,
+      [name, description, groupId, sessionId],
+      function (err) {
+        if (err) {
+          console.error("Database Error:", err);
+          return res.status(500).json({ message: "Failed to update group" });
+        }
+
+        if (this.changes === 0) {
+          return res.status(404).json({ message: "Group not found" });
+        }
+
+        res.json({ id: groupId, name, description });
+      }
+    );
+  });
+});
+
 // Fetch question details by ID
 app.get("/questions/:id", (req, res) => {
   const token = req.headers["authorization"];
@@ -258,6 +456,80 @@ app.get("/questions/:id", (req, res) => {
       }
       res.json(row);
     });
+  });
+});
+
+// Fetch session details by ID
+app.get("/sessions/:id", (req, res) => {
+  const token = req.headers["authorization"];
+  if (!token) {
+    return res.status(401).json({ message: "Access denied" });
+  }
+
+  jwt.verify(token, SECRET_KEY, (err) => {
+    if (err) {
+      return res.status(403).json({ message: "Invalid token" });
+    }
+
+    const sessionId = req.params.id;
+
+    db.get(
+      `SELECT * FROM game_sessions WHERE id = ?`,
+      [sessionId],
+      (err, row) => {
+        if (err) {
+          console.error("Database Error:", err);
+          return res.status(500).json({ message: "Database error" });
+        }
+        if (!row) {
+          return res.status(404).json({ message: "Session not found" });
+        }
+        res.json(row); // Send the session details as response
+      }
+    );
+  });
+});
+
+// Add a new endpoint to update the session
+app.put("/sessions/:id", (req, res) => {
+  const token = req.headers["authorization"];
+  if (!token) {
+    return res.status(401).json({ message: "Access denied" });
+  }
+
+  // Verify the token
+  jwt.verify(token, SECRET_KEY, (err) => {
+    if (err) {
+      return res.status(403).json({ message: "Invalid token" });
+    }
+
+    // Extract the session ID and the new data from the request
+    const sessionId = req.params.id;
+    const { title, date } = req.body;
+
+    // Check if title and date are provided
+    if (!title || !date) {
+      return res.status(400).json({ message: "Title and Date are required" });
+    }
+
+    // Update the session in the database
+    db.run(
+      `UPDATE game_sessions SET title = ?, date = ? WHERE id = ?`,
+      [title, date, sessionId],
+      function (err) {
+        if (err) {
+          console.error("Database Error:", err);
+          return res.status(500).json({ message: "Failed to update session" });
+        }
+
+        if (this.changes === 0) {
+          return res.status(404).json({ message: "Session not found" });
+        }
+
+        // Respond with the updated session data
+        res.json({ id: sessionId, title, date });
+      }
+    );
   });
 });
 
@@ -428,9 +700,9 @@ app.post("/sessions/:id/activate", (req, res) => {
     // Derive frontend URL from the request's origin
     const frontendUrl = `${req.protocol}://${req.get("host")}`;
 
-    // Update the session status to 'active'
+    // Update the session status to 'Activated'
     db.run(
-      `UPDATE game_sessions SET status = 'active' WHERE id = ?`,
+      `UPDATE game_sessions SET status = 'Activated' WHERE id = ?`,
       [sessionId],
       function (err) {
         if (err) {

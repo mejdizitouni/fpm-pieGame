@@ -93,31 +93,8 @@ h2 {
 
 
 
-/* login */
-.login-container {
-  margin: 0 !important;
-  background: white !important;
-  padding: 20px !important;
-  border-radius: 8px !important;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1) !important;
-  position: absolute !important;
-  top: 50% !important;
-  left: 50% !important;
-  transform: translate(-50%, -50%) !important;
-}
 
-.login-container form input {
-  width: unset !important;
-}
 
-.login-container form button {
-  background-color: lightgoldenrodyellow !important;
-  color: #714c16 !important;
-  border: none !important;
-  cursor: pointer !important;
-  transition: background-color 0.3s ease !important;
-  width: -webkit-fill-available !important;
-}
 
 /* header */
 header {
@@ -169,4 +146,80 @@ header .dropdown-menu button {
   padding: 10px;
   cursor: pointer;
   width: 100%; /* Make the button fill the dropdown width */
+}
+
+/* login */
+.login-container {
+  margin: 0 !important;
+  background: white !important;
+  padding: 20px !important;
+  border-radius: 8px !important;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1) !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+}
+
+.login-container form input {
+  width: unset !important;
+}
+
+.login-container form button {
+  background-color: lightgoldenrodyellow !important;
+  color: #714c16 !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: background-color 0.3s ease !important;
+  width: -webkit-fill-available !important;
+  border-radius: 5px !important;
+  display: block !important;
+  margin: 10px 0 !important;
+  padding: 10px !important;
+}
+
+/* admin */
+.admin-container {
+  max-width: 90% !important;
+  margin: 20px auto !important;
+  background: white !important;
+  padding: 20px !important;
+  border-radius: 8px !important;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1) !important;
+}
+
+.admin-container button {
+  background-color: lightgoldenrodyellow !important;
+  color: #714c16 !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: background-color 0.3s ease !important;
+  width: -webkit-fill-available !important;
+  border-radius: 5px !important;
+  display: block !important;
+  margin: 10px 0 !important;
+  padding: 10px !important;
+}
+
+/* admin */
+.session-container {
+  max-width: 90% !important;
+  margin: 20px auto !important;
+  background: white !important;
+  padding: 20px !important;
+  border-radius: 8px !important;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1) !important;
+}
+
+.session-container button {
+  background-color: lightgoldenrodyellow !important;
+  color: #714c16 !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: background-color 0.3s ease !important;
+  width: -webkit-fill-available !important;
+  border-radius: 5px !important;
+  display: block !important;
+  margin: 10px 0 !important;
+  padding: 10px !important;
 }
