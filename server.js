@@ -86,11 +86,11 @@ io.on("connection", (socket) => {
             console.error("Error fetching question type:", err);
             return;
           }
-
+  
           const triangleType =
             question.type === "red" ? "red_triangles" : "green_triangles";
           const scoreChange = isCorrect ? multiplier : -1;
-
+  
           db.run(
             `UPDATE camembert_progress SET ${triangleType} = MAX(0, ${triangleType} + ?) WHERE group_id = ?`,
             [scoreChange, groupId],
@@ -98,7 +98,7 @@ io.on("connection", (socket) => {
               if (err) console.error("Error updating camembert:", err);
             }
           );
-
+  
           io.to(sessionId).emit("camembertUpdated", {
             groupId,
             triangleType,
@@ -108,6 +108,7 @@ io.on("connection", (socket) => {
       );
     }
   );
+  
 
   socket.on("nextQuestion", (sessionId) => {
     fetchNextQuestion(sessionId);

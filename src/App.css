@@ -267,3 +267,177 @@ footer {
   margin: 10px 0;
   padding: 10px;
 }
+
+/* admin-game-control */
+.admin-game-control-container {
+  max-width: 90%;
+  margin: 20px auto;
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.admin-game-control-container button {
+  background-color: lightgoldenrodyellow;
+  color: #714c16;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  width: 100%;
+  border-radius: 5px;
+  display: block;
+  margin: 10px 0;
+  padding: 10px;
+}
+
+.admin-game-control-container .actions {
+  display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.admin-game-control-container h1,
+.admin-game-control-container h2 {
+  color: #714c16;
+  margin-bottom: 10px;
+  text-align: center;
+} 
+
+.admin-game-control-container table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+}
+
+.admin-game-control-container table th,
+.admin-game-control-container table td {
+  border: 1px solid #ddd;
+  padding: 10px;
+  text-align: left;
+}
+
+.admin-game-control-container table th {
+  background-color: #f2f2f2;
+  font-weight: bold;
+}
+
+.admin-game-control-container table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.admin-game-control-container form input,
+.admin-game-control-container form select {
+  width: -webkit-fill-available;
+  display: block;
+  margin: 10px 0;
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid #ddd;
+}
+
+.admin-game-control-container form button {
+  background-color: lightgoldenrodyellow;
+  color: #714c16;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  width: 100%;
+  border-radius: 5px;
+  display: block;
+  margin: 10px 0;
+  padding: 10px;
+}
+
+.admin-game-control-container .pie-chart-list {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, 1fr);
+}
+
+/* game */
+.game-container {
+  max-width: 90%;
+  margin: 20px auto;
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.game-container button {
+  background-color: lightgoldenrodyellow;
+  color: #714c16;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  width: 100%;
+  border-radius: 5px;
+  display: block;
+  margin: 10px 0;
+  padding: 10px;
+}
+
+.game-container .actions {
+  display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.game-container h1,
+.game-container h2 {
+  color: #714c16;
+  margin-bottom: 10px;
+  text-align: center;
+} 
+
+.game-container table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+}
+
+.game-container table th,
+.game-container table td {
+  border: 1px solid #ddd;
+  padding: 10px;
+  text-align: left;
+}
+
+.game-container table th {
+  background-color: #f2f2f2;
+  font-weight: bold;
+}
+
+.game-container table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.game-container form input,
+.game-container form select {
+  width: -webkit-fill-available;
+  display: block;
+  margin: 10px 0;
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid #ddd;
+}
+
+.game-container form button {
+  background-color: lightgoldenrodyellow;
+  color: #714c16;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  width: 100%;
+  border-radius: 5px;
+  display: block;
+  margin: 10px 0;
+  padding: 10px;
+}
+
+.game-container .pie-chart-list {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, 1fr);
+}
