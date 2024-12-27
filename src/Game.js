@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { io } from "socket.io-client";
-import PieChart from "./PieChart"; // Assuming PieChart component is imported
+import PieChart from "./PieChart"; 
 
 const socket = io(process.env.REACT_APP_API_URL);
 
@@ -14,8 +14,8 @@ function Game() {
   const [answer, setAnswer] = useState("");
   const [submittedAnswer, setSubmittedAnswer] = useState(null);
   const [waitingForValidation, setWaitingForValidation] = useState(false);
-  const [camemberts, setCamemberts] = useState([]); // Store all groups' camemberts
-  const [answerValidated, setAnswerValidated] = useState(false); // Track if the answer has been validated
+  const [camemberts, setCamemberts] = useState([]);
+  const [answerValidated, setAnswerValidated] = useState(false);
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -25,35 +25,28 @@ function Game() {
       }
 
       try {
-        const camembertsRes = await fetch(
-          `${process.env.REACT_APP_API_URL}/sessions/${sessionId}/camemberts`,
-          {
-            headers: { Authorization: token },
-          }
-        );
+        const camembertsRes = await fetch(`${process.env.REACT_APP_API_URL}/sessions/${sessionId}/camemberts`, {
+          headers: { Authorization: token },
+        });
         setCamemberts(await camembertsRes.json());
       } catch (err) {
         console.error("Failed to fetch initial data:", err);
       }
     };
 
-    // Join the session as a player
     socket.emit("joinSession", { sessionId, groupId, role: "player" });
 
-    // Listen for startGame event to switch the game to active
     socket.on("startGame", () => {
       setStatus("active");
     });
 
-    // Listen for new question updates
     socket.on("newQuestion", ({ question, timer }) => {
       setQuestion(question);
       setTimer(timer);
       setStatus("active");
-      setAnswerValidated(false); // Reset answer validation when a new question comes up
+      setAnswerValidated(false);
     });
 
-    // Listen for updates to the camemberts (score updates)
     socket.on("camembertUpdated", (progress) => {
       setCamemberts((prev) => {
         const updatedCamemberts = prev.map((cam) => {
@@ -70,7 +63,6 @@ function Game() {
       });
     });
 
-    // Fetch initial data (camemberts)
     fetchInitialData();
 
     return () => socket.disconnect();
@@ -96,13 +88,12 @@ function Game() {
         groupId,
         questionId: question.id,
         answer,
-        stoppedTimer,
+        stoppedTimer, // This value is passed when the player stops the timer
       });
       setAnswer(""); // Clear the input
     }
-  };
+  };  
 
-  // This will listen for when the admin validates the answer
   useEffect(() => {
     socket.on("answerValidated", (validationData) => {
       if (validationData.groupId === parseInt(groupId)) {
@@ -121,6 +112,7 @@ function Game() {
       {status === "active" && question && (
         <>
           <h1>Question: {question.title}</h1>
+          <p>Type: {question.type === "red" ? "Red (Calculation)" : "Green (Quick Answer)"}</p>
           <p>Time Remaining: {timer} seconds</p>
 
           {submittedAnswer && !answerValidated ? (
@@ -156,7 +148,6 @@ function Game() {
       )}
 
       <h2>Camembert Progress</h2>
-      {/* Display all groups' camemberts */}
       <ul className="pie-chart-list">
         {camemberts.map((cam) => (
           <li key={cam.group_id}>

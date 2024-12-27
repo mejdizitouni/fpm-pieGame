@@ -15,12 +15,12 @@ const { Server } = require("socket.io");
 const server = http.createServer(app); // Create an HTTP server
 const io = new Server(server); // Attach Socket.IO to the server
 
-io.on("connection", (socket) => {
-  let nextQuestionType = "green"; // Start with green
-  const askedQuestions = new Set(); // Track asked questions to prevent repetition
+let nextQuestionType = "green"; // Start with green
+const askedQuestions = new Set(); // Track asked questions to prevent repetition
 
+io.on("connection", (socket) => {
   socket.on("startGame", (sessionId) => {
-    fetchNextQuestion(sessionId); // Ensure this is working properly and emitting the data
+    fetchNextQuestion(sessionId);
   });
 
   const fetchNextQuestion = (sessionId) => {
@@ -45,69 +45,64 @@ io.on("connection", (socket) => {
             question,
             timer: question.allocated_time || 30,
           });
-          nextQuestionType = nextQuestionType === "green" ? "red" : "green"; // Alternate type
-        } else {
-          io.to(sessionId).emit("noQuestions", {
-            message: "No more questions available.",
-          });
+          nextQuestionType = nextQuestionType === "green" ? "red" : "green"; // Alternate between green and red
         }
       }
     );
   };
 
-  socket.on(
-    "submitAnswer",
-    ({ sessionId, groupId, questionId, answer, stoppedTimer }) => {
-      const timeSubmitted = new Date().toISOString();
-      const groupName = "Group Name"; // Replace with group lookup if needed
-
-      const submittedAnswer = {
-        sessionId,
-        groupId,
-        questionId,
-        answer,
-        stoppedTimer,
-        groupName,
-        timeSubmitted,
-      };
-
-      io.to(`${sessionId}`).emit("answerSubmitted", submittedAnswer);
-    }
-  );
-
-  socket.on(
-    "validateAnswer",
-    ({ sessionId, groupId, questionId, isCorrect, multiplier }) => {
-      db.get(
-        `SELECT type FROM questions WHERE id = ?`,
-        [questionId],
-        (err, question) => {
-          if (err || !question) {
-            console.error("Error fetching question type:", err);
-            return;
-          }
+  socket.on("submitAnswer", ({ sessionId, groupId, questionId, answer, stoppedTimer }) => {
+    const timeSubmitted = new Date().toISOString();
+    const groupName = "Group Name"; // Replace with actual group name
   
-          const triangleType =
-            question.type === "red" ? "red_triangles" : "green_triangles";
-          const scoreChange = isCorrect ? multiplier : -1;
+    const submittedAnswer = {
+      sessionId,
+      groupId,
+      questionId,
+      answer,
+      stoppedTimer, // Passing stoppedTimer here to use it for validation
+      groupName,
+      timeSubmitted,
+    };
   
-          db.run(
-            `UPDATE camembert_progress SET ${triangleType} = MAX(0, ${triangleType} + ?) WHERE group_id = ?`,
-            [scoreChange, groupId],
-            (err) => {
-              if (err) console.error("Error updating camembert:", err);
-            }
-          );
-  
-          io.to(sessionId).emit("camembertUpdated", {
-            groupId,
-            triangleType,
-            scoreChange,
-          });
+    io.to(sessionId).emit("answerSubmitted", submittedAnswer);
+  });  
+
+  socket.on("validateAnswer", ({ sessionId, groupId, questionId, isCorrect, multiplier, stoppedTimer }) => {
+    db.get(
+      `SELECT type FROM questions WHERE id = ?`,
+      [questionId],
+      (err, question) => {
+        if (err || !question) {
+          console.error("Error fetching question type:", err);
+          return;
         }
-      );
-    }
-  );
+  
+        const triangleType = question.type === "red" ? "red_triangles" : "green_triangles";
+  
+        // Determine the score change
+        const scoreChange = isCorrect
+          ? (stoppedTimer ? 2 : 1)  // If stoppedTimer is true, give double points
+          : -1;
+  
+        // Update the camembert progress
+        db.run(
+          `UPDATE camembert_progress SET ${triangleType} = MAX(0, ${triangleType} + ?) WHERE group_id = ?`,
+          [scoreChange, groupId],
+          (err) => {
+            if (err) console.error("Error updating camembert:", err);
+          }
+        );
+  
+        // Emit updated camembert progress
+        io.to(sessionId).emit("camembertUpdated", {
+          groupId,
+          triangleType,
+          scoreChange,
+        });
+      }
+    );
+  });
   
 
   socket.on("nextQuestion", (sessionId) => {
@@ -121,6 +116,7 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {});
 });
+
 
 app.use(express.json());
 app.use(cors());

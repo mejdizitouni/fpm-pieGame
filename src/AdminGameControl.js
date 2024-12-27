@@ -91,7 +91,6 @@ function AdminGameControl() {
       multiplier,
     });
 
-    // Emit event for player to know the answer is validated
     socket.emit("answerValidated", { groupId });
   };
 
@@ -113,8 +112,7 @@ function AdminGameControl() {
         {currentQuestion ? (
           <div>
             <h3>{currentQuestion.title}</h3>
-            <p>Type: {currentQuestion.type}</p>
-            <p>Title: {currentQuestion.title}</p>
+            <p>Type: {currentQuestion.type === "red" ? "Red (Calculation)" : "Green (Quick Answer)"}</p>
             <p>Expected Answer: {currentQuestion.expected_answer}</p>
             <p>Allocated Time: {timer} seconds</p>
           </div>
@@ -127,9 +125,7 @@ function AdminGameControl() {
           {answers.map((answer, index) => (
             <li key={index}>
               <strong>{answer.groupName}</strong>: {answer.answer}
-              <button onClick={() => validateAnswer(answer, answer.groupId)}>
-                Validate
-              </button>
+              <button onClick={() => validateAnswer(answer, answer.groupId)}>Validate</button>
             </li>
           ))}
         </ul>
