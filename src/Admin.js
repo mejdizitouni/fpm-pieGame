@@ -7,6 +7,7 @@ import Footer from "./Footer";
 function Admin() {
   const API_URL = process.env.REACT_APP_API_URL;
   const [gameSessions, setGameSessions] = useState([]);
+  const [adminSessionLink, setAdminSessionLink] = useState(""); // Admin session link
   const [activeSessionGroups, setActiveSessionGroups] = useState([]);
   const [newSession, setNewSession] = useState({ title: "", date: "" });
   const [showForm, setShowForm] = useState(false); // State to toggle form visibility
@@ -170,12 +171,13 @@ function Admin() {
         }
       );
 
-      setActiveSessionGroups(response.data.updatedGroups); // Save activated group URLs
-      // Fetch the updated session list
+      setActiveSessionGroups(response.data.updatedGroups);
+      setAdminSessionLink(`${window.location.origin}/admin/game/${sessionId}`);
+
       const sessionsResponse = await axios.get(`${API_URL}/game-sessions`, {
         headers: { Authorization: token },
       });
-      setGameSessions(sessionsResponse.data); // Update the state with the latest sessions
+      setGameSessions(sessionsResponse.data);
     } catch (err) {
       console.error("Failed to activate session", err);
     }
@@ -192,6 +194,7 @@ function Admin() {
         }
       );
       setActiveSessionGroups(response.data);
+      setAdminSessionLink(`${window.location.origin}/admin/game/${sessionId}`);
     } catch (err) {
       console.error("Failed to fetch group URLs", err);
     }
@@ -346,6 +349,17 @@ function Admin() {
                 </li>
               ))}
             </ul>
+          </>
+        )}
+
+        {adminSessionLink && (
+          <>
+            <h2>Admin Session Link</h2>
+            <p>
+              <a href={adminSessionLink} target="_blank" rel="noreferrer">
+                {adminSessionLink}
+              </a>
+            </p>
           </>
         )}
       </div>

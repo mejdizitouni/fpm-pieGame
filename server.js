@@ -15,60 +15,121 @@ const { Server } = require("socket.io");
 const server = http.createServer(app); // Create an HTTP server
 const io = new Server(server); // Attach Socket.IO to the server
 
-let nextQuestionType = "green"; // Start with green
-const askedQuestions = new Set(); // Track asked questions to prevent repetition
+// State tracking for sessions
+const sessionState = {}; // { sessionId: { currentIndex, totalQuestions, askedQuestions: Set }}
 
 io.on("connection", (socket) => {
   socket.on("startGame", (sessionId) => {
-    fetchNextQuestion(sessionId);
+    if (!sessionState[sessionId]) {
+      sessionState[sessionId] = { currentIndex: 0, askedQuestions: new Set(), totalQuestions: 0 };
+
+      // Fetch total number of questions for the session and initialize game state
+      db.get(
+        `SELECT COUNT(*) as total FROM session_questions WHERE session_id = ?`,
+        [sessionId],
+        (err, result) => {
+          if (err || !result) {
+            console.error("Error fetching total questions:", err);
+            return;
+          }
+
+          sessionState[sessionId].totalQuestions = result.total;
+          fetchNextQuestion(sessionId); // Start the game after initialization
+        }
+      );
+    } else {
+      fetchNextQuestion(sessionId); // Resume game if already initialized
+    }
   });
 
   const fetchNextQuestion = (sessionId) => {
-    db.get(
-      `
-      SELECT q.* FROM questions q
+    const state = sessionState[sessionId];
+  
+    // Check if all questions have been asked
+    if (state.currentIndex >= state.totalQuestions) {
+      io.to(sessionId).emit("gameOver");
+      return;
+    }
+  
+    // Alternate question types: green for even indexes, red for odd indexes
+    const questionType = state.currentIndex % 2 === 0 ? "green" : "red";
+  
+    let notInClause = "q.id IS NOT NULL"; // Default when no questions have been asked
+    const queryParams = [sessionId, questionType];
+  
+    if (state.askedQuestions.size > 0) {
+      // Build the `NOT IN` clause dynamically
+      notInClause = `q.id NOT IN (${[...state.askedQuestions].map(() => "?").join(",")})`;
+      queryParams.push(...state.askedQuestions);
+    }
+  
+    const sql = `
+      SELECT q.* 
+      FROM questions q
       JOIN session_questions sq ON q.id = sq.question_id
-      WHERE sq.session_id = ? AND q.type = ? 
+      WHERE sq.session_id = ? 
+      AND q.type = ? 
+      AND ${notInClause}
       ORDER BY sq.id ASC
       LIMIT 1
-      `,
-      [sessionId, nextQuestionType],
-      (err, question) => {
-        if (err) {
-          console.error("Database error:", err);
-          return;
-        }
-
-        if (question) {
-          askedQuestions.add(question.id); // Mark question as asked
-          io.to(sessionId).emit("newQuestion", {
-            question,
-            timer: question.allocated_time || 30,
-          });
-          nextQuestionType = nextQuestionType === "green" ? "red" : "green"; // Alternate between green and red
-        }
+    `;
+  
+    console.log("Executing SQL:", sql, "with params:", queryParams); // Debugging log
+  
+    db.get(sql, queryParams, (err, question) => {
+      if (err) {
+        console.error("Database error:", err);
+        io.to(sessionId).emit("gameOver");
+        return;
       }
-    );
+  
+      if (!question) {
+        console.warn("No question found for type:", questionType, "sessionId:", sessionId);
+        io.to(sessionId).emit("gameOver");
+        return;
+      }
+  
+      // Mark the question as asked
+      state.askedQuestions.add(question.id);
+      state.currentIndex += 1;
+  
+      // Emit the question
+      io.to(sessionId).emit("newQuestion", {
+        question,
+        timer: question.allocated_time || 30,
+        questionIndex: state.currentIndex,
+        totalQuestions: state.totalQuestions,
+      });
+    });
   };
+  
 
   socket.on("submitAnswer", ({ sessionId, groupId, questionId, answer, stoppedTimer }) => {
     const timeSubmitted = new Date().toISOString();
-    const groupName = "Group Name"; // Replace with actual group name
-  
-    const submittedAnswer = {
-      sessionId,
-      groupId,
-      questionId,
-      answer,
-      stoppedTimer, // Passing stoppedTimer here to use it for validation
-      groupName,
-      timeSubmitted,
-    };
-  
-    io.to(sessionId).emit("answerSubmitted", submittedAnswer);
-  });  
 
-  socket.on("validateAnswer", ({ sessionId, groupId, questionId, isCorrect, multiplier, stoppedTimer }) => {
+    db.get(`SELECT name FROM groups WHERE id = ?`, [groupId], (err, group) => {
+      if (err || !group) {
+        console.error("Error fetching group name:", err);
+        return;
+      }
+
+      const groupName = group.name;
+
+      const submittedAnswer = {
+        sessionId,
+        groupId,
+        questionId,
+        answer,
+        stoppedTimer,
+        groupName,
+        timeSubmitted,
+      };
+
+      io.to(sessionId).emit("answerSubmitted", submittedAnswer);
+    });
+  });
+
+  socket.on("validateAnswer", ({ sessionId, groupId, questionId, isCorrect, multiplier }) => {
     db.get(
       `SELECT type FROM questions WHERE id = ?`,
       [questionId],
@@ -81,9 +142,7 @@ io.on("connection", (socket) => {
         const triangleType = question.type === "red" ? "red_triangles" : "green_triangles";
   
         // Determine the score change
-        const scoreChange = isCorrect
-          ? (stoppedTimer ? 2 : 1)  // If stoppedTimer is true, give double points
-          : -1;
+        const scoreChange = isCorrect ? multiplier : -1;
   
         // Update the camembert progress
         db.run(
@@ -94,16 +153,27 @@ io.on("connection", (socket) => {
           }
         );
   
-        // Emit updated camembert progress
+        // Emit updated camembert progress to all groups
         io.to(sessionId).emit("camembertUpdated", {
           groupId,
           triangleType,
           scoreChange,
         });
+  
+        // Notify only the specific group about validation
+        io.to(sessionId).emit("answerValidated", {
+          groupId, // Include group ID for targeted response
+          isCorrect,
+        });
       }
     );
   });
   
+  
+
+  socket.on("revealAnswer", (correctAnswer) => {
+    io.emit("revealAnswer", correctAnswer);
+  });
 
   socket.on("nextQuestion", (sessionId) => {
     fetchNextQuestion(sessionId);
@@ -116,7 +186,6 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {});
 });
-
 
 app.use(express.json());
 app.use(cors());

@@ -13,7 +13,12 @@ function AdminGameControl() {
   const [camemberts, setCamemberts] = useState([]);
   const [answers, setAnswers] = useState([]);
   const [currentQuestion, setCurrentQuestion] = useState(null);
-  const [timer, setTimer] = useState(30);
+  const [timer, setTimer] = useState(0);
+  const [isTimeUp, setIsTimeUp] = useState(false);
+  const [correctAnswer, setCorrectAnswer] = useState(null);
+  const [questionIndex, setQuestionIndex] = useState(null); // Current question index
+  const [totalQuestions, setTotalQuestions] = useState(null); // Total questions in the session
+  const [status, setStatus] = useState("waiting"); // "waiting" | "active" | "gameOver"
   const socket = io(API_URL);
   const navigate = useNavigate();
 
@@ -40,11 +45,27 @@ function AdminGameControl() {
     };
 
     fetchInitialData();
+
     socket.emit("joinSession", { sessionId, role: "admin" });
 
+    socket.on("newQuestion", ({ question, timer, questionIndex, totalQuestions }) => {
+      setCurrentQuestion(question);
+      setTimer(timer);
+      setQuestionIndex(questionIndex);
+      setTotalQuestions(totalQuestions);
+      setIsTimeUp(false);
+      setAnswers([]);
+      setCorrectAnswer(null);
+      setStatus("active");
+    });
+
+    socket.on("answerSubmitted", (answer) => {
+      setAnswers((prev) => [...prev, answer]);
+    });
+
     socket.on("camembertUpdated", (progress) => {
-      setCamemberts((prev) => {
-        const updatedCamemberts = prev.map((cam) => {
+      setCamemberts((prev) =>
+        prev.map((cam) => {
           if (cam.group_id === parseInt(progress.groupId)) {
             return {
               ...cam,
@@ -52,35 +73,49 @@ function AdminGameControl() {
             };
           }
           return cam;
-        });
-        return updatedCamemberts;
-      });
+        })
+      );
     });
 
-    socket.on("answerSubmitted", (answer) => {
-      setAnswers((prev) => [...prev, answer]);
-    });
-
-    socket.on("newQuestion", ({ question, timer }) => {
-      setCurrentQuestion(question);
-      setTimer(timer);
+    socket.on("gameOver", () => {
+      setCurrentQuestion(null);
+      setTimer(0);
+      setIsTimeUp(false);
+      setStatus("gameOver");
     });
 
     return () => {
       socket.off("newQuestion");
+      socket.off("answerSubmitted");
+      socket.off("camembertUpdated");
+      socket.off("gameOver");
     };
   }, [API_URL, sessionId]);
+
+  useEffect(() => {
+    let interval;
+    if (timer > 0) {
+      interval = setInterval(() => {
+        setTimer((prevTimer) => {
+          const newTimer = prevTimer - 1;
+          if (newTimer <= 0) {
+            setIsTimeUp(true);
+            clearInterval(interval);
+          }
+          return newTimer;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [timer]);
 
   const startGame = () => {
     socket.emit("startGame", sessionId);
   };
 
-  const validateAnswer = (answer, groupId) => {
-    if (!currentQuestion) {
-      return;
-    }
+  const validateAnswer = (answer, groupId, isCorrect) => {
+    if (!currentQuestion) return;
 
-    const isCorrect = window.confirm(`Is the answer "${answer.answer}" correct?`);
     const multiplier = answer.stoppedTimer ? 2 : 1;
 
     socket.emit("validateAnswer", {
@@ -90,13 +125,20 @@ function AdminGameControl() {
       isCorrect,
       multiplier,
     });
+  };
 
-    socket.emit("answerValidated", { groupId });
+  const revealAnswer = () => {
+    if (currentQuestion) {
+      socket.emit("revealAnswer", currentQuestion.expected_answer);
+      setCorrectAnswer(currentQuestion.expected_answer);
+    }
   };
 
   const nextQuestion = () => {
     socket.emit("nextQuestion", sessionId);
-    setAnswers([]); // Clear answers for the new question
+    setAnswers([]);
+    setCorrectAnswer(null);
+    setIsTimeUp(false);
   };
 
   return (
@@ -105,30 +147,64 @@ function AdminGameControl() {
       <div className="admin-game-control-container">
         <h1>Admin Game Control</h1>
 
-        <button onClick={startGame}>Start Game</button>
-        <button onClick={nextQuestion}>Next Question</button>
-
-        <h2>Current Question</h2>
-        {currentQuestion ? (
-          <div>
-            <h3>{currentQuestion.title}</h3>
-            <p>Type: {currentQuestion.type === "red" ? "Red (Calculation)" : "Green (Quick Answer)"}</p>
-            <p>Expected Answer: {currentQuestion.expected_answer}</p>
-            <p>Allocated Time: {timer} seconds</p>
-          </div>
-        ) : (
-          <p>No active question</p>
+        {status === "waiting" && <button onClick={startGame}>Start Game</button>}
+        {status === "active" && currentQuestion && (
+          <button onClick={nextQuestion} disabled={!currentQuestion}>
+            Next Question
+          </button>
         )}
 
-        <h2>Answers Submitted</h2>
-        <ul>
-          {answers.map((answer, index) => (
-            <li key={index}>
-              <strong>{answer.groupName}</strong>: {answer.answer}
-              <button onClick={() => validateAnswer(answer, answer.groupId)}>Validate</button>
-            </li>
-          ))}
-        </ul>
+        {status === "gameOver" && (
+          <>
+            <h1>Game Over!</h1>
+            <h2>Final Scores</h2>
+            <ul className="pie-chart-list">
+              {camemberts.map((cam) => (
+                <li key={cam.group_id}>
+                  <h3>{cam.name}</h3>
+                  <PieChart redPoints={cam.red_triangles} greenPoints={cam.green_triangles} />
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+
+        {status !== "gameOver" && currentQuestion && (
+          <>
+            <h2>Question {questionIndex}/{totalQuestions}</h2>
+            <div>
+              <h3>{currentQuestion.title}</h3>
+              <p>Type: {currentQuestion.type === "red" ? "Red (Calculation)" : "Green (Quick Answer)"}</p>
+              <p>Expected Answer: {currentQuestion.expected_answer}</p>
+              <p>Time Remaining: {timer > 0 ? `${timer} seconds` : "Time's Up!"}</p>
+              {isTimeUp && <h3>Time's Up!</h3>}
+            </div>
+
+            <button onClick={revealAnswer} disabled={correctAnswer}>
+              Reveal Answer
+            </button>
+            {correctAnswer && (
+              <div>
+                <h3>Correct Answer: {correctAnswer}</h3>
+              </div>
+            )}
+          </>
+        )}
+
+        {status !== "gameOver" && (
+          <>
+            <h2>Answers Submitted</h2>
+            <ul>
+              {answers.map((answer, index) => (
+                <li key={index}>
+                  <strong>{answer.groupName}</strong>: {answer.answer}
+                  <button onClick={() => validateAnswer(answer, answer.groupId, true)}>Correct</button>
+                  <button onClick={() => validateAnswer(answer, answer.groupId, false)}>Incorrect</button>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
 
         <h2>Camembert Progress</h2>
         <ul className="pie-chart-list">
