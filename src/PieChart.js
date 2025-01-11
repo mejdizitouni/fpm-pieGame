@@ -12,7 +12,7 @@ const PieChart = ({ segments }) => {
 
     let startAngle = 0;
 
-    // Draw each segment with specific colors based on the "segments" array
+    // Draw each segment with alternating colors based on the "segments" array
     segments.forEach((segment) => {
       ctx.beginPath();
       ctx.moveTo(150, 150); // Center of the canvas
@@ -24,8 +24,13 @@ const PieChart = ({ segments }) => {
           ? "#FB4141" // Fixed red color
           : segment === "green"
           ? "#5CB338" // Fixed green color
-          : "#C8C8C8"; // Grey for unfilled segments
+          : "#D3D3D3"; // Grey for empty segments
       ctx.fill();
+
+      // Draw segment border for visibility
+      ctx.strokeStyle = "#FFFFFF"; // White border between segments
+      ctx.lineWidth = 2;
+      ctx.stroke();
 
       startAngle += triangleWidth;
     });

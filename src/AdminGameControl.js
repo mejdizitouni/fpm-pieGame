@@ -16,10 +16,10 @@ function AdminGameControl() {
   const [timer, setTimer] = useState(0);
   const [isTimeUp, setIsTimeUp] = useState(false);
   const [correctAnswer, setCorrectAnswer] = useState(null);
-  const [questionIndex, setQuestionIndex] = useState(null); // Current question index
-  const [totalQuestions, setTotalQuestions] = useState(null); // Total questions in the session
-  const [status, setStatus] = useState("waiting"); // "waiting" | "active" | "gameOver"
-  const [stoppedTimerGroup, setStoppedTimerGroup] = useState(null); // Group that stopped the timer
+  const [questionIndex, setQuestionIndex] = useState(null);
+  const [totalQuestions, setTotalQuestions] = useState(null);
+  const [status, setStatus] = useState("waiting");
+  const [stoppedTimerGroup, setStoppedTimerGroup] = useState(null);
   const socket = io(API_URL);
   const navigate = useNavigate();
 
@@ -34,15 +34,11 @@ function AdminGameControl() {
       try {
         const groupsRes = await fetch(
           `${API_URL}/sessions/${sessionId}/groups`,
-          {
-            headers: { Authorization: token },
-          }
+          { headers: { Authorization: token } }
         );
         const camembertsRes = await fetch(
           `${API_URL}/sessions/${sessionId}/camemberts`,
-          {
-            headers: { Authorization: token },
-          }
+          { headers: { Authorization: token } }
         );
         setGroups(await groupsRes.json());
         setCamemberts(await camembertsRes.json());
@@ -76,7 +72,7 @@ function AdminGameControl() {
 
     socket.on("timerStopped", ({ groupId, groupName }) => {
       setStoppedTimerGroup({ groupId, groupName });
-      setTimer(0); // Stop the timer for everyone
+      setTimer(0);
       setIsTimeUp(true);
     });
 
@@ -161,14 +157,19 @@ function AdminGameControl() {
           camembert.push("green");
           green--;
         } else {
-          camembert.push("grey"); // Fill empty segments with grey
+          camembert.push("grey");
         }
       }
       camemberts.push(camembert);
     }
+
+    // If no scores, add a default camembert with all grey
+    if (camemberts.length === 0) {
+      camemberts.push(Array(8).fill("grey"));
+    }
+
     return camemberts;
   };
-  
 
   return (
     <>

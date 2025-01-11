@@ -143,6 +143,12 @@ function Game() {
       }
       camemberts.push(camembert);
     }
+  
+    // If no scores, add a default camembert with all grey
+    if (camemberts.length === 0) {
+      camemberts.push(Array(8).fill("grey"));
+    }
+  
     return camemberts;
   };
   
