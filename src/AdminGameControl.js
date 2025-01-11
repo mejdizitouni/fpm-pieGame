@@ -243,31 +243,28 @@ function AdminGameControl() {
           </>
         )}
 
-        {status !== "gameOver" && (
-          <>
-            <h2>Answers Submitted</h2>
-            <ul>
-              {answers.map((answer, index) => (
-                <li key={index}>
-                  <strong>{answer.groupName}</strong>: {answer.answer}
-                  {answer.stoppedTimer && <em> (Stopped Timer)</em>}
-                  <button
-                    onClick={() => validateAnswer(answer, answer.groupId, true)}
-                  >
-                    Correct
-                  </button>
-                  <button
-                    onClick={() =>
-                      validateAnswer(answer, answer.groupId, false)
-                    }
-                  >
-                    Incorrect
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
+{status !== "gameOver" && (
+  <>
+    <h2>Answers Submitted</h2>
+    <ul>
+      {answers.map((answer, index) => (
+        <li key={index}>
+          <strong>{answer.groupName}</strong>: {answer.answer}
+          {answer.stoppedTimer && <em> (Stopped Timer)</em>}
+          <button onClick={() => validateAnswer(answer, answer.groupId, true)}>
+            Correct
+          </button>
+          {answer.stoppedTimer && (
+            <button onClick={() => validateAnswer(answer, answer.groupId, false)}>
+              Incorrect
+            </button>
+          )}
+        </li>
+      ))}
+    </ul>
+  </>
+)}
+
 
         <h2>Camembert Progress</h2>
         <ul className="pie-chart-list">
