@@ -149,6 +149,27 @@ function AdminGameControl() {
     setStoppedTimerGroup(null);
   };
 
+  const generateCamemberts = (red, green) => {
+    const camemberts = [];
+    while (red > 0 || green > 0) {
+      const camembert = [];
+      for (let i = 0; i < 8; i++) {
+        if (i % 2 === 0 && red > 0) {
+          camembert.push("red");
+          red--;
+        } else if (i % 2 !== 0 && green > 0) {
+          camembert.push("green");
+          green--;
+        } else {
+          camembert.push("grey"); // Fill empty segments with grey
+        }
+      }
+      camemberts.push(camembert);
+    }
+    return camemberts;
+  };
+  
+
   return (
     <>
       <Header />
@@ -172,10 +193,15 @@ function AdminGameControl() {
               {camemberts.map((cam) => (
                 <li key={cam.group_id}>
                   <h3>{cam.name}</h3>
-                  <PieChart
-                    redPoints={cam.red_triangles}
-                    greenPoints={cam.green_triangles}
-                  />
+                  {generateCamemberts(
+                    cam.red_triangles,
+                    cam.green_triangles
+                  ).map((segments, index) => (
+                    <PieChart
+                      key={`${cam.group_id}-${index}`}
+                      segments={segments}
+                    />
+                  ))}
                 </li>
               ))}
             </ul>
@@ -247,10 +273,15 @@ function AdminGameControl() {
           {camemberts.map((cam) => (
             <li key={cam.group_id}>
               <h3>{cam.name}</h3>
-              <PieChart
-                redPoints={cam.red_triangles}
-                greenPoints={cam.green_triangles}
-              />
+              {generateCamemberts(
+                cam.red_triangles,
+                cam.green_triangles
+              ).map((segments, index) => (
+                <PieChart
+                  key={`${cam.group_id}-${index}`}
+                  segments={segments}
+                />
+              ))}
             </li>
           ))}
         </ul>
