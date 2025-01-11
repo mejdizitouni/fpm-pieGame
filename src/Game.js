@@ -13,13 +13,13 @@ function Game() {
   const [timer, setTimer] = useState(0); // Countdown timer
   const [answer, setAnswer] = useState(""); // Player's input answer
   const [submittedAnswer, setSubmittedAnswer] = useState(null); // Submitted answer
-  const [waitingForValidation, setWaitingForValidation] = useState(false); // Waiting validation state
-  const [answerValidated, setAnswerValidated] = useState(false); // If answer was validated
+  const [waitingValidation, setWaitingValidation] = useState(false); // Waiting for validation
   const [validationResult, setValidationResult] = useState(null); // Validation result: "correct" or "wrong"
   const [correctAnswer, setCorrectAnswer] = useState(null); // Correct answer after reveal
   const [camemberts, setCamemberts] = useState([]); // Camembert scores
   const [questionIndex, setQuestionIndex] = useState(null); // Current question index
   const [totalQuestions, setTotalQuestions] = useState(null); // Total questions in the session
+  const [stoppedTimerGroup, setStoppedTimerGroup] = useState(null); // Group that stopped the timer
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -27,9 +27,12 @@ function Game() {
       if (!token) return;
 
       try {
-        const camembertsRes = await fetch(`${process.env.REACT_APP_API_URL}/sessions/${sessionId}/camemberts`, {
-          headers: { Authorization: token },
-        });
+        const camembertsRes = await fetch(
+          `${process.env.REACT_APP_API_URL}/sessions/${sessionId}/camemberts`,
+          {
+            headers: { Authorization: token },
+          }
+        );
         setCamemberts(await camembertsRes.json());
       } catch (err) {
         console.error("Failed to fetch initial data:", err);
@@ -47,16 +50,20 @@ function Game() {
       setCorrectAnswer(null);
     });
 
-    socket.on("newQuestion", ({ question, timer, questionIndex, totalQuestions }) => {
-      setQuestion(question);
-      setTimer(timer);
-      setQuestionIndex(questionIndex);
-      setTotalQuestions(totalQuestions);
-      setStatus("active");
-      setAnswerValidated(false);
-      setValidationResult(null);
-      setSubmittedAnswer(null);
-    });
+    socket.on(
+      "newQuestion",
+      ({ question, timer, questionIndex, totalQuestions }) => {
+        setQuestion(question);
+        setTimer(timer);
+        setQuestionIndex(questionIndex);
+        setTotalQuestions(totalQuestions);
+        setStatus("active");
+        setValidationResult(null);
+        setSubmittedAnswer(null);
+        setStoppedTimerGroup(null);
+        setWaitingValidation(false);
+      }
+    );
 
     socket.on("timerCountdown", (remainingTime) => {
       setTimer(remainingTime);
@@ -65,24 +72,20 @@ function Game() {
       }
     });
 
-    socket.on("camembertUpdated", (progress) => {
-      setCamemberts((prev) =>
-        prev.map((cam) => {
-          if (cam.group_id === parseInt(progress.groupId)) {
-            return {
-              ...cam,
-              [progress.triangleType]: cam[progress.triangleType] + progress.scoreChange,
-            };
-          }
-          return cam;
-        })
-      );
+    socket.on("timerStopped", ({ groupName }) => {
+      setTimer(0);
+      setStatus("timeUp");
+      setStoppedTimerGroup(groupName);
+    });
+
+    socket.on("camembertUpdated", ({ updatedCamemberts }) => {
+      setCamemberts(updatedCamemberts);
     });
 
     socket.on("answerValidated", ({ groupId: validatedGroupId, isCorrect }) => {
       if (parseInt(validatedGroupId) === parseInt(groupId)) {
-        setAnswerValidated(true);
         setValidationResult(isCorrect ? "correct" : "wrong");
+        setWaitingValidation(false);
       }
     });
 
@@ -111,7 +114,7 @@ function Game() {
   const submitAnswer = (stoppedTimer = false) => {
     if (answer.trim() && !submittedAnswer) {
       setSubmittedAnswer(answer);
-      setWaitingForValidation(true);
+      setWaitingValidation(true);
       socket.emit("submitAnswer", {
         sessionId,
         groupId,
@@ -135,7 +138,10 @@ function Game() {
             {camemberts.map((cam) => (
               <li key={cam.group_id}>
                 <h3>{cam.name}</h3>
-                <PieChart redPoints={cam.red_triangles} greenPoints={cam.green_triangles} />
+                <PieChart
+                  redPoints={cam.red_triangles}
+                  greenPoints={cam.green_triangles}
+                />
               </li>
             ))}
           </ul>
@@ -144,42 +150,55 @@ function Game() {
 
       {status !== "waiting" && status !== "gameOver" && question && (
         <>
-          <h2>Question {questionIndex}/{totalQuestions}</h2>
+          <h2>
+            Question {questionIndex}/{totalQuestions}
+          </h2>
           <h1>Question: {question.title}</h1>
-          <p>Type: {question.type === "red" ? "Red (Calculation)" : "Green (Quick Answer)"}</p>
+          <p>
+            Type:{" "}
+            {question.type === "red"
+              ? "Red (Calculation)"
+              : "Green (Quick Answer)"}
+          </p>
           <p>Time Remaining: {timer > 0 ? `${timer} seconds` : "Time's Up!"}</p>
 
-          {submittedAnswer ? (
+          {stoppedTimerGroup && <h3>Timer stopped by: {stoppedTimerGroup}</h3>}
+
+          {!stoppedTimerGroup && !submittedAnswer && timer > 0 && (
+            <div>
+              <input
+                type="text"
+                placeholder="Enter your answer"
+                value={answer}
+                onChange={(e) => setAnswer(e.target.value)}
+              />
+              <button onClick={() => submitAnswer(false)}>Submit Answer</button>
+              <button onClick={() => submitAnswer(true)}>
+                Stop Timer and Submit
+              </button>
+            </div>
+          )}
+
+          {submittedAnswer && (
             <div>
               <h3>Your Answer:</h3>
               <span>{submittedAnswer}</span>
-              {validationResult === null && <h3>Waiting for answer validation...</h3>}
-              {validationResult === "correct" && <h3>Your answer is correct!</h3>}
-              {validationResult === "wrong" && <h3>Your answer is wrong!</h3>}
-            </div>
-          ) : (
-            <>
-              {timer > 0 && (
-                <div>
-                  <input
-                    type="text"
-                    placeholder="Enter your answer"
-                    value={answer}
-                    onChange={(e) => setAnswer(e.target.value)}
-                    disabled={!!submittedAnswer}
-                  />
-                  <button onClick={() => submitAnswer(false)} disabled={!!submittedAnswer}>
-                    Submit Answer
-                  </button>
-                  <button onClick={() => submitAnswer(true)} disabled={!!submittedAnswer}>
-                    Stop Timer and Submit
-                  </button>
-                </div>
+              {waitingValidation && <h3>Waiting for answer validation...</h3>}
+              {validationResult === "correct" && (
+                <h3>
+                  Your answer is correct! You earned {stoppedTimerGroup ? 3 : 1}{" "}
+                  point
+                  {stoppedTimerGroup ? "s" : ""}!
+                </h3>
               )}
-            </>
+              {validationResult === "wrong" && (
+                <h3>
+                  Your answer is wrong!{" "}
+                  {stoppedTimerGroup && "Other players earned 1 point each."}
+                </h3>
+              )}
+            </div>
           )}
-
-          {status === "timeUp" && <h3>Time's Up! Waiting for answer validation...</h3>}
 
           {correctAnswer && (
             <div>
@@ -194,7 +213,10 @@ function Game() {
         {camemberts.map((cam) => (
           <li key={cam.group_id}>
             <h3>{cam.name}</h3>
-            <PieChart redPoints={cam.red_triangles} greenPoints={cam.green_triangles} />
+            <PieChart
+              redPoints={cam.red_triangles}
+              greenPoints={cam.green_triangles}
+            />
           </li>
         ))}
       </ul>

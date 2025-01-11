@@ -19,6 +19,7 @@ function AdminGameControl() {
   const [questionIndex, setQuestionIndex] = useState(null); // Current question index
   const [totalQuestions, setTotalQuestions] = useState(null); // Total questions in the session
   const [status, setStatus] = useState("waiting"); // "waiting" | "active" | "gameOver"
+  const [stoppedTimerGroup, setStoppedTimerGroup] = useState(null); // Group that stopped the timer
   const socket = io(API_URL);
   const navigate = useNavigate();
 
@@ -31,12 +32,18 @@ function AdminGameControl() {
       }
 
       try {
-        const groupsRes = await fetch(`${API_URL}/sessions/${sessionId}/groups`, {
-          headers: { Authorization: token },
-        });
-        const camembertsRes = await fetch(`${API_URL}/sessions/${sessionId}/camemberts`, {
-          headers: { Authorization: token },
-        });
+        const groupsRes = await fetch(
+          `${API_URL}/sessions/${sessionId}/groups`,
+          {
+            headers: { Authorization: token },
+          }
+        );
+        const camembertsRes = await fetch(
+          `${API_URL}/sessions/${sessionId}/camemberts`,
+          {
+            headers: { Authorization: token },
+          }
+        );
         setGroups(await groupsRes.json());
         setCamemberts(await camembertsRes.json());
       } catch (err) {
@@ -48,33 +55,34 @@ function AdminGameControl() {
 
     socket.emit("joinSession", { sessionId, role: "admin" });
 
-    socket.on("newQuestion", ({ question, timer, questionIndex, totalQuestions }) => {
-      setCurrentQuestion(question);
-      setTimer(timer);
-      setQuestionIndex(questionIndex);
-      setTotalQuestions(totalQuestions);
-      setIsTimeUp(false);
-      setAnswers([]);
-      setCorrectAnswer(null);
-      setStatus("active");
-    });
+    socket.on(
+      "newQuestion",
+      ({ question, timer, questionIndex, totalQuestions }) => {
+        setCurrentQuestion(question);
+        setTimer(timer);
+        setQuestionIndex(questionIndex);
+        setTotalQuestions(totalQuestions);
+        setIsTimeUp(false);
+        setAnswers([]);
+        setCorrectAnswer(null);
+        setStoppedTimerGroup(null);
+        setStatus("active");
+      }
+    );
 
     socket.on("answerSubmitted", (answer) => {
       setAnswers((prev) => [...prev, answer]);
     });
 
-    socket.on("camembertUpdated", (progress) => {
-      setCamemberts((prev) =>
-        prev.map((cam) => {
-          if (cam.group_id === parseInt(progress.groupId)) {
-            return {
-              ...cam,
-              [progress.triangleType]: cam[progress.triangleType] + progress.scoreChange,
-            };
-          }
-          return cam;
-        })
-      );
+    socket.on("timerStopped", ({ groupId, groupName }) => {
+      setStoppedTimerGroup({ groupId, groupName });
+      setTimer(0); // Stop the timer for everyone
+      setIsTimeUp(true);
+    });
+
+    socket.on("camembertUpdated", ({ updatedCamemberts }) => {
+      console.log("updatedCamemberts --> ", updatedCamemberts);
+      setCamemberts(updatedCamemberts);
     });
 
     socket.on("gameOver", () => {
@@ -87,6 +95,7 @@ function AdminGameControl() {
     return () => {
       socket.off("newQuestion");
       socket.off("answerSubmitted");
+      socket.off("timerStopped");
       socket.off("camembertUpdated");
       socket.off("gameOver");
     };
@@ -116,14 +125,12 @@ function AdminGameControl() {
   const validateAnswer = (answer, groupId, isCorrect) => {
     if (!currentQuestion) return;
 
-    const multiplier = answer.stoppedTimer ? 2 : 1;
-
     socket.emit("validateAnswer", {
       sessionId,
       groupId,
       questionId: currentQuestion.id,
       isCorrect,
-      multiplier,
+      stoppedTimer: answer.stoppedTimer,
     });
   };
 
@@ -139,6 +146,7 @@ function AdminGameControl() {
     setAnswers([]);
     setCorrectAnswer(null);
     setIsTimeUp(false);
+    setStoppedTimerGroup(null);
   };
 
   return (
@@ -147,7 +155,9 @@ function AdminGameControl() {
       <div className="admin-game-control-container">
         <h1>Admin Game Control</h1>
 
-        {status === "waiting" && <button onClick={startGame}>Start Game</button>}
+        {status === "waiting" && (
+          <button onClick={startGame}>Start Game</button>
+        )}
         {status === "active" && currentQuestion && (
           <button onClick={nextQuestion} disabled={!currentQuestion}>
             Next Question
@@ -162,7 +172,10 @@ function AdminGameControl() {
               {camemberts.map((cam) => (
                 <li key={cam.group_id}>
                   <h3>{cam.name}</h3>
-                  <PieChart redPoints={cam.red_triangles} greenPoints={cam.green_triangles} />
+                  <PieChart
+                    redPoints={cam.red_triangles}
+                    greenPoints={cam.green_triangles}
+                  />
                 </li>
               ))}
             </ul>
@@ -171,13 +184,25 @@ function AdminGameControl() {
 
         {status !== "gameOver" && currentQuestion && (
           <>
-            <h2>Question {questionIndex}/{totalQuestions}</h2>
+            <h2>
+              Question {questionIndex}/{totalQuestions}
+            </h2>
             <div>
               <h3>{currentQuestion.title}</h3>
-              <p>Type: {currentQuestion.type === "red" ? "Red (Calculation)" : "Green (Quick Answer)"}</p>
+              <p>
+                Type:{" "}
+                {currentQuestion.type === "red"
+                  ? "Red (Calculation)"
+                  : "Green (Quick Answer)"}
+              </p>
               <p>Expected Answer: {currentQuestion.expected_answer}</p>
-              <p>Time Remaining: {timer > 0 ? `${timer} seconds` : "Time's Up!"}</p>
+              <p>
+                Time Remaining: {timer > 0 ? `${timer} seconds` : "Time's Up!"}
+              </p>
               {isTimeUp && <h3>Time's Up!</h3>}
+              {stoppedTimerGroup && (
+                <h4>Timer was stopped by: {stoppedTimerGroup.groupName}</h4>
+              )}
             </div>
 
             <button onClick={revealAnswer} disabled={correctAnswer}>
@@ -198,8 +223,19 @@ function AdminGameControl() {
               {answers.map((answer, index) => (
                 <li key={index}>
                   <strong>{answer.groupName}</strong>: {answer.answer}
-                  <button onClick={() => validateAnswer(answer, answer.groupId, true)}>Correct</button>
-                  <button onClick={() => validateAnswer(answer, answer.groupId, false)}>Incorrect</button>
+                  {answer.stoppedTimer && <em> (Stopped Timer)</em>}
+                  <button
+                    onClick={() => validateAnswer(answer, answer.groupId, true)}
+                  >
+                    Correct
+                  </button>
+                  <button
+                    onClick={() =>
+                      validateAnswer(answer, answer.groupId, false)
+                    }
+                  >
+                    Incorrect
+                  </button>
                 </li>
               ))}
             </ul>
@@ -211,7 +247,10 @@ function AdminGameControl() {
           {camemberts.map((cam) => (
             <li key={cam.group_id}>
               <h3>{cam.name}</h3>
-              <PieChart redPoints={cam.red_triangles} greenPoints={cam.green_triangles} />
+              <PieChart
+                redPoints={cam.red_triangles}
+                greenPoints={cam.green_triangles}
+              />
             </li>
           ))}
         </ul>

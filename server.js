@@ -21,7 +21,11 @@ const sessionState = {}; // { sessionId: { currentIndex, totalQuestions, askedQu
 io.on("connection", (socket) => {
   socket.on("startGame", (sessionId) => {
     if (!sessionState[sessionId]) {
-      sessionState[sessionId] = { currentIndex: 0, askedQuestions: new Set(), totalQuestions: 0 };
+      sessionState[sessionId] = {
+        currentIndex: 0,
+        askedQuestions: new Set(),
+        totalQuestions: 0,
+      };
 
       // Fetch total number of questions for the session and initialize game state
       db.get(
@@ -44,25 +48,27 @@ io.on("connection", (socket) => {
 
   const fetchNextQuestion = (sessionId) => {
     const state = sessionState[sessionId];
-  
+
     // Check if all questions have been asked
     if (state.currentIndex >= state.totalQuestions) {
       io.to(sessionId).emit("gameOver");
       return;
     }
-  
+
     // Alternate question types: green for even indexes, red for odd indexes
     const questionType = state.currentIndex % 2 === 0 ? "green" : "red";
-  
+
     let notInClause = "q.id IS NOT NULL"; // Default when no questions have been asked
     const queryParams = [sessionId, questionType];
-  
+
     if (state.askedQuestions.size > 0) {
       // Build the `NOT IN` clause dynamically
-      notInClause = `q.id NOT IN (${[...state.askedQuestions].map(() => "?").join(",")})`;
+      notInClause = `q.id NOT IN (${[...state.askedQuestions]
+        .map(() => "?")
+        .join(",")})`;
       queryParams.push(...state.askedQuestions);
     }
-  
+
     const sql = `
       SELECT q.* 
       FROM questions q
@@ -73,26 +79,31 @@ io.on("connection", (socket) => {
       ORDER BY sq.id ASC
       LIMIT 1
     `;
-  
+
     console.log("Executing SQL:", sql, "with params:", queryParams); // Debugging log
-  
+
     db.get(sql, queryParams, (err, question) => {
       if (err) {
         console.error("Database error:", err);
         io.to(sessionId).emit("gameOver");
         return;
       }
-  
+
       if (!question) {
-        console.warn("No question found for type:", questionType, "sessionId:", sessionId);
+        console.warn(
+          "No question found for type:",
+          questionType,
+          "sessionId:",
+          sessionId
+        );
         io.to(sessionId).emit("gameOver");
         return;
       }
-  
+
       // Mark the question as asked
       state.askedQuestions.add(question.id);
       state.currentIndex += 1;
-  
+
       // Emit the question
       io.to(sessionId).emit("newQuestion", {
         question,
@@ -102,74 +113,168 @@ io.on("connection", (socket) => {
       });
     });
   };
-  
 
-  socket.on("submitAnswer", ({ sessionId, groupId, questionId, answer, stoppedTimer }) => {
-    const timeSubmitted = new Date().toISOString();
+  socket.on(
+    "submitAnswer",
+    ({ sessionId, groupId, questionId, answer, stoppedTimer }) => {
+      const timeSubmitted = new Date().toISOString();
 
-    db.get(`SELECT name FROM groups WHERE id = ?`, [groupId], (err, group) => {
-      if (err || !group) {
-        console.error("Error fetching group name:", err);
-        return;
-      }
-
-      const groupName = group.name;
-
-      const submittedAnswer = {
-        sessionId,
-        groupId,
-        questionId,
-        answer,
-        stoppedTimer,
-        groupName,
-        timeSubmitted,
-      };
-
-      io.to(sessionId).emit("answerSubmitted", submittedAnswer);
-    });
-  });
-
-  socket.on("validateAnswer", ({ sessionId, groupId, questionId, isCorrect, multiplier }) => {
-    db.get(
-      `SELECT type FROM questions WHERE id = ?`,
-      [questionId],
-      (err, question) => {
-        if (err || !question) {
-          console.error("Error fetching question type:", err);
-          return;
-        }
-  
-        const triangleType = question.type === "red" ? "red_triangles" : "green_triangles";
-  
-        // Determine the score change
-        const scoreChange = isCorrect ? multiplier : -1;
-  
-        // Update the camembert progress
-        db.run(
-          `UPDATE camembert_progress SET ${triangleType} = MAX(0, ${triangleType} + ?) WHERE group_id = ?`,
-          [scoreChange, groupId],
-          (err) => {
-            if (err) console.error("Error updating camembert:", err);
+      db.get(
+        `SELECT name FROM groups WHERE id = ?`,
+        [groupId],
+        (err, group) => {
+          if (err || !group) {
+            console.error("Error fetching group name:", err);
+            return;
           }
-        );
-  
-        // Emit updated camembert progress to all groups
-        io.to(sessionId).emit("camembertUpdated", {
-          groupId,
-          triangleType,
-          scoreChange,
-        });
-  
-        // Notify only the specific group about validation
-        io.to(sessionId).emit("answerValidated", {
-          groupId, // Include group ID for targeted response
-          isCorrect,
-        });
-      }
-    );
-  });
-  
-  
+
+          const groupName = group.name;
+
+          const submittedAnswer = {
+            sessionId,
+            groupId,
+            questionId,
+            answer,
+            stoppedTimer,
+            groupName,
+            timeSubmitted,
+          };
+
+          // Emit to all participants in the session
+          io.to(sessionId).emit("answerSubmitted", submittedAnswer);
+
+          // If the timer is stopped, emit an event to notify everyone
+          if (stoppedTimer) {
+            io.to(sessionId).emit("timerStopped", { groupId, groupName });
+          }
+        }
+      );
+    }
+  );
+
+  socket.on(
+    "validateAnswer",
+    ({ sessionId, groupId, questionId, isCorrect, stoppedTimer }) => {
+      db.get(
+        `SELECT type FROM questions WHERE id = ?`,
+        [questionId],
+        (err, question) => {
+          if (err || !question) {
+            console.error("Error fetching question type:", err);
+            return;
+          }
+
+          const triangleType =
+            question.type === "red" ? "red_triangles" : "green_triangles";
+
+          // Prepare an array of database operations
+          const updates = [];
+
+          if (isCorrect) {
+            const points = stoppedTimer ? 3 : 1;
+
+            // Push the correct answer update operation to the array
+            updates.push(
+              new Promise((resolve, reject) => {
+                db.run(
+                  `UPDATE camembert_progress SET ${triangleType} = ${triangleType} + ? WHERE group_id = ?`,
+                  [points, groupId],
+                  (err) => {
+                    if (err) {
+                      console.error(
+                        "Error updating scores for the correct answer:",
+                        err
+                      );
+                      reject(err);
+                    } else {
+                      resolve();
+                    }
+                  }
+                );
+              })
+            );
+          } else {
+            // Fetch all groups for the incorrect answer logic
+            updates.push(
+              new Promise((resolve, reject) => {
+                db.all(
+                  `SELECT id FROM groups WHERE session_id = ?`,
+                  [sessionId],
+                  (err, allGroups) => {
+                    if (err) {
+                      console.error("Error fetching groups:", err);
+                      reject(err);
+                      return;
+                    }
+
+                    // For each group, update the camembert score (except the submitting group)
+                    const groupUpdates = allGroups.map((group) => {
+                      if (String(group.id) !== String(groupId)) {
+                        return new Promise((resolve, reject) => {
+                          db.run(
+                            `UPDATE camembert_progress SET ${triangleType} = ${triangleType} + 1 WHERE group_id = ?`,
+                            [group.id],
+                            (err) => {
+                              if (err) {
+                                console.error(
+                                  `Error updating scores for group ${group.id}:`,
+                                  err
+                                );
+                                reject(err);
+                              } else {
+                                resolve();
+                              }
+                            }
+                          );
+                        });
+                      }
+                      return Promise.resolve(); // Skip the submitting group
+                    });
+
+                    Promise.all(groupUpdates).then(resolve).catch(reject);
+                  }
+                );
+              })
+            );
+          }
+
+          // Wait for all updates to complete
+          Promise.all(updates)
+            .then(() => {
+              // Fetch updated camembert progress from the database
+              db.all(
+                `SELECT g.id AS group_id, g.name, cp.red_triangles, cp.green_triangles
+             FROM groups g
+             LEFT JOIN camembert_progress cp ON g.id = cp.group_id
+             WHERE g.session_id = ?`,
+                [sessionId],
+                (err, updatedCamemberts) => {
+                  if (err) {
+                    console.error(
+                      "Error fetching updated camembert scores:",
+                      err
+                    );
+                    return;
+                  }
+
+                  // Emit the updated camemberts to all clients
+                  io.to(sessionId).emit("camembertUpdated", {
+                    updatedCamemberts,
+                  });
+                  console.log("Emitted updated camemberts:", updatedCamemberts);
+                }
+              );
+            })
+            .catch((err) => {
+              console.error("Error during camembert updates:", err);
+            });
+
+          // Notify clients about the validation result
+          io.to(sessionId).emit("answerValidated", { groupId, isCorrect });
+        }
+      );
+    }
+  );
 
   socket.on("revealAnswer", (correctAnswer) => {
     io.emit("revealAnswer", correctAnswer);
@@ -375,7 +480,13 @@ app.put("/questions/:id", (req, res) => {
         }
 
         // Respond with the updated question data
-        res.json({ id: questionId, type, title, expected_answer, allocated_time });
+        res.json({
+          id: questionId,
+          type,
+          title,
+          expected_answer,
+          allocated_time,
+        });
       }
     );
   });
@@ -517,7 +628,9 @@ app.delete("/sessions/:sessionId/groups/:groupId", (req, res) => {
           function (err) {
             if (err) {
               console.error("Error deleting group:", err);
-              return res.status(500).json({ message: "Failed to delete group" });
+              return res
+                .status(500)
+                .json({ message: "Failed to delete group" });
             }
 
             if (this.changes === 0) {
@@ -558,7 +671,9 @@ app.delete("/sessions/:sessionId/questions/:questionId", (req, res) => {
         }
 
         if (this.changes === 0) {
-          return res.status(404).json({ message: "Question not found in session" });
+          return res
+            .status(404)
+            .json({ message: "Question not found in session" });
         }
 
         res.json({ message: "Question removed from session successfully" });
@@ -566,7 +681,6 @@ app.delete("/sessions/:sessionId/questions/:questionId", (req, res) => {
     );
   });
 });
-
 
 // Update a group
 app.put("/sessions/:sessionId/groups/:groupId", (req, res) => {
@@ -890,6 +1004,8 @@ app.post("/sessions/:id/validate", (req, res) => {
 
         // Update camembert progress
         const scoreChange = isCorrect ? multiplier : -1;
+
+        console.log("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB");
         db.run(
           `
           UPDATE camembert_progress
