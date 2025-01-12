@@ -10,6 +10,7 @@ function Game() {
 
   const [status, setStatus] = useState("waiting"); // "waiting" | "active" | "timeUp" | "gameOver"
   const [question, setQuestion] = useState(null); // Current question
+  const [questionOptions, setQuestionOptions] = useState([]); // Options for red questions
   const [timer, setTimer] = useState(0); // Countdown timer
   const [answer, setAnswer] = useState(""); // Player's input answer
   const [submittedAnswer, setSubmittedAnswer] = useState(null); // Submitted answer
@@ -52,7 +53,7 @@ function Game() {
 
     socket.on(
       "newQuestion",
-      ({ question, timer, questionIndex, totalQuestions }) => {
+      async ({ question, timer, questionIndex, totalQuestions }) => {
         setQuestion(question);
         setTimer(timer);
         setQuestionIndex(questionIndex);
@@ -62,6 +63,23 @@ function Game() {
         setSubmittedAnswer(null);
         setStoppedTimerGroup(null);
         setWaitingValidation(false);
+
+        // Fetch options if the question is red-type
+        if (question.type === "red") {
+          const token = localStorage.getItem("token");
+          try {
+            const optionsRes = await fetch(
+              `${process.env.REACT_APP_API_URL}/questions/${question.id}/options`,
+              { headers: { Authorization: token } }
+            );
+            setQuestionOptions(await optionsRes.json());
+          } catch (err) {
+            console.error("Failed to fetch question options:", err);
+            setQuestionOptions([]);
+          }
+        } else {
+          setQuestionOptions([]); // Clear options for green questions
+        }
       }
     );
 
@@ -143,15 +161,14 @@ function Game() {
       }
       camemberts.push(camembert);
     }
-  
+
     // If no scores, add a default camembert with all grey
     if (camemberts.length === 0) {
       camemberts.push(Array(8).fill("grey"));
     }
-  
+
     return camemberts;
   };
-  
 
   return (
     <div className="game-container">
@@ -198,16 +215,49 @@ function Game() {
 
           {!stoppedTimerGroup && !submittedAnswer && timer > 0 && (
             <div>
-              <input
-                type="text"
-                placeholder="Enter your answer"
-                value={answer}
-                onChange={(e) => setAnswer(e.target.value)}
-              />
-              <button onClick={() => submitAnswer(false)}>Submit Answer</button>
-              <button onClick={() => submitAnswer(true)}>
-                Stop Timer and Submit
-              </button>
+              {question.type === "red" ? (
+                // Single choice for red questions
+                <div>
+                  <h4>Select an option:</h4>
+                  <ul>
+                    {questionOptions.map((option) => (
+                      <li key={option.id}>
+                        <button onClick={() => setAnswer(option.option_text)}>
+                          {option.option_text}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  <button
+                    onClick={() => submitAnswer(false)}
+                    disabled={!answer}
+                  >
+                    Submit Answer
+                  </button>
+                  <button
+                    onClick={() => submitAnswer(true)}
+                    disabled={!answer}
+                  >
+                    Stop Timer and Submit
+                  </button>
+                </div>
+              ) : (
+                // Input for green questions
+                <div>
+                  <input
+                    type="text"
+                    placeholder="Enter your answer"
+                    value={answer}
+                    onChange={(e) => setAnswer(e.target.value)}
+                  />
+                  <button onClick={() => submitAnswer(false)}>
+                    Submit Answer
+                  </button>
+                  <button onClick={() => submitAnswer(true)}>
+                    Stop Timer and Submit
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -218,8 +268,8 @@ function Game() {
               {waitingValidation && <h3>Waiting for answer validation...</h3>}
               {validationResult === "correct" && (
                 <h3>
-                  Your answer is correct! You earned {stoppedTimerGroup ? 3 : 1}{" "}
-                  point
+                  Your answer is correct! You earned{" "}
+                  {stoppedTimerGroup ? 3 : 1} point
                   {stoppedTimerGroup ? "s" : ""}!
                 </h3>
               )}

@@ -13,6 +13,7 @@ function AdminGameControl() {
   const [camemberts, setCamemberts] = useState([]);
   const [answers, setAnswers] = useState([]);
   const [currentQuestion, setCurrentQuestion] = useState(null);
+  const [questionOptions, setQuestionOptions] = useState([]); // Options for red questions
   const [timer, setTimer] = useState(0);
   const [isTimeUp, setIsTimeUp] = useState(false);
   const [correctAnswer, setCorrectAnswer] = useState(null);
@@ -53,7 +54,7 @@ function AdminGameControl() {
 
     socket.on(
       "newQuestion",
-      ({ question, timer, questionIndex, totalQuestions }) => {
+      async ({ question, timer, questionIndex, totalQuestions }) => {
         setCurrentQuestion(question);
         setTimer(timer);
         setQuestionIndex(questionIndex);
@@ -63,6 +64,23 @@ function AdminGameControl() {
         setCorrectAnswer(null);
         setStoppedTimerGroup(null);
         setStatus("active");
+
+        // Fetch options if the question is red-type
+        if (question.type === "red") {
+          const token = localStorage.getItem("token");
+          try {
+            const optionsRes = await fetch(
+              `${API_URL}/questions/${question.id}/options`,
+              { headers: { Authorization: token } }
+            );
+            setQuestionOptions(await optionsRes.json());
+          } catch (err) {
+            console.error("Failed to fetch question options:", err);
+            setQuestionOptions([]);
+          }
+        } else {
+          setQuestionOptions([]); // Clear options for green questions
+        }
       }
     );
 
@@ -230,6 +248,16 @@ function AdminGameControl() {
               {stoppedTimerGroup && (
                 <h4>Timer was stopped by: {stoppedTimerGroup.groupName}</h4>
               )}
+              {currentQuestion.type === "red" && (
+                <div>
+                  <h4>Options:</h4>
+                  <ul>
+                    {questionOptions.map((option, index) => (
+                      <li key={index}>{option.option_text}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
 
             <button onClick={revealAnswer} disabled={correctAnswer}>
@@ -243,28 +271,33 @@ function AdminGameControl() {
           </>
         )}
 
-{status !== "gameOver" && (
-  <>
-    <h2>Answers Submitted</h2>
-    <ul>
-      {answers.map((answer, index) => (
-        <li key={index}>
-          <strong>{answer.groupName}</strong>: {answer.answer}
-          {answer.stoppedTimer && <em> (Stopped Timer)</em>}
-          <button onClick={() => validateAnswer(answer, answer.groupId, true)}>
-            Correct
-          </button>
-          {answer.stoppedTimer && (
-            <button onClick={() => validateAnswer(answer, answer.groupId, false)}>
-              Incorrect
-            </button>
-          )}
-        </li>
-      ))}
-    </ul>
-  </>
-)}
-
+        {status !== "gameOver" && (
+          <>
+            <h2>Answers Submitted</h2>
+            <ul>
+              {answers.map((answer, index) => (
+                <li key={index}>
+                  <strong>{answer.groupName}</strong>: {answer.answer}
+                  {answer.stoppedTimer && <em> (Stopped Timer)</em>}
+                  <button
+                    onClick={() => validateAnswer(answer, answer.groupId, true)}
+                  >
+                    Correct
+                  </button>
+                  {answer.stoppedTimer && (
+                    <button
+                      onClick={() =>
+                        validateAnswer(answer, answer.groupId, false)
+                      }
+                    >
+                      Incorrect
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
 
         <h2>Camembert Progress</h2>
         <ul className="pie-chart-list">

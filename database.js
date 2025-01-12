@@ -11,6 +11,7 @@ db.serialize(() => {
   db.run(`DROP TABLE IF EXISTS users`);
   db.run(`DROP TABLE IF EXISTS game_sessions`);
   db.run(`DROP TABLE IF EXISTS questions`);
+  db.run(`DROP TABLE IF EXISTS question_options`);
   db.run(`DROP TABLE IF EXISTS groups`);
   db.run(`DROP TABLE IF EXISTS session_questions`);
   db.run(`DROP TABLE IF EXISTS answers`);
@@ -56,6 +57,16 @@ db.serialize(() => {
       title TEXT,
       expected_answer TEXT,
       allocated_time INTEGER
+    )
+  `);
+
+  // New table for question options
+  db.run(`
+    CREATE TABLE IF NOT EXISTS question_options (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      question_id INTEGER,
+      option_text TEXT,
+      FOREIGN KEY (question_id) REFERENCES questions(id)
     )
   `);
 
@@ -111,99 +122,146 @@ db.serialize(() => {
 
   // Insert test data
   db.serialize(() => {
-    // Add a default game session
+    // Add the Test Session
     db.run(
       `INSERT INTO game_sessions (title, date, status) VALUES ('Test Session', '2024-01-01', 'Draft')`
     );
 
-    // Add another session with 20 questions
-    db.run(
-      `INSERT INTO game_sessions (title, date, status) VALUES ('20 Question Session', '2024-01-02', 'Draft')`
-    );
+    // Get session ID
+    db.get(`SELECT id FROM game_sessions WHERE title = 'Test Session'`, (err, session) => {
+      if (err || !session) {
+        console.error("Failed to fetch Test Session ID:", err);
+        return;
+      }
 
-    // Get session IDs
-    db.get(`SELECT id FROM game_sessions WHERE title = 'Test Session'`, (err, defaultSession) => {
-      db.get(`SELECT id FROM game_sessions WHERE title = '20 Question Session'`, (err, newSession) => {
-        if (err || !defaultSession || !newSession) {
-          console.error("Failed to fetch session IDs:", err);
-          return;
-        }
+      const sessionId = session.id;
 
-        const defaultSessionId = defaultSession.id;
-        const newSessionId = newSession.id;
+      // Add 12 geography questions (6 red, 6 green)
+      const geographyQuestions = [
+        // Red Questions
+        {
+          type: "red",
+          title: "What is the capital of Germany?",
+          expected_answer: "Berlin",
+          allocated_time: 30,
+          options: ["Berlin", "Munich", "Hamburg", "Frankfurt"],
+        },
+        {
+          type: "red",
+          title: "What is the largest continent by area?",
+          expected_answer: "Asia",
+          allocated_time: 30,
+          options: ["Asia", "Africa", "Europe", "Antarctica"],
+        },
+        {
+          type: "red",
+          title: "Which country has the most islands?",
+          expected_answer: "Sweden",
+          allocated_time: 30,
+          options: ["Sweden", "Indonesia", "Philippines", "Finland"],
+        },
+        {
+          type: "red",
+          title: "What is the capital of Canada?",
+          expected_answer: "Ottawa",
+          allocated_time: 30,
+          options: ["Ottawa", "Toronto", "Vancouver", "Montreal"],
+        },
+        {
+          type: "red",
+          title: "Which desert is the largest in the world?",
+          expected_answer: "Sahara",
+          allocated_time: 30,
+          options: ["Sahara", "Gobi", "Kalahari", "Mojave"],
+        },
+        {
+          type: "red",
+          title: "What is the longest river in the world?",
+          expected_answer: "Nile",
+          allocated_time: 30,
+          options: ["Nile", "Amazon", "Yangtze", "Mississippi"],
+        },
+        // Green Questions
+        {
+          type: "green",
+          title: "What is the smallest country in the world?",
+          expected_answer: "Vatican City",
+          allocated_time: 20,
+        },
+        {
+          type: "green",
+          title: "What is the capital of Japan?",
+          expected_answer: "Tokyo",
+          allocated_time: 20,
+        },
+        {
+          type: "green",
+          title: "Which country has the most population?",
+          expected_answer: "China",
+          allocated_time: 20,
+        },
+        {
+          type: "green",
+          title: "What is the highest mountain in the world?",
+          expected_answer: "Mount Everest",
+          allocated_time: 20,
+        },
+        {
+          type: "green",
+          title: "Which ocean is the largest?",
+          expected_answer: "Pacific Ocean",
+          allocated_time: 20,
+        },
+        {
+          type: "green",
+          title: "What is the capital of Australia?",
+          expected_answer: "Canberra",
+          allocated_time: 20,
+        },
+      ];
 
-        // Add questions to the default session
-        const defaultQuestions = [
-          { type: "red", title: "What is 2 + 2?", expected_answer: "4", allocated_time: 30 },
-          { type: "green", title: "Name the capital of France.", expected_answer: "Paris", allocated_time: 20 },
-          { type: "red", title: "What is 5 * 6?", expected_answer: "30", allocated_time: 40 },
-          { type: "green", title: "What color is the sky?", expected_answer: "Blue", allocated_time: 15 },
-        ];
+      geographyQuestions.forEach((q) => {
+        db.run(
+          `INSERT INTO questions (type, title, expected_answer, allocated_time) VALUES (?, ?, ?, ?)`,
+          [q.type, q.title, q.expected_answer, q.allocated_time],
+          function (err) {
+            if (!err) {
+              db.run(
+                `INSERT INTO session_questions (session_id, question_id) VALUES (?, ?)`,
+                [sessionId, this.lastID]
+              );
 
-        defaultQuestions.forEach((q) => {
-          db.run(
-            `INSERT INTO questions (type, title, expected_answer, allocated_time) VALUES (?, ?, ?, ?)`,
-            [q.type, q.title, q.expected_answer, q.allocated_time],
-            function (err) {
-              if (!err) {
-                db.run(
-                  `INSERT INTO session_questions (session_id, question_id) VALUES (?, ?)`,
-                  [defaultSessionId, this.lastID]
-                );
+              if (q.type === "red" && q.options) {
+                q.options.forEach((option) => {
+                  db.run(
+                    `INSERT INTO question_options (question_id, option_text) VALUES (?, ?)`,
+                    [this.lastID, option]
+                  );
+                });
               }
             }
-          );
-        });
+          }
+        );
+      });
 
-        // Add 20 questions to the new session (10 red, 10 green)
-        const newQuestions = [];
-        for (let i = 1; i <= 20; i++) {
-          newQuestions.push({
-            type: i % 2 === 0 ? "green" : "red",
-            title: `Question ${i}`,
-            expected_answer: `Answer ${i}`,
-            allocated_time: 20 + (i % 2 === 0 ? 10 : 0), // Green: 30 seconds, Red: 20 seconds
-          });
-        }
+      // Add groups to the session
+      const groups = [
+        { name: "Group Alpha", description: "First group in Test Session" },
+        { name: "Group Beta", description: "Second group in Test Session" },
+        { name: "Group Gamma", description: "Third group in Test Session" },
+        { name: "Group Delta", description: "Fourth group in Test Session" },
+      ];
 
-        newQuestions.forEach((q) => {
-          db.run(
-            `INSERT INTO questions (type, title, expected_answer, allocated_time) VALUES (?, ?, ?, ?)`,
-            [q.type, q.title, q.expected_answer, q.allocated_time],
-            function (err) {
-              if (!err) {
-                db.run(
-                  `INSERT INTO session_questions (session_id, question_id) VALUES (?, ?)`,
-                  [newSessionId, this.lastID]
-                );
-              }
-            }
-          );
-        });
-
-        // Add groups for the new session
-        const groups = [
-          { name: "Team Red", description: "First group for 20 Question Session" },
-          { name: "Team Blue", description: "Second group for 20 Question Session" },
-          { name: "Team Yellow", description: "Third group for 20 Question Session" },
-          { name: "Team Green", description: "Fourth group for 20 Question Session" },
-        ];
-
-        groups.forEach((g) => {
-          db.run(
-            `INSERT INTO groups (session_id, name, description) VALUES (?, ?, ?)`,
-            [newSessionId, g.name, g.description],
-            function (err) {
-              if (err) {
-                console.error("Failed to insert group:", err);
-                return;
-              }
-
-              // Initialize camembert progress
+      groups.forEach((g) => {
+        db.run(
+          `INSERT INTO groups (session_id, name, description) VALUES (?, ?, ?)`,
+          [sessionId, g.name, g.description],
+          function (err) {
+            if (!err) {
               db.run(`INSERT INTO camembert_progress (group_id) VALUES (?)`, [this.lastID]);
             }
-          );
-        });
+          }
+        );
       });
     });
   });

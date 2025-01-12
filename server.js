@@ -48,71 +48,65 @@ io.on("connection", (socket) => {
 
   const fetchNextQuestion = (sessionId) => {
     const state = sessionState[sessionId];
-
-    // Check if all questions have been asked
+  
     if (state.currentIndex >= state.totalQuestions) {
       io.to(sessionId).emit("gameOver");
       return;
     }
-
-    // Alternate question types: green for even indexes, red for odd indexes
+  
     const questionType = state.currentIndex % 2 === 0 ? "green" : "red";
-
-    let notInClause = "q.id IS NOT NULL"; // Default when no questions have been asked
-    const queryParams = [sessionId, questionType];
-
-    if (state.askedQuestions.size > 0) {
-      // Build the `NOT IN` clause dynamically
-      notInClause = `q.id NOT IN (${[...state.askedQuestions]
-        .map(() => "?")
-        .join(",")})`;
-      queryParams.push(...state.askedQuestions);
-    }
-
+    const notInClause = state.askedQuestions.size
+      ? `AND q.id NOT IN (${[...state.askedQuestions].join(",")})`
+      : "";
+  
     const sql = `
       SELECT q.* 
       FROM questions q
       JOIN session_questions sq ON q.id = sq.question_id
-      WHERE sq.session_id = ? 
-      AND q.type = ? 
-      AND ${notInClause}
+      WHERE sq.session_id = ? AND q.type = ? ${notInClause}
       ORDER BY sq.id ASC
       LIMIT 1
     `;
-
-    console.log("Executing SQL:", sql, "with params:", queryParams); // Debugging log
-
-    db.get(sql, queryParams, (err, question) => {
-      if (err) {
-        console.error("Database error:", err);
+  
+    db.get(sql, [sessionId, questionType], (err, question) => {
+      if (err || !question) {
         io.to(sessionId).emit("gameOver");
         return;
       }
-
-      if (!question) {
-        console.warn(
-          "No question found for type:",
-          questionType,
-          "sessionId:",
-          sessionId
-        );
-        io.to(sessionId).emit("gameOver");
-        return;
-      }
-
-      // Mark the question as asked
+  
       state.askedQuestions.add(question.id);
       state.currentIndex += 1;
-
-      // Emit the question
-      io.to(sessionId).emit("newQuestion", {
-        question,
-        timer: question.allocated_time || 30,
-        questionIndex: state.currentIndex,
-        totalQuestions: state.totalQuestions,
-      });
+  
+      if (questionType === "red") {
+        db.all(
+          `SELECT id, option_text FROM question_options WHERE question_id = ?`,
+          [question.id],
+          (err, options) => {
+            if (err) {
+              console.error("Error fetching options:", err);
+              io.to(sessionId).emit("gameOver");
+              return;
+            }
+  
+            io.to(sessionId).emit("newQuestion", {
+              question: { ...question, options },
+              timer: question.allocated_time || 30,
+              questionIndex: state.currentIndex,
+              totalQuestions: state.totalQuestions,
+            });
+          }
+        );
+      } else {
+        io.to(sessionId).emit("newQuestion", {
+          question,
+          timer: question.allocated_time || 30,
+          questionIndex: state.currentIndex,
+          totalQuestions: state.totalQuestions,
+        });
+      }
     });
   };
+  
 
   socket.on(
     "submitAnswer",
@@ -1071,6 +1065,168 @@ app.get("/sessions/:id/answers", (req, res) => {
     );
   });
 });
+
+// Fetch options for a specific question
+app.get("/questions/:id/options", (req, res) => {
+  const token = req.headers["authorization"];
+  if (!token) {
+    return res.status(401).json({ message: "Access denied" });
+  }
+
+  jwt.verify(token, SECRET_KEY, (err) => {
+    if (err) {
+      return res.status(403).json({ message: "Invalid token" });
+    }
+
+    const questionId = req.params.id;
+
+    db.all(
+      `SELECT id, option_text FROM question_options WHERE question_id = ?`,
+      [questionId],
+      (err, rows) => {
+        if (err) {
+          console.error("Database Error:", err);
+          return res.status(500).json({ message: "Database error" });
+        }
+
+        res.json(rows || []);
+      }
+    );
+  });
+});
+
+// Add a new question with options for red questions
+app.post("/questions", (req, res) => {
+  const token = req.headers["authorization"];
+  if (!token) {
+    return res.status(401).json({ message: "Access denied" });
+  }
+
+  jwt.verify(token, SECRET_KEY, (err) => {
+    if (err) {
+      return res.status(403).json({ message: "Invalid token" });
+    }
+
+    const { type, title, expected_answer, allocated_time, options } = req.body;
+
+    db.run(
+      `INSERT INTO questions (type, title, expected_answer, allocated_time) VALUES (?, ?, ?, ?)`,
+      [type, title, expected_answer, allocated_time],
+      function (err) {
+        if (err) {
+          console.error("Insert Error:", err);
+          return res.status(500).json({ message: "Database error" });
+        }
+
+        const questionId = this.lastID;
+
+        // Insert options for red questions
+        if (type === "red" && Array.isArray(options)) {
+          const optionPromises = options.map((optionText) => {
+            return new Promise((resolve, reject) => {
+              db.run(
+                `INSERT INTO question_options (question_id, option_text) VALUES (?, ?)`,
+                [questionId, optionText],
+                (err) => {
+                  if (err) {
+                    reject(err);
+                  } else {
+                    resolve();
+                  }
+                }
+              );
+            });
+          });
+
+          Promise.all(optionPromises)
+            .then(() => {
+              res.json({
+                id: questionId,
+                type,
+                title,
+                expected_answer,
+                allocated_time,
+                options,
+              });
+            })
+            .catch((err) => {
+              console.error("Option Insert Error:", err);
+              res.status(500).json({ message: "Failed to insert options" });
+            });
+        } else {
+          res.json({
+            id: questionId,
+            type,
+            title,
+            expected_answer,
+            allocated_time,
+          });
+        }
+      }
+    );
+  });
+});
+
+app.post("/questions/:id/options", (req, res) => {
+  const token = req.headers["authorization"];
+  if (!token) {
+    return res.status(401).json({ message: "Access denied" });
+  }
+
+  jwt.verify(token, SECRET_KEY, (err) => {
+    if (err) {
+      return res.status(403).json({ message: "Invalid token" });
+    }
+
+    const questionId = req.params.id;
+    const { options } = req.body; // Array of options
+
+    // Delete existing options first
+    db.run(
+      `DELETE FROM question_options WHERE question_id = ?`,
+      [questionId],
+      (err) => {
+        if (err) {
+          console.error("Error deleting existing options:", err);
+          return res
+            .status(500)
+            .json({ message: "Failed to delete existing options" });
+        }
+
+        // Insert new options
+        if (Array.isArray(options)) {
+          const optionPromises = options.map((optionText) => {
+            return new Promise((resolve, reject) => {
+              db.run(
+                `INSERT INTO question_options (question_id, option_text) VALUES (?, ?)`,
+                [questionId, optionText],
+                (err) => {
+                  if (err) {
+                    reject(err);
+                  } else {
+                    resolve();
+                  }
+                }
+              );
+            });
+          });
+
+          Promise.all(optionPromises)
+            .then(() => {
+              res.json({ message: "Options updated successfully" });
+            })
+            .catch((err) => {
+              console.error("Error updating options:", err);
+              res.status(500).json({ message: "Failed to update options" });
+            });
+        } else {
+          res.json({ message: "No options provided, existing options cleared" });
+        }
+      }
+    );
+  });
+});
+
 
 // Catch-all route to serve React app
 app.get("*", (req, res) => {

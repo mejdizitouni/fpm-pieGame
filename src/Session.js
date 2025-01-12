@@ -14,7 +14,9 @@ function Session() {
     title: "",
     expected_answer: "",
     allocated_time: "",
+    options: [],
   });
+  const [optionInput, setOptionInput] = useState(""); // Input for new options
   const [allQuestions, setAllQuestions] = useState([]); // To store available questions
   const [selectedQuestionId, setSelectedQuestionId] = useState(""); // To store selected question ID
   const [groups, setGroups] = useState([]);
@@ -85,6 +87,7 @@ function Session() {
       const response = await axios.post(`${API_URL}/questions`, newQuestion, {
         headers: { Authorization: token },
       });
+
       // Link the newly created question to the session
       await axios.post(
         `${API_URL}/sessions/${id}/questions`,
@@ -93,17 +96,47 @@ function Session() {
           headers: { Authorization: token },
         }
       );
+
+      // If the question has options, save them
+      if (newQuestion.type === "red" && newQuestion.options.length > 0) {
+        await axios.post(
+          `${API_URL}/questions/${response.data.id}/options`,
+          { options: newQuestion.options },
+          {
+            headers: { Authorization: token },
+          }
+        );
+      }
+
       setQuestions((prev) => [...prev, response.data]); // Update session-specific questions
       setNewQuestion({
         type: "",
         title: "",
         expected_answer: "",
         allocated_time: "",
+        options: [],
       });
       setShowNewQuestionForm(false); // Hide the form after creating the question
     } catch (err) {
       console.error("Failed to create and link question:", err);
     }
+  };
+
+  const addOption = () => {
+    if (optionInput.trim()) {
+      setNewQuestion((prev) => ({
+        ...prev,
+        options: [...prev.options, optionInput.trim()],
+      }));
+      setOptionInput("");
+    }
+  };
+
+  const removeOption = (index) => {
+    setNewQuestion((prev) => ({
+      ...prev,
+      options: prev.options.filter((_, i) => i !== index),
+    }));
   };
 
   const linkExistingQuestion = async (e) => {
@@ -163,37 +196,71 @@ function Session() {
       const response = await axios.get(`${API_URL}/questions/${questionId}`, {
         headers: { Authorization: token },
       });
-      setEditingQuestion(response.data); // Set the question being edited
+  
+      const questionData = response.data;
+  
+      // If the question is a red question, fetch its options
+      if (questionData.type === "red") {
+        const optionsResponse = await axios.get(
+          `${API_URL}/questions/${questionId}/options`,
+          { headers: { Authorization: token } }
+        );
+        // Transform options to an array of strings
+        questionData.options = optionsResponse.data.map((opt) => opt.option_text);
+      } else {
+        questionData.options = []; // Clear options for non-red questions
+      }
+  
+      setEditingQuestion(questionData); // Set the question being edited
     } catch (err) {
       console.error("Failed to fetch question details:", err);
     }
   };
-
+  
+  
   const updateQuestion = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem("token");
-
+  
     try {
-      const response = await axios.put(
+      // Update the question details
+      await axios.put(
         `${API_URL}/questions/${editingQuestion.id}`,
-        editingQuestion,
+        {
+          type: editingQuestion.type,
+          title: editingQuestion.title,
+          expected_answer: editingQuestion.expected_answer,
+          allocated_time: editingQuestion.allocated_time,
+        },
         {
           headers: { Authorization: token },
         }
       );
-
-      // After the question is successfully updated, update the state to reflect the changes
+  
+      // If the question is a red question, update its options
+      if (editingQuestion.type === "red") {
+        await axios.post(
+          `${API_URL}/questions/${editingQuestion.id}/options`,
+          { options: editingQuestion.options },
+          {
+            headers: { Authorization: token },
+          }
+        );
+      }
+  
+      // Update the local state to reflect the changes
       setQuestions((prevQuestions) =>
         prevQuestions.map((q) =>
-          q.id === editingQuestion.id ? { ...q, ...response.data } : q
+          q.id === editingQuestion.id ? { ...q, ...editingQuestion } : q
         )
       );
-
-      setEditingQuestion(null); // Clear the editing state after the update
+  
+      setEditingQuestion(null); // Clear the editing state
     } catch (err) {
       console.error("Failed to update question:", err);
     }
   };
+  
 
   const editGroup = async (groupId) => {
     const token = localStorage.getItem("token");
@@ -314,10 +381,8 @@ function Session() {
                   <td>{question.title}</td>
                   <td>{question.expected_answer}</td>
                   <td>{question.allocated_time}</td>
-                  <td class="actions">
-                    <button onClick={() => editQuestion(question.id)}>
-                      Edit
-                    </button>
+                  <td>
+                    <button onClick={() => editQuestion(question.id)}>Edit</button>
                     <button
                       onClick={() => removeQuestionFromSession(question.id)}
                     >
@@ -382,61 +447,132 @@ function Session() {
               }
               required
             />
+            {/* Options for Red Questions */}
+            {newQuestion.type === "red" && (
+              <div>
+                <h4>Options</h4>
+                <ul>
+                  {newQuestion.options.map((option, index) => (
+                    <li key={index}>
+                      {option}
+                      <button type="button" onClick={() => removeOption(index)}>
+                        Remove
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <input
+                  type="text"
+                  placeholder="Add option"
+                  value={optionInput}
+                  onChange={(e) => setOptionInput(e.target.value)}
+                />
+                <button type="button" onClick={addOption}>
+                  Add Option
+                </button>
+              </div>
+            )}
             <button type="submit">Create</button>
           </form>
         )}
 
         {/* Editing a Question */}
         {editingQuestion && (
-          <form onSubmit={updateQuestion}>
-            <select
-              value={editingQuestion.type}
-              onChange={(e) =>
-                setEditingQuestion({
-                  ...editingQuestion,
-                  type: e.target.value,
-                })
-              }
-            >
-              <option value="red">Red</option>
-              <option value="green">Green</option>
-            </select>
-            <input
-              type="text"
-              value={editingQuestion.title}
-              onChange={(e) =>
-                setEditingQuestion({
-                  ...editingQuestion,
-                  title: e.target.value,
-                })
-              }
-            />
-            <input
-              type="text"
-              value={editingQuestion.expected_answer}
-              onChange={(e) =>
-                setEditingQuestion({
-                  ...editingQuestion,
-                  expected_answer: e.target.value,
-                })
-              }
-            />
-            <input
-              type="number"
-              value={editingQuestion.allocated_time}
-              onChange={(e) =>
-                setEditingQuestion({
-                  ...editingQuestion,
-                  allocated_time: e.target.value,
-                })
-              }
-            />
-            <button type="submit">Update</button>
-            <button type="button" onClick={cancelQuestionEdit}>
-              Cancel
-            </button>
-          </form>
-        )}
+  <form onSubmit={updateQuestion}>
+    <select
+      value={editingQuestion.type}
+      onChange={(e) =>
+        setEditingQuestion({
+          ...editingQuestion,
+          type: e.target.value,
+        })
+      }
+    >
+      <option value="red">Red</option>
+      <option value="green">Green</option>
+    </select>
+    <input
+      type="text"
+      value={editingQuestion.title}
+      onChange={(e) =>
+        setEditingQuestion({
+          ...editingQuestion,
+          title: e.target.value,
+        })
+      }
+    />
+    <input
+      type="text"
+      value={editingQuestion.expected_answer}
+      onChange={(e) =>
+        setEditingQuestion({
+          ...editingQuestion,
+          expected_answer: e.target.value,
+        })
+      }
+    />
+    <input
+      type="number"
+      value={editingQuestion.allocated_time}
+      onChange={(e) =>
+        setEditingQuestion({
+          ...editingQuestion,
+          allocated_time: e.target.value,
+        })
+      }
+    />
+
+    {/* Options for Red Questions */}
+    {editingQuestion.type === "red" && (
+      <div>
+        <h4>Edit Options</h4>
+        <ul>
+          {editingQuestion.options.map((option, index) => (
+            <li key={index}>
+              {option}
+              <button
+                type="button"
+                onClick={() =>
+                  setEditingQuestion((prev) => ({
+                    ...prev,
+                    options: prev.options.filter((_, i) => i !== index),
+                  }))
+                }
+              >
+                Remove
+              </button>
+            </li>
+          ))}
+        </ul>
+        <input
+          type="text"
+          placeholder="Add option"
+          value={optionInput}
+          onChange={(e) => setOptionInput(e.target.value)}
+        />
+        <button
+          type="button"
+          onClick={() => {
+            if (optionInput.trim()) {
+              setEditingQuestion((prev) => ({
+                ...prev,
+                options: [...prev.options, optionInput.trim()],
+              }));
+              setOptionInput("");
+            }
+          }}
+        >
+          Add Option
+        </button>
+      </div>
+    )}
+    <button type="submit">Update</button>
+    <button type="button" onClick={cancelQuestionEdit}>
+      Cancel
+    </button>
+  </form>
+)}
+
 
         <h2>Link Existing Question</h2>
         <form onSubmit={linkExistingQuestion}>
