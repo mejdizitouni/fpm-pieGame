@@ -3,6 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Header from "./Header";
 import Footer from "./Footer";
+import "./Admin.css"; // Import the CSS file for styling
 
 function Admin() {
   const API_URL = process.env.REACT_APP_API_URL;
@@ -242,129 +243,128 @@ function Admin() {
 
   return (
     <>
-      <Header />
-      <div className="admin-container">
-
-        {/* Game Sessions List */}
-        <h2>Game Sessions</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Title</th>
-              <th>Date</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {gameSessions.length > 0 ? (
-              gameSessions.map((session) => (
-                <tr key={session.id}>
-                  <td>{session.id}</td>
-                  <td>{session.title}</td>
-                  <td>{session.date}</td>
-                  <td>{session.status}</td>
-                  <td class="actions"> 
-                    {/* Conditionally render buttons based on session status */}
-                    <button onClick={() => handleEdit(session)}>Edit</button>
-                    {(session.status === 'Draft') && (
-                      <>
-                      <button onClick={() => navigate(`/session/${session.id}`)}>
+  <Header />
+  <div className="admin-container">
+    <h2>Game Sessions</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Title</th>
+          <th>Date</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {gameSessions.length > 0 ? (
+          gameSessions.map((session) => (
+            <tr key={session.id}>
+              <td>{session.id}</td>
+              <td>{session.title}</td>
+              <td>{session.date}</td>
+              <td>{session.status}</td>
+              <td className="actions">
+                <button onClick={() => handleEdit(session)}>Edit</button>
+                {session.status === "Draft" && (
+                  <>
+                    <button onClick={() => navigate(`/session/${session.id}`)}>
                       View Details
                     </button>
-                      </>
-                    )}
-                    {session.status === 'Draft' && (
-                      <button onClick={() => activateSession(session.id)}>
-                        Activate
-                      </button>
-                    )}
-                    
-                    {(session.status === 'Activated' || session.status === 'In Progress') && (
-                      <>
-                        <button onClick={() => viewGroupUrls(session.id)}>
-                          View Group URLs
-                        </button>
-                        <button onClick={() => navigate(`/admin/game/${session.id}`)}>
-                          Control Game
-                        </button>
-                      </>
-                    )}
-                    <button onClick={() => cloneSession(session.id)}>Clone</button>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="5">No game sessions found.</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-
-        {/* Button to toggle the new session form */}
-        <button onClick={() => setShowForm(!showForm)}>
-          {showForm ? "Cancel" : "Create New Session"}
-        </button>
-
-        {/* New Session Creation Form */}
-        {showForm && (
-          <div>
-            <h2>{editingSession ? "Edit Session" : "Create New Session"}</h2>
-            <form onSubmit={editingSession ? handleUpdateSession : createSession}>
-              <input
-                type="text"
-                placeholder="Title"
-                value={newSession.title}
-                onChange={(e) =>
-                  setNewSession({ ...newSession, title: e.target.value })
-                }
-                required
-              />
-              <input
-                type="date"
-                value={newSession.date}
-                onChange={(e) =>
-                  setNewSession({ ...newSession, date: e.target.value })
-                }
-                required
-              />
-              <button type="submit">{editingSession ? "Update" : "Create"} Session</button>
-            </form>
-          </div>
+                    <button onClick={() => activateSession(session.id)}>
+                      Activate
+                    </button>
+                  </>
+                )}
+                {(session.status === "Activated" ||
+                  session.status === "In Progress") && (
+                  <>
+                    <button onClick={() => viewGroupUrls(session.id)}>
+                      View Group URLs
+                    </button>
+                    <button onClick={() => navigate(`/admin/game/${session.id}`)}>
+                      Control Game
+                    </button>
+                  </>
+                )}
+                <button onClick={() => cloneSession(session.id)}>Clone</button>
+              </td>
+            </tr>
+          ))
+        ) : (
+          <tr>
+            <td colSpan="5">No game sessions found.</td>
+          </tr>
         )}
+      </tbody>
+    </table>
 
-        {/* Group URLs for Activated Session */}
-        {activeSessionGroups.length > 0 && (
-          <>
-            <h2>Group Join URLs</h2>
-            <ul>
-              {activeSessionGroups.map((group) => (
-                <li key={group.id}>
-                  <strong>{group.name}:</strong>{" "}
-                  <a href={group.join_url} target="_blank" rel="noreferrer">
-                    {group.join_url}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
+    <button onClick={() => setShowForm(!showForm)}>
+      {showForm ? "Cancel" : "Create New Session"}
+    </button>
 
-        {adminSessionLink && (
-          <>
-            <h2>Admin Session Link</h2>
-            <p>
-              <a href={adminSessionLink} target="_blank" rel="noreferrer">
-                {adminSessionLink}
-              </a>
-            </p>
-          </>
-        )}
+    {showForm && (
+      <div>
+        <h2>{editingSession ? "Edit Session" : "Create New Session"}</h2>
+        <form onSubmit={editingSession ? handleUpdateSession : createSession}>
+          <input
+            type="text"
+            placeholder="Title"
+            value={newSession.title}
+            onChange={(e) =>
+              setNewSession({ ...newSession, title: e.target.value })
+            }
+            required
+          />
+          <input
+            type="date"
+            value={newSession.date}
+            onChange={(e) =>
+              setNewSession({ ...newSession, date: e.target.value })
+            }
+            required
+          />
+          <button type="submit">
+            {editingSession ? "Update" : "Create"} Session
+          </button>
+        </form>
       </div>
-      {/* <Footer /> */}
-    </>
+    )}
+
+    {activeSessionGroups.length > 0 && (
+      <>
+        <h2>Group Join URLs</h2>
+        <ul>
+          {activeSessionGroups.map((group) => (
+            <li key={group.id}>
+              <strong>{group.name}:</strong>{" "}
+              <a href={group.join_url} target="_blank" rel="noreferrer">
+                {group.join_url}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </>
+    )}
+
+{adminSessionLink && (
+  <>
+    <h2>Admin Session Link</h2>
+    <ul>
+      <li>
+        <strong>Admin Link:</strong>{" "}
+        <a href={adminSessionLink} target="_blank" rel="noreferrer">
+          {adminSessionLink}
+        </a>
+      </li>
+    </ul>
+  </>
+)}
+
+  </div>
+  <Footer />
+</>
+
   );
 }
 

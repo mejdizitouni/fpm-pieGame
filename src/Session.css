@@ -1,0 +1,186 @@
+/* General styles */
+body {
+  font-family: 'Arial', sans-serif;
+  background-color: #f4f4f9;
+  margin: 0;
+  padding: 0;
+  color: #333;
+}
+
+.session-container {
+  max-width: 1200px;
+  margin: 20px auto;
+  padding: 20px;
+  background-color: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+h1, h2 {
+  color: #4a4a4a;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+h4 {
+  color: #5a5a5a;
+}
+
+/* Table styles */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+}
+
+table thead {
+  background-color: #f0f0f5;
+}
+
+table th,
+table td {
+  text-align: left;
+  padding: 12px;
+  border: 1px solid #ddd;
+}
+
+table th {
+  background-color: #fafafa;
+  color: #333;
+}
+
+table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.actions {
+  text-align: center;
+}
+
+.actions button {
+  margin: 0 5px;
+}
+
+/* Button styles */
+button {
+  padding: 10px 15px;
+  margin: 5px 0;
+  border: none;
+  border-radius: 5px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.2s;
+}
+
+button:hover {
+  transform: scale(1.05);
+}
+
+button:disabled {
+  background-color: #d3d3d3;
+  color: #888;
+  cursor: not-allowed;
+}
+
+button:nth-child(1) {
+  background-color: #4caf50;
+  color: white;
+}
+
+button:nth-child(1):hover {
+  background-color: #45a049;
+}
+
+button:nth-child(2) {
+  background-color: #f39c12;
+  color: white;
+}
+
+button:nth-child(2):hover {
+  background-color: #e67e22;
+}
+
+/* Form styles */
+form {
+  margin: 20px 0;
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  max-width: 600px;
+  margin: 20px auto;
+}
+
+form input[type="text"],
+form input[type="number"],
+form select {
+  width: calc(100% - 20px);
+  padding: 10px;
+  margin: 10px 0;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 14px;
+}
+
+form button {
+  display: block;
+  margin: 10px auto;
+  background-color: #007bff;
+  color: white;
+}
+
+form button:hover {
+  background-color: #0056b3;
+}
+
+/* List styles for options */
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+ul li {
+  margin: 10px 0;
+  padding: 8px 10px;
+  background-color: #f7f7f7;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+}
+
+ul li button {
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  margin-left: 10px;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+ul li button:hover {
+  background-color: #c0392b;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .session-container {
+    padding: 15px;
+  }
+
+  button {
+    font-size: 12px;
+    padding: 8px 12px;
+  }
+
+  table th,
+  table td {
+    font-size: 12px;
+    padding: 10px;
+  }
+
+  form input,
+  form button {
+    font-size: 12px;
+    padding: 8px;
+  }
+}

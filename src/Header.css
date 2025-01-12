@@ -1,0 +1,54 @@
+/* General header styles */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #4caf50; /* Green background */
+    color: white;
+    padding: 10px 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Logo styling */
+  header img {
+    height: 50px; /* Adjust logo size */
+    cursor: pointer;
+  }
+  
+  /* Logout button */
+  .logout-button {
+    font-size: 16px;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 15px;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+  }
+  
+  .logout-button:hover {
+    background-color: #3e8e41; /* Even darker green on hover */
+    transform: scale(1.05);
+  }
+  
+  .logout-button:active {
+    transform: scale(0.95); /* Click feedback */
+  }
+  
+  /* Mobile responsiveness */
+  @media (max-width: 768px) {
+    header {
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+  
+    header img {
+      margin-bottom: 10px;
+    }
+  
+    .logout-button {
+      width: 100%; /* Full width button on smaller screens */
+      text-align: center;
+    }
+  }
+  

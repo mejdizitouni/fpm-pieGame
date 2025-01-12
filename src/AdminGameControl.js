@@ -4,6 +4,7 @@ import { io } from "socket.io-client";
 import Header from "./Header";
 import Footer from "./Footer";
 import PieChart from "./PieChart";
+import "./AdminGameControl.css"; // Import the CSS file for styling
 
 function AdminGameControl() {
   const API_URL = process.env.REACT_APP_API_URL;
@@ -95,7 +96,6 @@ function AdminGameControl() {
     });
 
     socket.on("camembertUpdated", ({ updatedCamemberts }) => {
-      console.log("updatedCamemberts --> ", updatedCamemberts);
       setCamemberts(updatedCamemberts);
     });
 
@@ -196,10 +196,16 @@ function AdminGameControl() {
         <h1>Admin Game Control</h1>
 
         {status === "waiting" && (
-          <button onClick={startGame}>Start Game</button>
+          <button className="start-game-button" onClick={startGame}>
+            Start Game
+          </button>
         )}
         {status === "active" && currentQuestion && (
-          <button onClick={nextQuestion} disabled={!currentQuestion}>
+          <button
+            className="next-question-button"
+            onClick={nextQuestion}
+            disabled={!currentQuestion}
+          >
             Next Question
           </button>
         )}
@@ -232,7 +238,7 @@ function AdminGameControl() {
             <h2>
               Question {questionIndex}/{totalQuestions}
             </h2>
-            <div>
+            <div className="current-question">
               <h3>{currentQuestion.title}</h3>
               <p>
                 Type:{" "}
@@ -241,7 +247,9 @@ function AdminGameControl() {
                   : "Green (Quick Answer)"}
               </p>
               <p>Expected Answer: {currentQuestion.expected_answer}</p>
-              <p>
+              <p
+                className={`timer ${timer <= 10 ? "warning" : ""}`}
+              >
                 Time Remaining: {timer > 0 ? `${timer} seconds` : "Time's Up!"}
               </p>
               {isTimeUp && <h3>Time's Up!</h3>}
@@ -251,7 +259,7 @@ function AdminGameControl() {
               {currentQuestion.type === "red" && (
                 <div>
                   <h4>Options:</h4>
-                  <ul>
+                  <ul className="options-list">
                     {questionOptions.map((option, index) => (
                       <li key={index}>{option.option_text}</li>
                     ))}
@@ -260,7 +268,11 @@ function AdminGameControl() {
               )}
             </div>
 
-            <button onClick={revealAnswer} disabled={correctAnswer}>
+            <button
+              className="reveal-answer-button"
+              onClick={revealAnswer}
+              disabled={correctAnswer}
+            >
               Reveal Answer
             </button>
             {correctAnswer && (
@@ -274,18 +286,22 @@ function AdminGameControl() {
         {status !== "gameOver" && (
           <>
             <h2>Answers Submitted</h2>
-            <ul>
+            <ul className="answers-list">
               {answers.map((answer, index) => (
-                <li key={index}>
+                <li key={index} className="answer-item">
                   <strong>{answer.groupName}</strong>: {answer.answer}
                   {answer.stoppedTimer && <em> (Stopped Timer)</em>}
                   <button
-                    onClick={() => validateAnswer(answer, answer.groupId, true)}
+                    className="validate-button correct"
+                    onClick={() =>
+                      validateAnswer(answer, answer.groupId, true)
+                    }
                   >
                     Correct
                   </button>
                   {answer.stoppedTimer && (
                     <button
+                      className="validate-button incorrect"
                       onClick={() =>
                         validateAnswer(answer, answer.groupId, false)
                       }

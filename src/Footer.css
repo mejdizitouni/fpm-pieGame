@@ -1,0 +1,25 @@
+/* Footer container */
+footer {
+    background-color: #4caf50; /* Green background */
+    color: white;
+    text-align: center;
+    padding: 15px 20px;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Footer text */
+  footer p {
+    margin: 0;
+    font-size: 14px;
+  }
+  
+  /* Responsiveness */
+  @media (max-width: 768px) {
+    footer p {
+      font-size: 12px;
+    }
+  }
+  

@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom'; // Import useNavigate
 import logo from './assets/logo-fpm.png';
+import "./Header.css"; // Import the CSS file for styling
 
 function Header() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate(); // Initialize useNavigate hook
 
   const handleLogout = () => {
@@ -15,18 +15,15 @@ function Header() {
 
   return (
     <header>
-      <img src={logo} alt="Game Management" />
+      <img
+        src={logo}
+        alt="Game Management"
+        onClick={() => navigate("/")} // Navigate to home on logo click
+      />
       {isAuthenticated && (
-        <div>
-          <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="burger-menu">
-            &#9776; {/* Hamburger icon */}
-          </button>
-          {isMenuOpen && (
-            <div className="dropdown-menu">
-              <button onClick={handleLogout}>Logout</button>
-            </div>
-          )}
-        </div>
+        <a onClick={handleLogout} className="logout-button">
+          Logout
+        </a>
       )}
     </header>
   );

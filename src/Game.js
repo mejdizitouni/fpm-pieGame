@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { io } from "socket.io-client";
 import PieChart from "./PieChart";
+import "./Game.css"; // Import the CSS file for styling
 
 const socket = io(process.env.REACT_APP_API_URL);
 
@@ -182,15 +183,14 @@ function Game() {
             {camemberts.map((cam) => (
               <li key={cam.group_id}>
                 <h3>{cam.name}</h3>
-                {generateCamemberts(
-                  cam.red_triangles,
-                  cam.green_triangles
-                ).map((segments, index) => (
-                  <PieChart
-                    key={`${cam.group_id}-${index}`}
-                    segments={segments}
-                  />
-                ))}
+                {generateCamemberts(cam.red_triangles, cam.green_triangles).map(
+                  (segments, index) => (
+                    <PieChart
+                      key={`${cam.group_id}-${index}`}
+                      segments={segments}
+                    />
+                  )
+                )}
               </li>
             ))}
           </ul>
@@ -199,17 +199,23 @@ function Game() {
 
       {status !== "waiting" && status !== "gameOver" && question && (
         <>
-          <h2>
-            Question {questionIndex}/{totalQuestions}
-          </h2>
-          <h1>Question: {question.title}</h1>
-          <p>
-            Type:{" "}
-            {question.type === "red"
-              ? "Red (Calculation)"
-              : "Green (Quick Answer)"}
-          </p>
-          <p>Time Remaining: {timer > 0 ? `${timer} seconds` : "Time's Up!"}</p>
+          <div className="question">
+            <h2>
+              Question {questionIndex}/{totalQuestions}
+            </h2>
+            <h1>Question: {question.title}</h1>
+            <p>
+              Type:{" "}
+              {question.type === "red"
+                ? "Red (Calculation)"
+                : "Green (Quick Answer)"}
+            </p>
+            <p
+              className={`timer ${timer <= 10 ? "warning" : ""}`}
+            >
+              Time Remaining: {timer > 0 ? `${timer} seconds` : "Time's Up!"}
+            </p>
+          </div>
 
           {stoppedTimerGroup && <h3>Timer stopped by: {stoppedTimerGroup}</h3>}
 
@@ -219,27 +225,40 @@ function Game() {
                 // Single choice for red questions
                 <div>
                   <h4>Select an option:</h4>
-                  <ul>
+                  <form>
                     {questionOptions.map((option) => (
-                      <li key={option.id}>
-                        <button onClick={() => setAnswer(option.option_text)}>
+                      <div key={option.id}>
+                        <label>
+                          <input
+                            type="radio"
+                            name="options"
+                            value={option.option_text}
+                            onChange={() => setAnswer(option.option_text)}
+                            checked={answer === option.option_text}
+                          />
                           {option.option_text}
-                        </button>
-                      </li>
+                        </label>
+                      </div>
                     ))}
-                  </ul>
-                  <button
-                    onClick={() => submitAnswer(false)}
-                    disabled={!answer}
-                  >
-                    Submit Answer
-                  </button>
-                  <button
-                    onClick={() => submitAnswer(true)}
-                    disabled={!answer}
-                  >
-                    Stop Timer and Submit
-                  </button>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        submitAnswer(false);
+                      }}
+                      disabled={!answer}
+                    >
+                      Submit Answer
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        submitAnswer(true);
+                      }}
+                      disabled={!answer}
+                    >
+                      Stop Timer and Submit
+                    </button>
+                  </form>
                 </div>
               ) : (
                 // Input for green questions
@@ -268,8 +287,8 @@ function Game() {
               {waitingValidation && <h3>Waiting for answer validation...</h3>}
               {validationResult === "correct" && (
                 <h3>
-                  Your answer is correct! You earned{" "}
-                  {stoppedTimerGroup ? 3 : 1} point
+                  Your answer is correct! You earned {stoppedTimerGroup ? 3 : 1}{" "}
+                  point
                   {stoppedTimerGroup ? "s" : ""}!
                 </h3>
               )}
@@ -295,15 +314,14 @@ function Game() {
         {camemberts.map((cam) => (
           <li key={cam.group_id}>
             <h3>{cam.name}</h3>
-            {generateCamemberts(
-              cam.red_triangles,
-              cam.green_triangles
-            ).map((segments, index) => (
-              <PieChart
-                key={`${cam.group_id}-${index}`}
-                segments={segments}
-              />
-            ))}
+            {generateCamemberts(cam.red_triangles, cam.green_triangles).map(
+              (segments, index) => (
+                <PieChart
+                  key={`${cam.group_id}-${index}`}
+                  segments={segments}
+                />
+              )
+            )}
           </li>
         ))}
       </ul>
