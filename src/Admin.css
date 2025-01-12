@@ -8,7 +8,6 @@ body {
 }
 
 .admin-container {
-  max-width: 1200px;
   margin: 20px auto;
   padding: 20px;
   background-color: #ffffff;
@@ -103,7 +102,6 @@ form {
   flex-direction: column;
   gap: 15px;
   margin: 20px 0;
-  max-width: 400px;
   margin: 0 auto;
 }
 

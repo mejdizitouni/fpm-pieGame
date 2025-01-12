@@ -10,6 +10,7 @@ function AdminGameControl() {
   const API_URL = process.env.REACT_APP_API_URL;
   const { sessionId } = useParams();
 
+  const [sessionStatus, setSessionStatus] = useState(null); // To store session status
   const [groups, setGroups] = useState([]);
   const [camemberts, setCamemberts] = useState([]);
   const [answers, setAnswers] = useState([]);
@@ -26,6 +27,40 @@ function AdminGameControl() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    const fetchSessionStatus = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          navigate("/");
+          return;
+        }
+
+        // Fetch session status
+        const response = await fetch(
+          `${API_URL}/sessions/${sessionId}`,
+          {
+            headers: { Authorization: token },
+          }
+        );
+        const data = await response.json();
+
+        if (data.status === "Activated") {
+          setSessionStatus("Activated");
+        } else {
+          setSessionStatus(data.status); // Save the actual status if not Activated
+        }
+      } catch (err) {
+        console.error("Failed to fetch session status:", err);
+        setSessionStatus("Error");
+      }
+    };
+
+    fetchSessionStatus();
+  }, [API_URL, sessionId, navigate]);
+
+  useEffect(() => {
+    if (sessionStatus !== "Activated") return;
+
     const fetchInitialData = async () => {
       const token = localStorage.getItem("token");
       if (!token) {
@@ -107,13 +142,9 @@ function AdminGameControl() {
     });
 
     return () => {
-      socket.off("newQuestion");
-      socket.off("answerSubmitted");
-      socket.off("timerStopped");
-      socket.off("camembertUpdated");
-      socket.off("gameOver");
+      socket.disconnect();
     };
-  }, [API_URL, sessionId]);
+  }, [API_URL, sessionId, sessionStatus, navigate]);
 
   useEffect(() => {
     let interval;
@@ -132,9 +163,29 @@ function AdminGameControl() {
     return () => clearInterval(interval);
   }, [timer]);
 
-  const startGame = () => {
+ const startGame = async () => {
+  const token = localStorage.getItem("token");
+
+  try {
+    // API call to update session status to "In Progress"
+    const response = await fetch(`${API_URL}/sessions/${sessionId}/start`, {
+      method: "POST",
+      headers: {
+        Authorization: token,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to update session status.");
+    }
+    // Emit socket event to notify players that the game has started
     socket.emit("startGame", sessionId);
-  };
+  } catch (err) {
+    console.error("Error starting the game:", err);
+  }
+};
+
 
   const validateAnswer = (answer, groupId, isCorrect) => {
     if (!currentQuestion) return;
@@ -188,6 +239,14 @@ function AdminGameControl() {
 
     return camemberts;
   };
+
+  if (sessionStatus === null) {
+    return <h1>Loading session details...</h1>;
+  }
+
+  if (sessionStatus !== "Activated") {
+    return <h1>This session is not active yet.</h1>;
+  }
 
   return (
     <>

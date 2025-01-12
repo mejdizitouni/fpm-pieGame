@@ -486,6 +486,7 @@ app.put("/questions/:id", (req, res) => {
   });
 });
 
+
 // Fetch groups for a specific session
 app.get("/sessions/:id/groups", (req, res) => {
   const token = req.headers["authorization"];
@@ -1222,6 +1223,41 @@ app.post("/questions/:id/options", (req, res) => {
         } else {
           res.json({ message: "No options provided, existing options cleared" });
         }
+      }
+    );
+  });
+});
+
+
+// Start the game and update session status
+app.post("/sessions/:id/start", (req, res) => {
+  const token = req.headers["authorization"];
+  if (!token) {
+    return res.status(401).json({ message: "Access denied" });
+  }
+
+  jwt.verify(token, SECRET_KEY, (err) => {
+    if (err) {
+      return res.status(403).json({ message: "Invalid token" });
+    }
+
+    const sessionId = req.params.id;
+
+    // Update session status to 'In Progress'
+    db.run(
+      `UPDATE game_sessions SET status = 'In Progress' WHERE id = ?`,
+      [sessionId],
+      function (err) {
+        if (err) {
+          console.error("Error updating session status:", err);
+          return res.status(500).json({ message: "Database error" });
+        }
+
+        if (this.changes === 0) {
+          return res.status(404).json({ message: "Session not found" });
+        }
+
+        res.json({ message: "Game started", status: "In Progress" });
       }
     );
   });

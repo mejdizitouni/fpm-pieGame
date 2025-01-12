@@ -10,6 +10,7 @@ function Game() {
   const { sessionId, groupId } = useParams();
 
   const [status, setStatus] = useState("waiting"); // "waiting" | "active" | "timeUp" | "gameOver"
+  const [sessionStatus, setSessionStatus] = useState(null); // "Activated" or other
   const [question, setQuestion] = useState(null); // Current question
   const [questionOptions, setQuestionOptions] = useState([]); // Options for red questions
   const [timer, setTimer] = useState(0); // Countdown timer
@@ -24,6 +25,37 @@ function Game() {
   const [stoppedTimerGroup, setStoppedTimerGroup] = useState(null); // Group that stopped the timer
 
   useEffect(() => {
+    const fetchSessionStatus = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        // Fetch session status
+        const response = await fetch(
+          `${process.env.REACT_APP_API_URL}/sessions/${sessionId}`,
+          {
+            headers: { Authorization: token },
+          }
+        );
+        const data = await response.json();
+
+        if (data.status === "Activated") {
+          setSessionStatus("Activated");
+        } else {
+          setSessionStatus(data.status); // Save the actual status if not Activated
+        }
+      } catch (err) {
+        console.error("Failed to fetch session status:", err);
+        setSessionStatus("Error");
+      }
+    };
+
+    fetchSessionStatus();
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (sessionStatus !== "Activated") return;
+
     const fetchInitialData = async () => {
       const token = localStorage.getItem("token");
       if (!token) return;
@@ -119,7 +151,7 @@ function Game() {
     return () => {
       socket.disconnect();
     };
-  }, [sessionId, groupId]);
+  }, [sessionId, groupId, sessionStatus]);
 
   useEffect(() => {
     if (timer > 0) {
@@ -170,6 +202,14 @@ function Game() {
 
     return camemberts;
   };
+
+  if (sessionStatus === null) {
+    return <h1>Loading session details...</h1>;
+  }
+
+  if (sessionStatus == "Draft") {
+    return <h1>This session is not active yet.</h1>;
+  }
 
   return (
     <div className="game-container">
