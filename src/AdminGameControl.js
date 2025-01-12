@@ -244,7 +244,7 @@ function AdminGameControl() {
     return <h1>Loading session details...</h1>;
   }
 
-  if (sessionStatus !== "Activated") {
+  if (sessionStatus == "Draft") {
     return <h1>This session is not active yet.</h1>;
   }
 
