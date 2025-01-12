@@ -128,7 +128,7 @@ function Game() {
       }, 1000);
       return () => clearInterval(interval);
     }
-  }, [timer]);
+  }, [timer]);  
 
   const submitAnswer = (stoppedTimer = false) => {
     if (answer.trim() && !submittedAnswer) {
@@ -210,11 +210,27 @@ function Game() {
                 ? "Red (Calculation)"
                 : "Green (Quick Answer)"}
             </p>
-            <p
-              className={`timer ${timer <= 10 ? "warning" : ""}`}
-            >
-              Time Remaining: {timer > 0 ? `${timer} seconds` : "Time's Up!"}
-            </p>
+            <div className="timer-circle">
+  <svg className="progress-ring" width="100" height="100">
+    <circle
+      className="progress-ring__circle"
+      stroke="#007bff"
+      strokeWidth="6"
+      fill="transparent"
+      r="45"
+      cx="50"
+      cy="50"
+      style={{
+        strokeDasharray: 283, // Circumference of the circle (2 * π * r)
+        strokeDashoffset: (283 * timer) / question.allocated_time, // Progress
+      }}
+    />
+  </svg>
+  <div className="timer-text">
+    {timer > 0 ? `${timer}s` : "Time's Up!"}
+  </div>
+</div>
+
           </div>
 
           {stoppedTimerGroup && <h3>Timer stopped by: {stoppedTimerGroup}</h3>}

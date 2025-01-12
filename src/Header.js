@@ -18,7 +18,7 @@ function Header() {
       <img
         src={logo}
         alt="Game Management"
-        onClick={() => navigate("/")} // Navigate to home on logo click
+        onClick={() => navigate("/admin")} // Navigate to /admin on logo click
       />
       {isAuthenticated && (
         <a onClick={handleLogout} className="logout-button">

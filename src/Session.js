@@ -355,175 +355,340 @@ function Session() {
 
   return (
     <>
-  <Header />
-  <div className="session-container">
-    <h1>Session {sessionDetails.title} Details</h1>
+      <Header />
+      <div className="session-container">
+        <h1>Session {sessionDetails.title} Details</h1>
 
-    <h2>Questions</h2>
-    {questions.length === 0 ? (
-      <p>No questions available for this session.</p>
-    ) : (
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Type</th>
-            <th>Title</th>
-            <th>Expected Answer</th>
-            <th>Allocated Time</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {questions.map((question) => (
-            <tr key={question.id}>
-              <td>{question.id}</td>
-              <td>{question.type}</td>
-              <td>{question.title}</td>
-              <td>{question.expected_answer}</td>
-              <td>{question.allocated_time}</td>
-              <td>
-                <button onClick={() => editQuestion(question.id)}>Edit</button>
-                <button onClick={() => removeQuestionFromSession(question.id)}>
-                  Remove
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    )}
-
-    <button onClick={() => setShowNewQuestionForm(!showNewQuestionForm)}>
-      {showNewQuestionForm ? "Cancel" : "New Question"}
-    </button>
-
-    {showNewQuestionForm && (
-      <form onSubmit={createQuestion}>
-        <select
-          value={newQuestion.type}
-          onChange={(e) =>
-            setNewQuestion({ ...newQuestion, type: e.target.value })
-          }
-          required
-        >
-          <option value="">Select Type</option>
-          <option value="red">Red</option>
-          <option value="green">Green</option>
-        </select>
-        <input
-          type="text"
-          placeholder="Title"
-          value={newQuestion.title}
-          onChange={(e) =>
-            setNewQuestion({ ...newQuestion, title: e.target.value })
-          }
-          required
-        />
-        <input
-          type="text"
-          placeholder="Expected Answer"
-          value={newQuestion.expected_answer}
-          onChange={(e) =>
-            setNewQuestion({ ...newQuestion, expected_answer: e.target.value })
-          }
-          required
-        />
-        <input
-          type="number"
-          placeholder="Allocated Time"
-          value={newQuestion.allocated_time}
-          onChange={(e) =>
-            setNewQuestion({ ...newQuestion, allocated_time: e.target.value })
-          }
-          required
-        />
-        {newQuestion.type === "red" && (
-          <div>
-            <h4>Options</h4>
-            <ul>
-              {newQuestion.options.map((option, index) => (
-                <li key={index}>
-                  {option}
-                  <button type="button" onClick={() => removeOption(index)}>
-                    Remove
-                  </button>
-                </li>
+        <h2>Questions</h2>
+        {questions.length === 0 ? (
+          <p>No questions available for this session.</p>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Type</th>
+                <th>Title</th>
+                <th>Expected Answer</th>
+                <th>Allocated Time</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {questions.map((question) => (
+                <tr key={question.id}>
+                  <td>{question.id}</td>
+                  <td>{question.type}</td>
+                  <td>{question.title}</td>
+                  <td>{question.expected_answer}</td>
+                  <td>{question.allocated_time}</td>
+                  <td>
+                    <button onClick={() => editQuestion(question.id)}>Edit</button>
+                    <button
+                      onClick={() => removeQuestionFromSession(question.id)}
+                    >
+                      Remove
+                    </button>
+                  </td>
+                </tr>
               ))}
-            </ul>
+            </tbody>
+          </table>
+        )}
+
+        {/* New Question Button */}
+        <button onClick={() => setShowNewQuestionForm(!showNewQuestionForm)}>
+          {showNewQuestionForm ? "Cancel" : "New Question"}
+        </button>
+
+        {/* New Question Form */}
+        {showNewQuestionForm && (
+          <form onSubmit={createQuestion}>
+            <select
+              value={newQuestion.type}
+              onChange={(e) =>
+                setNewQuestion({ ...newQuestion, type: e.target.value })
+              }
+              required
+            >
+              <option value="">Select Type</option>
+              <option value="red">Red</option>
+              <option value="green">Green</option>
+            </select>
             <input
               type="text"
-              placeholder="Add option"
-              value={optionInput}
-              onChange={(e) => setOptionInput(e.target.value)}
+              placeholder="Title"
+              value={newQuestion.title}
+              onChange={(e) =>
+                setNewQuestion({ ...newQuestion, title: e.target.value })
+              }
+              required
             />
-            <button type="button" onClick={addOption}>
-              Add Option
-            </button>
-          </div>
+            <input
+              type="text"
+              placeholder="Expected Answer"
+              value={newQuestion.expected_answer}
+              onChange={(e) =>
+                setNewQuestion({
+                  ...newQuestion,
+                  expected_answer: e.target.value,
+                })
+              }
+              required
+            />
+            <input
+              type="number"
+              placeholder="Allocated Time"
+              value={newQuestion.allocated_time}
+              onChange={(e) =>
+                setNewQuestion({
+                  ...newQuestion,
+                  allocated_time: e.target.value,
+                })
+              }
+              required
+            />
+            {/* Options for Red Questions */}
+            {newQuestion.type === "red" && (
+              <div>
+                <h4>Options</h4>
+                <ul>
+                  {newQuestion.options.map((option, index) => (
+                    <li key={index}>
+                      {option}
+                      <button type="button" onClick={() => removeOption(index)}>
+                        Remove
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <input
+                  type="text"
+                  placeholder="Add option"
+                  value={optionInput}
+                  onChange={(e) => setOptionInput(e.target.value)}
+                />
+                <button type="button" onClick={addOption}>
+                  Add Option
+                </button>
+              </div>
+            )}
+            <button type="submit">Create</button>
+          </form>
         )}
-        <button type="submit">Create</button>
-      </form>
-    )}
 
-    <h2>Groups</h2>
-    {groups.length === 0 ? (
-      <p>No groups available for this session.</p>
-    ) : (
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Description</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {groups.map((group) => (
-            <tr key={group.id}>
-              <td>{group.id}</td>
-              <td>{group.name}</td>
-              <td>{group.description}</td>
-              <td className="actions">
-                <button onClick={() => editGroup(group.id)}>Edit</button>
-                <button onClick={() => deleteGroup(group.id)}>Delete</button>
-              </td>
-            </tr>
+        {/* Editing a Question */}
+        {editingQuestion && (
+  <form onSubmit={updateQuestion}>
+    <select
+      value={editingQuestion.type}
+      onChange={(e) =>
+        setEditingQuestion({
+          ...editingQuestion,
+          type: e.target.value,
+        })
+      }
+    >
+      <option value="red">Red</option>
+      <option value="green">Green</option>
+    </select>
+    <input
+      type="text"
+      value={editingQuestion.title}
+      onChange={(e) =>
+        setEditingQuestion({
+          ...editingQuestion,
+          title: e.target.value,
+        })
+      }
+    />
+    <input
+      type="text"
+      value={editingQuestion.expected_answer}
+      onChange={(e) =>
+        setEditingQuestion({
+          ...editingQuestion,
+          expected_answer: e.target.value,
+        })
+      }
+    />
+    <input
+      type="number"
+      value={editingQuestion.allocated_time}
+      onChange={(e) =>
+        setEditingQuestion({
+          ...editingQuestion,
+          allocated_time: e.target.value,
+        })
+      }
+    />
+
+    {/* Options for Red Questions */}
+    {editingQuestion.type === "red" && (
+      <div>
+        <h4>Edit Options</h4>
+        <ul>
+          {editingQuestion.options.map((option, index) => (
+            <li key={index}>
+              {option}
+              <button
+                type="button"
+                onClick={() =>
+                  setEditingQuestion((prev) => ({
+                    ...prev,
+                    options: prev.options.filter((_, i) => i !== index),
+                  }))
+                }
+              >
+                Remove
+              </button>
+            </li>
           ))}
-        </tbody>
-      </table>
+        </ul>
+        <input
+          type="text"
+          placeholder="Add option"
+          value={optionInput}
+          onChange={(e) => setOptionInput(e.target.value)}
+        />
+        <button
+          type="button"
+          onClick={() => {
+            if (optionInput.trim()) {
+              setEditingQuestion((prev) => ({
+                ...prev,
+                options: [...prev.options, optionInput.trim()],
+              }));
+              setOptionInput("");
+            }
+          }}
+        >
+          Add Option
+        </button>
+      </div>
     )}
-
-    <button onClick={() => setShowNewGroupForm(!showNewGroupForm)}>
-      {showNewGroupForm ? "Cancel" : "New Group"}
+    <button type="submit">Update</button>
+    <button type="button" onClick={cancelQuestionEdit}>
+      Cancel
     </button>
+  </form>
+)}
 
-    {showNewGroupForm && (
-      <form onSubmit={createGroup}>
-        <input
-          type="text"
-          placeholder="Group Name"
-          value={newGroup.name}
-          onChange={(e) => setNewGroup({ ...newGroup, name: e.target.value })}
-          required
-        />
-        <input
-          type="text"
-          placeholder="Group Description"
-          value={newGroup.description}
-          onChange={(e) =>
-            setNewGroup({ ...newGroup, description: e.target.value })
-          }
-          required
-        />
-        <button type="submit">Create</button>
-      </form>
-    )}
-  </div>
-  <Footer />
-</>
 
+        <h2>Link Existing Question</h2>
+        <form onSubmit={linkExistingQuestion}>
+          <select
+            value={selectedQuestionId}
+            onChange={(e) => setSelectedQuestionId(e.target.value)}
+            required
+          >
+            <option value="">Select a question</option>
+            {Array.isArray(allQuestions) && allQuestions.length > 0 ? (
+              allQuestions.map((question) => (
+                <option key={question.id} value={question.id}>
+                  {question.title}
+                </option>
+              ))
+            ) : (
+              <option value="" disabled>
+                No questions available
+              </option>
+            )}
+          </select>
+          <button type="submit" disabled={allQuestions.length === 0}>
+            Link Question
+          </button>
+        </form>
+
+        <h2>Groups</h2>
+        {groups.length === 0 ? (
+          <p>No groups available for this session.</p>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {groups.map((group) => (
+                <tr key={group.id}>
+                  <td>{group.id}</td>
+                  <td>{group.name}</td>
+                  <td>{group.description}</td>
+                  <td class="actions">
+                    <button onClick={() => editGroup(group.id)}>Edit</button>
+                    <button onClick={() => deleteGroup(group.id)}>
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        {/* New Group Button */}
+        <button onClick={() => setShowNewGroupForm(!showNewGroupForm)}>
+          {showNewGroupForm ? "Cancel" : "New Group"}
+        </button>
+
+        {/* New Group Form */}
+        {showNewGroupForm && (
+          <form onSubmit={createGroup}>
+            <input
+              type="text"
+              placeholder="Group Name"
+              value={newGroup.name}
+              onChange={(e) =>
+                setNewGroup({ ...newGroup, name: e.target.value })
+              }
+              required
+            />
+            <input
+              type="text"
+              placeholder="Group Description"
+              value={newGroup.description}
+              onChange={(e) =>
+                setNewGroup({ ...newGroup, description: e.target.value })
+              }
+              required
+            />
+            <button type="submit">Create</button>
+          </form>
+        )}
+
+        {editingGroup && (
+          <form onSubmit={updateGroup}>
+            <input
+              type="text"
+              value={editingGroup.name}
+              onChange={(e) =>
+                setEditingGroup({ ...editingGroup, name: e.target.value })
+              }
+            />
+            <input
+              type="text"
+              value={editingGroup.description}
+              onChange={(e) =>
+                setEditingGroup({
+                  ...editingGroup,
+                  description: e.target.value,
+                })
+              }
+            />
+            <button type="submit">Update</button>
+            <button type="button" onClick={cancelGroupEdit}>
+              Cancel
+            </button>
+          </form>
+        )}
+      </div>
+      {/* <Footer /> */}
+    </>
   );
 }
 

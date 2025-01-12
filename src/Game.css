@@ -124,4 +124,29 @@
   li {
     list-style-type: none;
   }
+
+  .timer-circle {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    margin: 20px auto;
+  }
+  
+  .progress-ring {
+    transform: rotate(-90deg); /* Start from top */
+  }
+  
+  .progress-ring__circle {
+    transition: stroke-dashoffset 1s linear; /* Smooth progress */
+  }
+  
+  .timer-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #333;
+  }
   
