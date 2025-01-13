@@ -154,7 +154,6 @@ function Admin() {
       });
       setGameSessions(sessionsResponse.data); // Update the state with the latest sessions
   
-      alert("Session cloned successfully!");
     } catch (err) {
       console.error("Failed to clone session", err);
     }
@@ -184,22 +183,22 @@ function Admin() {
     }
   };
 
-  const viewGroupUrls = async (sessionId) => {
+  const fetchGroupURLs = async (sessionId) => {
     const token = localStorage.getItem("token");
-
+  
     try {
-      const response = await axios.get(
-        `${API_URL}/sessions/${sessionId}/groups/urls`,
-        {
-          headers: { Authorization: token },
-        }
-      );
+      const response = await axios.get(`${API_URL}/sessions/${sessionId}/groups`, {
+        headers: { Authorization: token },
+      });
+  
       setActiveSessionGroups(response.data);
-      setAdminSessionLink(`${window.location.origin}/admin/game/${sessionId}`);
+      alert("Group URLs fetched successfully!");
     } catch (err) {
       console.error("Failed to fetch group URLs", err);
+      alert("Error fetching group URLs. Please try again.");
     }
   };
+  
 
   const handleEdit = (session) => {
     setEditingSession(session);
@@ -279,12 +278,13 @@ function Admin() {
                 {(session.status === "Activated" ||
                   session.status === "In Progress") && (
                   <>
-                    <button onClick={() => viewGroupUrls(session.id)}>
-                      View Group URLs
-                    </button>
                     <button onClick={() => navigate(`/admin/game/${session.id}`)}>
                       Control Game
                     </button>
+
+              <button onClick={() => fetchGroupURLs(session.id)}>
+                View Groups URLs
+              </button>
                   </>
                 )}
                 <button onClick={() => cloneSession(session.id)}>Clone</button>

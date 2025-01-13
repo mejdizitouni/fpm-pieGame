@@ -563,34 +563,6 @@ app.post("/sessions/:id/groups", (req, res) => {
   });
 });
 
-// Fetch join URLs for a session
-app.get("/sessions/:id/groups/urls", (req, res) => {
-  const token = req.headers["authorization"];
-  if (!token) {
-    return res.status(401).json({ message: "Access denied" });
-  }
-
-  jwt.verify(token, SECRET_KEY, (err) => {
-    if (err) {
-      return res.status(403).json({ message: "Invalid token" });
-    }
-
-    const sessionId = req.params.id;
-
-    db.all(
-      `SELECT id, name, join_url FROM groups WHERE session_id = ?`,
-      [sessionId],
-      (err, rows) => {
-        if (err) {
-          return res.status(500).json({ message: "Database error" });
-        }
-
-        res.json(rows || []);
-      }
-    );
-  });
-});
-
 // Delete a group from the database
 app.delete("/sessions/:sessionId/groups/:groupId", (req, res) => {
   const token = req.headers["authorization"];
