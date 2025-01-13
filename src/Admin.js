@@ -46,7 +46,7 @@ function Admin() {
   const createSession = async (e) => {
     e.preventDefault(); // Prevent page reload on form submission
     const token = localStorage.getItem("token");
-  
+
     try {
       const response = await axios.post(
         `${API_URL}/game-sessions`,
@@ -55,18 +55,17 @@ function Admin() {
           headers: { Authorization: token },
         }
       );
-  
+
       // Add the new session to the list of sessions
       setGameSessions((prevSessions) => [...prevSessions, response.data]);
       setNewSession({ title: "", date: "" }); // Clear the form
       setShowForm(false); // Hide the form after creating the session
-  
+
       // Fetch the updated session list
       const sessionsResponse = await axios.get(`${API_URL}/game-sessions`, {
         headers: { Authorization: token },
       });
       setGameSessions(sessionsResponse.data); // Update the state with the latest sessions
-  
     } catch (err) {
       console.error("Failed to create session", err);
     }
@@ -74,22 +73,25 @@ function Admin() {
 
   const cloneSession = async (sessionId) => {
     const token = localStorage.getItem("token");
-  
+
     try {
       // Step 1: Get the original session data
-      const sessionResponse = await axios.get(`${API_URL}/sessions/${sessionId}`, {
-        headers: { Authorization: token },
-      });
-  
+      const sessionResponse = await axios.get(
+        `${API_URL}/sessions/${sessionId}`,
+        {
+          headers: { Authorization: token },
+        }
+      );
+
       const originalSession = sessionResponse.data;
-  
+
       // Step 2: Create a new session with the cloned name and today's date
       const newSessionData = {
         title: `Clone - ${originalSession.title}`,
-        status: 'Draft', // Make sure to set a status here
+        status: "Draft", // Make sure to set a status here
         date: new Date().toISOString().split("T")[0], // Set today's date
       };
-  
+
       const response = await axios.post(
         `${API_URL}/game-sessions`,
         newSessionData,
@@ -97,9 +99,9 @@ function Admin() {
           headers: { Authorization: token },
         }
       );
-  
+
       const clonedSession = response.data;
-  
+
       // Step 3: Clone the groups for this session
       const groupsResponse = await axios.get(
         `${API_URL}/sessions/${sessionId}/groups`,
@@ -107,7 +109,7 @@ function Admin() {
           headers: { Authorization: token },
         }
       );
-  
+
       const groups = groupsResponse.data;
       for (const group of groups) {
         // Create the same group for the new session
@@ -122,7 +124,7 @@ function Admin() {
           }
         );
       }
-  
+
       // Step 4: Clone the questions for this session
       const questionsResponse = await axios.get(
         `${API_URL}/sessions/${sessionId}/questions`,
@@ -130,7 +132,7 @@ function Admin() {
           headers: { Authorization: token },
         }
       );
-  
+
       const questions = questionsResponse.data;
       for (const question of questions) {
         // Create the same question for the new session
@@ -144,16 +146,15 @@ function Admin() {
           }
         );
       }
-  
+
       // Update the game sessions list with the newly cloned session
       setGameSessions((prevSessions) => [...prevSessions, clonedSession]);
-  
+
       // Fetch the updated session list
       const sessionsResponse = await axios.get(`${API_URL}/game-sessions`, {
         headers: { Authorization: token },
       });
       setGameSessions(sessionsResponse.data); // Update the state with the latest sessions
-  
     } catch (err) {
       console.error("Failed to clone session", err);
     }
@@ -185,12 +186,15 @@ function Admin() {
 
   const fetchGroupURLs = async (sessionId) => {
     const token = localStorage.getItem("token");
-  
+
     try {
-      const response = await axios.get(`${API_URL}/sessions/${sessionId}/groups`, {
-        headers: { Authorization: token },
-      });
-  
+      const response = await axios.get(
+        `${API_URL}/sessions/${sessionId}/groups`,
+        {
+          headers: { Authorization: token },
+        }
+      );
+
       setActiveSessionGroups(response.data);
       alert("Group URLs fetched successfully!");
     } catch (err) {
@@ -198,7 +202,6 @@ function Admin() {
       alert("Error fetching group URLs. Please try again.");
     }
   };
-  
 
   const handleEdit = (session) => {
     setEditingSession(session);
@@ -242,129 +245,135 @@ function Admin() {
 
   return (
     <>
-  <Header />
-  <div className="admin-container">
-    <h2>Game Sessions</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Title</th>
-          <th>Date</th>
-          <th>Status</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {gameSessions.length > 0 ? (
-          gameSessions.map((session) => (
-            <tr key={session.id}>
-              <td>{session.id}</td>
-              <td>{session.title}</td>
-              <td>{session.date}</td>
-              <td>{session.status}</td>
-              <td className="actions">
-                <button onClick={() => handleEdit(session)}>Edit</button>
-                {session.status === "Draft" && (
-                  <>
-                    <button onClick={() => navigate(`/session/${session.id}`)}>
-                      View Details
-                    </button>
-                    <button onClick={() => activateSession(session.id)}>
-                      Activate
-                    </button>
-                  </>
-                )}
-                {(session.status === "Activated" ||
-                  session.status === "In Progress") && (
-                  <>
-                    <button onClick={() => navigate(`/admin/game/${session.id}`)}>
-                      Control Game
-                    </button>
-
-              <button onClick={() => fetchGroupURLs(session.id)}>
-                View Groups URLs
-              </button>
-                  </>
-                )}
-                <button onClick={() => cloneSession(session.id)}>Clone</button>
-              </td>
+      <Header />
+      <div className="admin-container">
+        <h2>Game Sessions</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Title</th>
+              <th>Date</th>
+              <th>Status</th>
+              <th>Actions</th>
             </tr>
-          ))
-        ) : (
-          <tr>
-            <td colSpan="5">No game sessions found.</td>
-          </tr>
+          </thead>
+          <tbody>
+            {gameSessions.length > 0 ? (
+              gameSessions.map((session) => (
+                <tr key={session.id}>
+                  <td>{session.id}</td>
+                  <td>{session.title}</td>
+                  <td>{session.date}</td>
+                  <td>{session.status}</td>
+                  <td className="actions">
+                    <button onClick={() => handleEdit(session)}>Edit</button>
+                    {session.status === "Draft" && (
+                      <>
+                        <button
+                          onClick={() => navigate(`/session/${session.id}`)}
+                        >
+                          View Details
+                        </button>
+                        <button onClick={() => activateSession(session.id)}>
+                          Activate
+                        </button>
+                      </>
+                    )}
+                    {(session.status === "Activated" ||
+                      session.status === "In Progress") && (
+                      <>
+                        <button
+                          onClick={() => navigate(`/admin/game/${session.id}`)}
+                        >
+                          Control Game
+                        </button>
+
+                        <button onClick={() => fetchGroupURLs(session.id)}>
+                          View Groups URLs
+                        </button>
+                      </>
+                    )}
+                    <button onClick={() => cloneSession(session.id)}>
+                      Clone
+                    </button>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="5">No game sessions found.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+
+        <button onClick={() => setShowForm(!showForm)}>
+          {showForm ? "Cancel" : "Create New Session"}
+        </button>
+
+        {showForm && (
+          <div>
+            <h2>{editingSession ? "Edit Session" : "Create New Session"}</h2>
+            <form
+              onSubmit={editingSession ? handleUpdateSession : createSession}
+            >
+              <input
+                type="text"
+                placeholder="Title"
+                value={newSession.title}
+                onChange={(e) =>
+                  setNewSession({ ...newSession, title: e.target.value })
+                }
+                required
+              />
+              <input
+                type="date"
+                value={newSession.date}
+                onChange={(e) =>
+                  setNewSession({ ...newSession, date: e.target.value })
+                }
+                required
+              />
+              <button type="submit">
+                {editingSession ? "Update" : "Create"} Session
+              </button>
+            </form>
+          </div>
         )}
-      </tbody>
-    </table>
 
-    <button onClick={() => setShowForm(!showForm)}>
-      {showForm ? "Cancel" : "Create New Session"}
-    </button>
+        {activeSessionGroups.length > 0 && (
+          <>
+            <h2>Group Join URLs</h2>
+            <ul>
+              {activeSessionGroups.map((group) => (
+                <li key={group.id}>
+                  <strong>{group.name}:</strong>{" "}
+                  <a href={group.join_url} target="_blank" rel="noreferrer">
+                    {group.join_url}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
 
-    {showForm && (
-      <div>
-        <h2>{editingSession ? "Edit Session" : "Create New Session"}</h2>
-        <form onSubmit={editingSession ? handleUpdateSession : createSession}>
-          <input
-            type="text"
-            placeholder="Title"
-            value={newSession.title}
-            onChange={(e) =>
-              setNewSession({ ...newSession, title: e.target.value })
-            }
-            required
-          />
-          <input
-            type="date"
-            value={newSession.date}
-            onChange={(e) =>
-              setNewSession({ ...newSession, date: e.target.value })
-            }
-            required
-          />
-          <button type="submit">
-            {editingSession ? "Update" : "Create"} Session
-          </button>
-        </form>
+        {adminSessionLink && (
+          <>
+            <h2>Admin Session Link</h2>
+            <ul>
+              <li>
+                <strong>Admin Link:</strong>{" "}
+                <a href={adminSessionLink} target="_blank" rel="noreferrer">
+                  {adminSessionLink}
+                </a>
+              </li>
+            </ul>
+          </>
+        )}
       </div>
-    )}
-
-    {activeSessionGroups.length > 0 && (
-      <>
-        <h2>Group Join URLs</h2>
-        <ul>
-          {activeSessionGroups.map((group) => (
-            <li key={group.id}>
-              <strong>{group.name}:</strong>{" "}
-              <a href={group.join_url} target="_blank" rel="noreferrer">
-                {group.join_url}
-              </a>
-            </li>
-          ))}
-        </ul>
-      </>
-    )}
-
-{adminSessionLink && (
-  <>
-    <h2>Admin Session Link</h2>
-    <ul>
-      <li>
-        <strong>Admin Link:</strong>{" "}
-        <a href={adminSessionLink} target="_blank" rel="noreferrer">
-          {adminSessionLink}
-        </a>
-      </li>
-    </ul>
-  </>
-)}
-
-  </div>
-  <Footer />
-</>
-
+      <Footer />
+    </>
   );
 }
 

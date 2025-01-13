@@ -160,7 +160,7 @@ function Game() {
       }, 1000);
       return () => clearInterval(interval);
     }
-  }, [timer]);  
+  }, [timer]);
 
   const submitAnswer = (stoppedTimer = false) => {
     if (answer.trim() && !submittedAnswer) {
@@ -239,32 +239,33 @@ function Game() {
 
       {status !== "waiting" && status !== "gameOver" && question && (
         <>
-          <div className={`question ${question.type === "red" ? "red" : "green"}`}          >
+          <div
+            className={`question ${question.type === "red" ? "red" : "green"}`}
+          >
             <h2>
               Question {questionIndex}/{totalQuestions}
             </h2>
             <h1>Question: {question.title}</h1>
             <div className="timer-circle">
-  <svg className="progress-ring" width="100" height="100">
-    <circle
-      className="progress-ring__circle"
-      stroke="#007bff"
-      strokeWidth="6"
-      fill="transparent"
-      r="45"
-      cx="50"
-      cy="50"
-      style={{
-        strokeDasharray: 283, // Circumference of the circle (2 * π * r)
-        strokeDashoffset: (283 * timer) / question.allocated_time, // Progress
-      }}
-    />
-  </svg>
-  <div className="timer-text">
-    {timer > 0 ? `${timer}s` : "Time's Up!"}
-  </div>
-</div>
-
+              <svg className="progress-ring" width="100" height="100">
+                <circle
+                  className="progress-ring__circle"
+                  stroke="#007bff"
+                  strokeWidth="6"
+                  fill="transparent"
+                  r="45"
+                  cx="50"
+                  cy="50"
+                  style={{
+                    strokeDasharray: 283, // Circumference of the circle (2 * π * r)
+                    strokeDashoffset: (283 * timer) / question.allocated_time, // Progress
+                  }}
+                />
+              </svg>
+              <div className="timer-text">
+                {timer > 0 ? `${timer}s` : "Time's Up!"}
+              </div>
+            </div>
           </div>
 
           {stoppedTimerGroup && <h3>Timer stopped by: {stoppedTimerGroup}</h3>}
@@ -359,22 +360,27 @@ function Game() {
         </>
       )}
 
-      <h2>Camembert Progress</h2>
-      <ul className="pie-chart-list">
-        {camemberts.map((cam) => (
-          <li key={cam.group_id}>
-            <h3>{cam.name}</h3>
-            {generateCamemberts(cam.red_triangles, cam.green_triangles).map(
-              (segments, index) => (
-                <PieChart
-                  key={`${cam.group_id}-${index}`}
-                  segments={segments}
-                />
-              )
-            )}
-          </li>
-        ))}
-      </ul>
+      {status !== "gameOver" && (
+        <>
+          {" "}
+          <h2>Camembert Progress</h2>
+          <ul className="pie-chart-list">
+            {camemberts.map((cam) => (
+              <li key={cam.group_id}>
+                <h3>{cam.name}</h3>
+                {generateCamemberts(cam.red_triangles, cam.green_triangles).map(
+                  (segments, index) => (
+                    <PieChart
+                      key={`${cam.group_id}-${index}`}
+                      segments={segments}
+                    />
+                  )
+                )}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   );
 }

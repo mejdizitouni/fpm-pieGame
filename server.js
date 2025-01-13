@@ -48,17 +48,17 @@ io.on("connection", (socket) => {
 
   const fetchNextQuestion = (sessionId) => {
     const state = sessionState[sessionId];
-  
+
     if (state.currentIndex >= state.totalQuestions) {
       io.to(sessionId).emit("gameOver");
       return;
     }
-  
+
     const questionType = state.currentIndex % 2 === 0 ? "green" : "red";
     const notInClause = state.askedQuestions.size
       ? `AND q.id NOT IN (${[...state.askedQuestions].join(",")})`
       : "";
-  
+
     const sql = `
       SELECT q.* 
       FROM questions q
@@ -67,16 +67,16 @@ io.on("connection", (socket) => {
       ORDER BY sq.id ASC
       LIMIT 1
     `;
-  
+
     db.get(sql, [sessionId, questionType], (err, question) => {
       if (err || !question) {
         io.to(sessionId).emit("gameOver");
         return;
       }
-  
+
       state.askedQuestions.add(question.id);
       state.currentIndex += 1;
-  
+
       if (questionType === "red") {
         db.all(
           `SELECT id, option_text FROM question_options WHERE question_id = ?`,
@@ -87,7 +87,7 @@ io.on("connection", (socket) => {
               io.to(sessionId).emit("gameOver");
               return;
             }
-  
+
             io.to(sessionId).emit("newQuestion", {
               question: { ...question, options },
               timer: question.allocated_time || 30,
@@ -106,7 +106,6 @@ io.on("connection", (socket) => {
       }
     });
   };
-  
 
   socket.on(
     "submitAnswer",
@@ -485,7 +484,6 @@ app.put("/questions/:id", (req, res) => {
     );
   });
 });
-
 
 // Fetch groups for a specific session
 app.get("/sessions/:id/groups", (req, res) => {
@@ -1193,13 +1191,14 @@ app.post("/questions/:id/options", (req, res) => {
               res.status(500).json({ message: "Failed to update options" });
             });
         } else {
-          res.json({ message: "No options provided, existing options cleared" });
+          res.json({
+            message: "No options provided, existing options cleared",
+          });
         }
       }
     );
   });
 });
-
 
 // Start the game and update session status
 app.post("/sessions/:id/start", (req, res) => {
@@ -1234,7 +1233,6 @@ app.post("/sessions/:id/start", (req, res) => {
     );
   });
 });
-
 
 // Catch-all route to serve React app
 app.get("*", (req, res) => {

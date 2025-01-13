@@ -383,22 +383,27 @@ function AdminGameControl() {
           </>
         )}
 
-        <h2>Camembert Progress</h2>
-        <ul className="pie-chart-list">
-          {camemberts.map((cam) => (
-            <li key={cam.group_id}>
-              <h3>{cam.name}</h3>
-              {generateCamemberts(cam.red_triangles, cam.green_triangles).map(
-                (segments, index) => (
-                  <PieChart
-                    key={`${cam.group_id}-${index}`}
-                    segments={segments}
-                  />
-                )
-              )}
-            </li>
-          ))}
-        </ul>
+        {status !== "gameOver" && (
+          <>
+            <h2>Camembert Progress</h2>
+            <ul className="pie-chart-list">
+              {camemberts.map((cam) => (
+                <li key={cam.group_id}>
+                  <h3>{cam.name}</h3>
+                  {generateCamemberts(
+                    cam.red_triangles,
+                    cam.green_triangles
+                  ).map((segments, index) => (
+                    <PieChart
+                      key={`${cam.group_id}-${index}`}
+                      segments={segments}
+                    />
+                  ))}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </div>
       <Footer />
     </>
