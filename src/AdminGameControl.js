@@ -36,12 +36,9 @@ function AdminGameControl() {
         }
 
         // Fetch session status
-        const response = await fetch(
-          `${API_URL}/sessions/${sessionId}`,
-          {
-            headers: { Authorization: token },
-          }
-        );
+        const response = await fetch(`${API_URL}/sessions/${sessionId}`, {
+          headers: { Authorization: token },
+        });
         const data = await response.json();
 
         if (data.status === "Activated") {
@@ -163,29 +160,28 @@ function AdminGameControl() {
     return () => clearInterval(interval);
   }, [timer]);
 
- const startGame = async () => {
-  const token = localStorage.getItem("token");
+  const startGame = async () => {
+    const token = localStorage.getItem("token");
 
-  try {
-    // API call to update session status to "In Progress"
-    const response = await fetch(`${API_URL}/sessions/${sessionId}/start`, {
-      method: "POST",
-      headers: {
-        Authorization: token,
-        "Content-Type": "application/json",
-      },
-    });
+    try {
+      // API call to update session status to "In Progress"
+      const response = await fetch(`${API_URL}/sessions/${sessionId}/start`, {
+        method: "POST",
+        headers: {
+          Authorization: token,
+          "Content-Type": "application/json",
+        },
+      });
 
-    if (!response.ok) {
-      throw new Error("Failed to update session status.");
+      if (!response.ok) {
+        throw new Error("Failed to update session status.");
+      }
+      // Emit socket event to notify players that the game has started
+      socket.emit("startGame", sessionId);
+    } catch (err) {
+      console.error("Error starting the game:", err);
     }
-    // Emit socket event to notify players that the game has started
-    socket.emit("startGame", sessionId);
-  } catch (err) {
-    console.error("Error starting the game:", err);
-  }
-};
-
+  };
 
   const validateAnswer = (answer, groupId, isCorrect) => {
     if (!currentQuestion) return;
@@ -294,38 +290,37 @@ function AdminGameControl() {
 
         {status !== "gameOver" && currentQuestion && (
           <>
-            <h2>
-              Question {questionIndex}/{totalQuestions}
-            </h2>
-            <div className="current-question">
+            <div
+              className={`current-question ${
+                currentQuestion.type === "red" ? "red" : "green"
+              }`}
+            >
+              <h2>
+                Question {questionIndex}/{totalQuestions}
+              </h2>
               <h3>{currentQuestion.title}</h3>
-              <p>
-                Type:{" "}
-                {currentQuestion.type === "red"
-                  ? "Red (Calculation)"
-                  : "Green (Quick Answer)"}
-              </p>
               <p>Expected Answer: {currentQuestion.expected_answer}</p>
               <div className="timer-circle">
-  <svg className="progress-ring" width="100" height="100">
-    <circle
-      className="progress-ring__circle"
-      stroke="#007bff"
-      strokeWidth="6"
-      fill="transparent"
-      r="45"
-      cx="50"
-      cy="50"
-      style={{
-        strokeDasharray: 283, // Circumference of the circle (2 * π * r)
-        strokeDashoffset: (283 * timer) / currentQuestion.allocated_time, // Progress
-      }}
-    />
-  </svg>
-  <div className="timer-text">
-    {timer > 0 ? `${timer}s` : "Time's Up!"}
-  </div>
-</div>
+                <svg className="progress-ring" width="100" height="100">
+                  <circle
+                    className="progress-ring__circle"
+                    stroke="#007bff"
+                    strokeWidth="6"
+                    fill="transparent"
+                    r="45"
+                    cx="50"
+                    cy="50"
+                    style={{
+                      strokeDasharray: 283, // Circumference of the circle (2 * π * r)
+                      strokeDashoffset:
+                        (283 * timer) / currentQuestion.allocated_time, // Progress
+                    }}
+                  />
+                </svg>
+                <div className="timer-text">
+                  {timer > 0 ? `${timer}s` : "Time's Up!"}
+                </div>
+              </div>
 
               {isTimeUp && <h3>Time's Up!</h3>}
               {stoppedTimerGroup && (
@@ -368,9 +363,7 @@ function AdminGameControl() {
                   {answer.stoppedTimer && <em> (Stopped Timer)</em>}
                   <button
                     className="validate-button correct"
-                    onClick={() =>
-                      validateAnswer(answer, answer.groupId, true)
-                    }
+                    onClick={() => validateAnswer(answer, answer.groupId, true)}
                   >
                     Correct
                   </button>
@@ -395,15 +388,14 @@ function AdminGameControl() {
           {camemberts.map((cam) => (
             <li key={cam.group_id}>
               <h3>{cam.name}</h3>
-              {generateCamemberts(
-                cam.red_triangles,
-                cam.green_triangles
-              ).map((segments, index) => (
-                <PieChart
-                  key={`${cam.group_id}-${index}`}
-                  segments={segments}
-                />
-              ))}
+              {generateCamemberts(cam.red_triangles, cam.green_triangles).map(
+                (segments, index) => (
+                  <PieChart
+                    key={`${cam.group_id}-${index}`}
+                    segments={segments}
+                  />
+                )
+              )}
             </li>
           ))}
         </ul>

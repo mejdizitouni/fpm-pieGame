@@ -239,17 +239,11 @@ function Game() {
 
       {status !== "waiting" && status !== "gameOver" && question && (
         <>
-          <div className="question">
+          <div className={`question ${question.type === "red" ? "red" : "green"}`}          >
             <h2>
               Question {questionIndex}/{totalQuestions}
             </h2>
             <h1>Question: {question.title}</h1>
-            <p>
-              Type:{" "}
-              {question.type === "red"
-                ? "Red (Calculation)"
-                : "Green (Quick Answer)"}
-            </p>
             <div className="timer-circle">
   <svg className="progress-ring" width="100" height="100">
     <circle
