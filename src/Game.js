@@ -223,6 +223,11 @@ function Game() {
             {camemberts.map((cam) => (
               <li key={cam.group_id}>
                 <h3>{cam.name}</h3>
+                    <img
+                  src={cam.avatar_url}
+                  alt={`${cam.name} Avatar`}
+                  className="group-avatar"
+                />
                 {generateCamemberts(cam.red_triangles, cam.green_triangles).map(
                   (segments, index) => (
                     <PieChart
@@ -368,6 +373,11 @@ function Game() {
             {camemberts.map((cam) => (
               <li key={cam.group_id}>
                 <h3>{cam.name}</h3>
+                <img
+                  src={cam.avatar_url}
+                  alt={`${cam.name} Avatar`}
+                  className="group-avatar"
+                />
                 {generateCamemberts(cam.red_triangles, cam.green_triangles).map(
                   (segments, index) => (
                     <PieChart

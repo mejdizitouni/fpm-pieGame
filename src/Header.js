@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom'; // Import useNavigate
-import logo from './assets/logo-fpm.png';
+import logo from "./logo-fpm.png"
 import "./Header.css"; // Import the CSS file for styling
 
 function Header() {

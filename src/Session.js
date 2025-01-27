@@ -92,7 +92,10 @@ function Session() {
       // Link the newly created question to the session
       await axios.post(
         `${API_URL}/sessions/${id}/questions`,
-        { question_id: response.data.id, question_order: newQuestion.question_order },
+        {
+          question_id: response.data.id,
+          question_order: newQuestion.question_order,
+        },
         {
           headers: { Authorization: token },
         }
@@ -140,7 +143,10 @@ function Session() {
       // Link the existing question to the session
       await axios.post(
         `${API_URL}/sessions/${id}/questions`,
-        { question_id: selectedQuestionId, question_order: newQuestion.question_order },
+        {
+          question_id: selectedQuestionId,
+          question_order: newQuestion.question_order,
+        },
         {
           headers: { Authorization: token },
         }
@@ -187,31 +193,32 @@ function Session() {
       const response = await axios.get(`${API_URL}/questions/${questionId}`, {
         headers: { Authorization: token },
       });
-  
+
       const questionData = response.data;
-  
+
       // If the question is a red question, fetch its options
       if (questionData.type === "red") {
         const optionsResponse = await axios.get(
           `${API_URL}/questions/${questionId}/options`,
           { headers: { Authorization: token } }
         );
-        questionData.options = optionsResponse.data.map((opt) => opt.option_text);
+        questionData.options = optionsResponse.data.map(
+          (opt) => opt.option_text
+        );
       } else {
         questionData.options = [];
       }
-  
+
       setEditingQuestion(questionData); // Ensure question_order is included
     } catch (err) {
       console.error("Failed to fetch question details:", err);
     }
   };
-  
-  
+
   const updateQuestion = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem("token");
-  
+
     try {
       // Update the question details
       await axios.put(
@@ -223,15 +230,14 @@ function Session() {
           headers: { Authorization: token },
         }
       );
-  
+
       setEditingQuestion(null); // Clear the editing state
       fetchData(); // Refresh the questions list
     } catch (err) {
       console.error("Failed to update question:", err);
     }
   };
-  
-  
+
   const editGroup = async (groupId) => {
     const token = localStorage.getItem("token");
     try {
@@ -334,34 +340,37 @@ function Session() {
         ) : (
           <table>
             <thead>
-  <tr>
-    <th>ID</th>
-    <th>Type</th>
-    <th>Title</th>
-    <th>Expected Answer</th>
-    <th>Allocated Time</th>
-    <th>Order</th> {/* New column for question_order */}
-    <th>Actions</th>
-  </tr>
-</thead>
-<tbody>
-  {questions.map((question) => (
-    <tr key={question.id}>
-      <td>{question.id}</td>
-      <td>{question.type}</td>
-      <td>{question.title}</td>
-      <td>{question.expected_answer}</td>
-      <td>{question.allocated_time}</td>
-      <td>{question.question_order || "-"}</td> {/* Display question_order */}
-      <td>
-        <button onClick={() => editQuestion(question.id)}>Edit</button>
-        <button onClick={() => removeQuestionFromSession(question.id)}>
-          Remove
-        </button>
-      </td>
-    </tr>
-  ))}
-</tbody>
+              <tr>
+                <th>Type</th>
+                <th>Title</th>
+                <th>Expected Answer</th>
+                <th>Allocated Time</th>
+                <th>Order</th> {/* New column for question_order */}
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {questions.map((question) => (
+                <tr key={question.id}>
+                  <td>{question.type}</td>
+                  <td>{question.title}</td>
+                  <td>{question.expected_answer}</td>
+                  <td>{question.allocated_time}</td>
+                  <td>{question.question_order || "-"}</td>{" "}
+                  {/* Display question_order */}
+                  <td>
+                    <button onClick={() => editQuestion(question.id)}>
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => removeQuestionFromSession(question.id)}
+                    >
+                      Remove
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
           </table>
         )}
 
@@ -417,18 +426,18 @@ function Session() {
               }
               required
             />
-             <input
-      type="number"
-      placeholder="Order"
-      value={newQuestion.question_order || ""}
-      onChange={(e) =>
-        setNewQuestion({
-          ...newQuestion,
-          question_order: e.target.value,
-        })
-      }
-      required
-    />
+            <input
+              type="number"
+              placeholder="Order"
+              value={newQuestion.question_order || ""}
+              onChange={(e) =>
+                setNewQuestion({
+                  ...newQuestion,
+                  question_order: e.target.value,
+                })
+              }
+              required
+            />
             {/* Options for Red Questions */}
             {newQuestion.type === "red" && (
               <div>
@@ -460,111 +469,110 @@ function Session() {
 
         {/* Editing a Question */}
         {editingQuestion && (
-  <form onSubmit={updateQuestion}>
-    <select
-      value={editingQuestion.type}
-      onChange={(e) =>
-        setEditingQuestion({
-          ...editingQuestion,
-          type: e.target.value,
-        })
-      }
-    >
-      <option value="red">Red</option>
-      <option value="green">Green</option>
-    </select>
-    <input
-      type="text"
-      value={editingQuestion.title}
-      onChange={(e) =>
-        setEditingQuestion({
-          ...editingQuestion,
-          title: e.target.value,
-        })
-      }
-    />
-    <input
-      type="text"
-      value={editingQuestion.expected_answer}
-      onChange={(e) =>
-        setEditingQuestion({
-          ...editingQuestion,
-          expected_answer: e.target.value,
-        })
-      }
-    />
-    <input
-      type="number"
-      value={editingQuestion.allocated_time}
-      onChange={(e) =>
-        setEditingQuestion({
-          ...editingQuestion,
-          allocated_time: e.target.value,
-        })
-      }
-    />
-    <input
-      type="number"
-      value={editingQuestion.question_order || ""}
-      onChange={(e) =>
-        setEditingQuestion({
-          ...editingQuestion,
-          question_order: e.target.value,
-        })
-      }
-    />
+          <form onSubmit={updateQuestion}>
+            <select
+              value={editingQuestion.type}
+              onChange={(e) =>
+                setEditingQuestion({
+                  ...editingQuestion,
+                  type: e.target.value,
+                })
+              }
+            >
+              <option value="red">Red</option>
+              <option value="green">Green</option>
+            </select>
+            <input
+              type="text"
+              value={editingQuestion.title}
+              onChange={(e) =>
+                setEditingQuestion({
+                  ...editingQuestion,
+                  title: e.target.value,
+                })
+              }
+            />
+            <input
+              type="text"
+              value={editingQuestion.expected_answer}
+              onChange={(e) =>
+                setEditingQuestion({
+                  ...editingQuestion,
+                  expected_answer: e.target.value,
+                })
+              }
+            />
+            <input
+              type="number"
+              value={editingQuestion.allocated_time}
+              onChange={(e) =>
+                setEditingQuestion({
+                  ...editingQuestion,
+                  allocated_time: e.target.value,
+                })
+              }
+            />
+            <input
+              type="number"
+              value={editingQuestion.question_order || ""}
+              onChange={(e) =>
+                setEditingQuestion({
+                  ...editingQuestion,
+                  question_order: e.target.value,
+                })
+              }
+            />
 
-    {/* Options for Red Questions */}
-    {editingQuestion.type === "red" && (
-      <div>
-        <h4>Edit Options</h4>
-        <ul>
-          {editingQuestion.options.map((option, index) => (
-            <li key={index}>
-              {option}
-              <button
-                type="button"
-                onClick={() =>
-                  setEditingQuestion((prev) => ({
-                    ...prev,
-                    options: prev.options.filter((_, i) => i !== index),
-                  }))
-                }
-              >
-                Remove
-              </button>
-            </li>
-          ))}
-        </ul>
-        <input
-          type="text"
-          placeholder="Add option"
-          value={optionInput}
-          onChange={(e) => setOptionInput(e.target.value)}
-        />
-        <button
-          type="button"
-          onClick={() => {
-            if (optionInput.trim()) {
-              setEditingQuestion((prev) => ({
-                ...prev,
-                options: [...prev.options, optionInput.trim()],
-              }));
-              setOptionInput("");
-            }
-          }}
-        >
-          Add Option
-        </button>
-      </div>
-    )}
-    <button type="submit">Update</button>
-    <button type="button" onClick={cancelQuestionEdit}>
-      Cancel
-    </button>
-  </form>
-)}
-
+            {/* Options for Red Questions */}
+            {editingQuestion.type === "red" && (
+              <div>
+                <h4>Edit Options</h4>
+                <ul>
+                  {editingQuestion.options.map((option, index) => (
+                    <li key={index}>
+                      {option}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setEditingQuestion((prev) => ({
+                            ...prev,
+                            options: prev.options.filter((_, i) => i !== index),
+                          }))
+                        }
+                      >
+                        Remove
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <input
+                  type="text"
+                  placeholder="Add option"
+                  value={optionInput}
+                  onChange={(e) => setOptionInput(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (optionInput.trim()) {
+                      setEditingQuestion((prev) => ({
+                        ...prev,
+                        options: [...prev.options, optionInput.trim()],
+                      }));
+                      setOptionInput("");
+                    }
+                  }}
+                >
+                  Add Option
+                </button>
+              </div>
+            )}
+            <button type="submit">Update</button>
+            <button type="button" onClick={cancelQuestionEdit}>
+              Cancel
+            </button>
+          </form>
+        )}
 
         <h2>Link Existing Question</h2>
         <form onSubmit={linkExistingQuestion}>
@@ -587,17 +595,17 @@ function Session() {
             )}
           </select>
           <input
-    type="number"
-    placeholder="Order"
-    value={newQuestion.question_order || ""}
-    onChange={(e) =>
-      setNewQuestion({
-        ...newQuestion,
-        question_order: e.target.value,
-      })
-    }
-    required
-  />
+            type="number"
+            placeholder="Order"
+            value={newQuestion.question_order || ""}
+            onChange={(e) =>
+              setNewQuestion({
+                ...newQuestion,
+                question_order: e.target.value,
+              })
+            }
+            required
+          />
           <button type="submit" disabled={allQuestions.length === 0}>
             Link Question
           </button>
@@ -610,18 +618,22 @@ function Session() {
           <table>
             <thead>
               <tr>
-                <th>ID</th>
                 <th>Name</th>
-                <th>Description</th>
+                <th>Avatar</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {groups.map((group) => (
                 <tr key={group.id}>
-                  <td>{group.id}</td>
                   <td>{group.name}</td>
-                  <td>{group.description}</td>
+                  <td>
+                    <img
+                      src={group.avatar_url}
+                      alt={group.avatar_name}
+                      style={{ width: "50px", height: "50px" }}
+                    />
+                  </td>
                   <td class="actions">
                     <button onClick={() => editGroup(group.id)}>Edit</button>
                     <button onClick={() => deleteGroup(group.id)}>
@@ -660,6 +672,19 @@ function Session() {
               }
               required
             />
+            <select
+              value={newGroup.avatar_name || ""}
+              onChange={(e) =>
+                setNewGroup({ ...newGroup, avatar_name: e.target.value })
+              }
+              required
+            >
+              <option value="">Select Avatar</option>
+              <option value="Afroboy">Afroboy</option>
+              <option value="Cloud">Cloud</option>
+              <option value="Chaplin">Chaplin</option>
+              <option value="Helmet">Helmet</option>
+            </select>
             <button type="submit">Create</button>
           </form>
         )}
@@ -683,6 +708,22 @@ function Session() {
                 })
               }
             />
+            <select
+              value={editingGroup.avatar_name || ""}
+              onChange={(e) =>
+                setEditingGroup({
+                  ...editingGroup,
+                  avatar_name: e.target.value,
+                })
+              }
+              required
+            >
+              <option value="">Select Avatar</option>
+              <option value="Afroboy">Afroboy</option>
+              <option value="Cloud">Cloud</option>
+              <option value="Chaplin">Chaplin</option>
+              <option value="Helmet">Helmet</option>
+            </select>
             <button type="submit">Update</button>
             <button type="button" onClick={cancelGroupEdit}>
               Cancel

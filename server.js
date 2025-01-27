@@ -524,7 +524,7 @@ app.get("/sessions/:id/groups", (req, res) => {
 
     const sessionId = req.params.id;
     db.all(
-      `SELECT * FROM groups WHERE session_id = ?`,
+      `SELECT id, name, description, avatar_name, avatar_url FROM groups WHERE session_id = ?`,
       [sessionId],
       (err, rows) => {
         if (err) {
@@ -542,7 +542,7 @@ app.get("/sessions/:id/groups/:groupId", (req, res) => {
   const sessionId = req.params.id;
   const groupId = req.params.groupId;
   db.get(
-    `SELECT * FROM groups WHERE session_id = ? AND id = ?`,
+    `SELECT id, name, description, avatar_name, avatar_url FROM groups WHERE session_id = ? AND id = ?`,
     [sessionId, groupId],
     (err, row) => {
       if (err) {
@@ -570,17 +570,31 @@ app.post("/sessions/:id/groups", (req, res) => {
     }
 
     const sessionId = req.params.id;
-    const { name, description } = req.body;
+    const { name, description, avatar_name } = req.body;
+
+    if (!avatar_name) {
+      return res.status(400).json({ message: "Avatar name is required" });
+    }
+
+    const avatar_url = `/avatars/${avatar_name}.svg`;
+
     db.run(
-      `INSERT INTO groups (session_id, name, description)
-       VALUES (?, ?, ?)`,
-      [sessionId, name, description],
+      `INSERT INTO groups (session_id, name, description, avatar_name, avatar_url)
+       VALUES (?, ?, ?, ?, ?)`,
+      [sessionId, name, description, avatar_name, avatar_url],
       function (err) {
         if (err) {
           console.error("Insert Error:", err);
           return res.status(500).json({ message: "Database error" });
         }
-        res.json({ id: this.lastID, session_id: sessionId, name, description });
+        res.json({
+          id: this.lastID,
+          session_id: sessionId,
+          name,
+          description,
+          avatar_name,
+          avatar_url,
+        });
       }
     );
   });
@@ -686,17 +700,19 @@ app.put("/sessions/:sessionId/groups/:groupId", (req, res) => {
 
     const sessionId = req.params.sessionId;
     const groupId = req.params.groupId;
-    const { name, description } = req.body;
+    const { name, description, avatar_name } = req.body;
 
-    if (!name || !description) {
-      return res
-        .status(400)
-        .json({ message: "Both name and description are required" });
+    if (!avatar_name) {
+      return res.status(400).json({ message: "Avatar name is required" });
     }
 
+    const avatar_url = `/assets/avatars/${avatar_name}.svg`;
+
     db.run(
-      `UPDATE groups SET name = ?, description = ? WHERE id = ? AND session_id = ?`,
-      [name, description, groupId, sessionId],
+      `UPDATE groups
+       SET name = ?, description = ?, avatar_name = ?, avatar_url = ?
+       WHERE id = ? AND session_id = ?`,
+      [name, description, avatar_name, avatar_url, groupId, sessionId],
       function (err) {
         if (err) {
           console.error("Database Error:", err);
@@ -707,7 +723,13 @@ app.put("/sessions/:sessionId/groups/:groupId", (req, res) => {
           return res.status(404).json({ message: "Group not found" });
         }
 
-        res.json({ id: groupId, name, description });
+        res.json({
+          id: groupId,
+          name,
+          description,
+          avatar_name,
+          avatar_url,
+        });
       }
     );
   });
@@ -953,7 +975,7 @@ app.get("/sessions/:id/camemberts", (req, res) => {
 
     db.all(
       `
-      SELECT g.id AS group_id, g.name, cp.red_triangles, cp.green_triangles
+      SELECT g.id AS group_id, g.name, g.avatar_name, avatar_url, cp.red_triangles, cp.green_triangles
       FROM groups g
       LEFT JOIN camembert_progress cp ON g.id = cp.group_id
       WHERE g.session_id = ?

@@ -251,7 +251,6 @@ function Admin() {
         <table>
           <thead>
             <tr>
-              <th>ID</th>
               <th>Title</th>
               <th>Green Questions Label</th>
               <th>Red Questions Label</th>
@@ -264,7 +263,6 @@ function Admin() {
             {gameSessions.length > 0 ? (
               gameSessions.map((session) => (
                 <tr key={session.id}>
-                  <td>{session.id}</td>
                   <td>{session.title}</td>
                   <td>{session.green_questions_label}</td>
                   <td>{session.red_questions_label}</td>

@@ -79,6 +79,8 @@ db.serialize(() => {
       session_id INTEGER,
       name TEXT,
       description TEXT,
+    avatar_name TEXT,
+    avatar_url TEXT,
       join_url TEXT,
       FOREIGN KEY (session_id) REFERENCES game_sessions(id)
     )
@@ -263,16 +265,16 @@ db.serialize(() => {
 
         // Add groups to the session
         const groups = [
-          { name: "Group Alpha", description: "First group in Test Session" },
-          { name: "Group Beta", description: "Second group in Test Session" },
-          { name: "Group Gamma", description: "Third group in Test Session" },
-          { name: "Group Delta", description: "Fourth group in Test Session" },
+          { name: "Group Alpha", description: "First group in Test Session", avatar_name: "Afroboy", avatar_url: "/avatars/Afroboy.svg" },
+          { name: "Group Beta", description: "Second group in Test Session", avatar_name: "Chaplin", avatar_url: "/avatars/Chaplin.svg" },
+          { name: "Group Gamma", description: "Third group in Test Session", avatar_name: "Cloud", avatar_url: "/avatars/Cloud.svg" },
+          { name: "Group Delta", description: "Fourth group in Test Session", avatar_name: "Helmet", avatar_url: "/avatars/Helmet.svg" },
         ];
 
         groups.forEach((g) => {
           db.run(
-            `INSERT INTO groups (session_id, name, description) VALUES (?, ?, ?)`,
-            [sessionId, g.name, g.description],
+            `INSERT INTO groups (session_id, name, description, avatar_name, avatar_url) VALUES (?, ?, ?, ?, ?)`,
+            [sessionId, g.name, g.description, g.avatar_name, g.avatar_url],
             function (err) {
               if (!err) {
                 db.run(`INSERT INTO camembert_progress (group_id) VALUES (?)`, [
