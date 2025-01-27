@@ -311,6 +311,21 @@ app.post("/login", (req, res) => {
   });
 });
 
+app.post("/verify-token", (req, res) => {
+  const token = req.body.token;
+
+  if (!token) {
+    return res.status(400).json({ message: "Token is required" });
+  }
+
+  jwt.verify(token, SECRET_KEY, (err, decoded) => {
+    if (err) {
+      return res.status(401).json({ message: "Token is invalid or expired" });
+    }
+    res.json({ valid: true });
+  });
+});
+
 // Protected admin route
 app.get("/admin-check", (req, res) => {
   const token = req.headers["authorization"];

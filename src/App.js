@@ -12,14 +12,31 @@ function App() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  // Check if the user is already authenticated
+  // Check token validity on component mount
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      // If a token exists, redirect to the admin page
-      navigate("/admin");
-    }
-  }, [navigate]); // This will run once when the component is mounted
+    const checkTokenValidity = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        return; // No token means no need to validate
+      }
+
+      try {
+        const response = await axios.post(`${API_URL}/verify-token`, {
+          token,
+        });
+        if (response.data.valid) {
+          navigate("/admin"); // Token is valid, redirect to admin
+        } else {
+          localStorage.removeItem("token"); // Remove invalid token
+        }
+      } catch (err) {
+        console.error("Token validation failed:", err.message);
+        localStorage.removeItem("token"); // Remove invalid or expired token
+      }
+    };
+
+    checkTokenValidity();
+  }, [navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
