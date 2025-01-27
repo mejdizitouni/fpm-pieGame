@@ -82,12 +82,13 @@ db.serialize(() => {
     )
   `);
 
-  // Many-to-many relationship table for sessions and questions
+  // Many-to-many relationship table for sessions and questions, including question_order
   db.run(`
     CREATE TABLE IF NOT EXISTS session_questions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       session_id INTEGER,
       question_id INTEGER,
+      question_order INTEGER,
       FOREIGN KEY (session_id) REFERENCES game_sessions(id),
       FOREIGN KEY (question_id) REFERENCES questions(id)
     )
@@ -147,6 +148,7 @@ db.serialize(() => {
             expected_answer: "Berlin",
             allocated_time: 30,
             options: ["Berlin", "Munich", "Hamburg", "Frankfurt"],
+            question_order: 1,
           },
           {
             type: "red",
@@ -154,6 +156,7 @@ db.serialize(() => {
             expected_answer: "Asia",
             allocated_time: 30,
             options: ["Asia", "Africa", "Europe", "Antarctica"],
+            question_order: 2,
           },
           {
             type: "red",
@@ -161,6 +164,7 @@ db.serialize(() => {
             expected_answer: "Sweden",
             allocated_time: 30,
             options: ["Sweden", "Indonesia", "Philippines", "Finland"],
+            question_order: 3,
           },
           {
             type: "red",
@@ -168,6 +172,7 @@ db.serialize(() => {
             expected_answer: "Ottawa",
             allocated_time: 30,
             options: ["Ottawa", "Toronto", "Vancouver", "Montreal"],
+            question_order: 4,
           },
           {
             type: "red",
@@ -175,6 +180,7 @@ db.serialize(() => {
             expected_answer: "Sahara",
             allocated_time: 30,
             options: ["Sahara", "Gobi", "Kalahari", "Mojave"],
+            question_order: 5,
           },
           {
             type: "red",
@@ -182,6 +188,7 @@ db.serialize(() => {
             expected_answer: "Nile",
             allocated_time: 30,
             options: ["Nile", "Amazon", "Yangtze", "Mississippi"],
+            question_order: 6,
           },
           // Green Questions
           {
@@ -189,36 +196,42 @@ db.serialize(() => {
             title: "What is the smallest country in the world?",
             expected_answer: "Vatican City",
             allocated_time: 20,
+            question_order: 1,
           },
           {
             type: "green",
             title: "What is the capital of Japan?",
             expected_answer: "Tokyo",
             allocated_time: 20,
+            question_order: 2,
           },
           {
             type: "green",
             title: "Which country has the most population?",
             expected_answer: "China",
             allocated_time: 20,
+            question_order: 3,
           },
           {
             type: "green",
             title: "What is the highest mountain in the world?",
             expected_answer: "Mount Everest",
             allocated_time: 20,
+            question_order: 4,
           },
           {
             type: "green",
             title: "Which ocean is the largest?",
             expected_answer: "Pacific Ocean",
             allocated_time: 20,
+            question_order: 5,
           },
           {
             type: "green",
             title: "What is the capital of Australia?",
             expected_answer: "Canberra",
             allocated_time: 20,
+            question_order: 6,
           },
         ];
 
@@ -229,8 +242,8 @@ db.serialize(() => {
             function (err) {
               if (!err) {
                 db.run(
-                  `INSERT INTO session_questions (session_id, question_id) VALUES (?, ?)`,
-                  [sessionId, this.lastID]
+                  `INSERT INTO session_questions (session_id, question_id, question_order) VALUES (?, ?, ?)`,
+                  [sessionId, this.lastID, q.question_order]
                 );
 
                 if (q.type === "red" && q.options) {

@@ -64,7 +64,7 @@ io.on("connection", (socket) => {
       FROM questions q
       JOIN session_questions sq ON q.id = sq.question_id
       WHERE sq.session_id = ? AND q.type = ? ${notInClause}
-      ORDER BY sq.id ASC
+      ORDER BY sq.question_order DESC
       LIMIT 1
     `;
 
@@ -404,18 +404,28 @@ app.get("/questions/:id", (req, res) => {
     }
 
     const questionId = req.params.id;
-    db.get(`SELECT * FROM questions WHERE id = ?`, [questionId], (err, row) => {
-      if (err) {
-        console.error("Database Error:", err);
-        return res.status(500).json({ message: "Database error" });
+    db.get(
+      `
+      SELECT q.*, sq.question_order
+      FROM questions q
+      LEFT JOIN session_questions sq ON q.id = sq.question_id
+      WHERE q.id = ?
+      `,
+      [questionId],
+      (err, row) => {
+        if (err) {
+          console.error("Database Error:", err);
+          return res.status(500).json({ message: "Database error" });
+        }
+        if (!row) {
+          return res.status(404).json({ message: "Question not found" });
+        }
+        res.json(row);
       }
-      if (!row) {
-        return res.status(404).json({ message: "Question not found" });
-      }
-      res.json(row);
-    });
+    );
   });
 });
+
 
 // Add a new question
 app.post("/questions", (req, res) => {
@@ -824,9 +834,11 @@ app.get("/sessions/:id/questions", (req, res) => {
     const sessionId = req.params.id;
     db.all(
       `
-      SELECT q.* FROM questions q
+      SELECT q.*, sq.question_order
+      FROM questions q
       JOIN session_questions sq ON q.id = sq.question_id
       WHERE sq.session_id = ?
+      ORDER BY sq.question_order ASC, Type ASC
       `,
       [sessionId],
       (err, rows) => {
@@ -853,23 +865,25 @@ app.post("/sessions/:id/questions", (req, res) => {
     }
 
     const sessionId = req.params.id;
-    const { question_id } = req.body; // Existing question ID
+    const { question_id, question_order } = req.body; // Include question_order
+
     db.run(
       `
-      INSERT INTO session_questions (session_id, question_id)
-      VALUES (?, ?)
+      INSERT INTO session_questions (session_id, question_id, question_order)
+      VALUES (?, ?, ?)
       `,
-      [sessionId, question_id],
+      [sessionId, question_id, question_order],
       function (err) {
         if (err) {
           console.error("Insert Error:", err);
           return res.status(500).json({ message: "Database error" });
         }
-        res.json({ id: this.lastID, session_id: sessionId, question_id });
+        res.json({ id: this.lastID, session_id: sessionId, question_id, question_order });
       }
     );
   });
 });
+
 
 // Activate a session
 app.post("/sessions/:id/activate", (req, res) => {
@@ -1093,7 +1107,8 @@ app.post("/questions", (req, res) => {
       return res.status(403).json({ message: "Invalid token" });
     }
 
-    const { type, title, expected_answer, allocated_time, options } = req.body;
+    const { type, title, expected_answer, allocated_time, options, session_id, question_order } =
+      req.body;
 
     db.run(
       `INSERT INTO questions (type, title, expected_answer, allocated_time) VALUES (?, ?, ?, ?)`,
@@ -1105,6 +1120,21 @@ app.post("/questions", (req, res) => {
         }
 
         const questionId = this.lastID;
+
+        // Link the question to the session with question_order
+        db.run(
+          `
+          INSERT INTO session_questions (session_id, question_id, question_order)
+          VALUES (?, ?, ?)
+          `,
+          [session_id, questionId, question_order],
+          (err) => {
+            if (err) {
+              console.error("Error linking question:", err);
+              return res.status(500).json({ message: "Database error" });
+            }
+          }
+        );
 
         // Insert options for red questions
         if (type === "red" && Array.isArray(options)) {
@@ -1132,6 +1162,8 @@ app.post("/questions", (req, res) => {
                 title,
                 expected_answer,
                 allocated_time,
+                session_id,
+                question_order,
                 options,
               });
             })
@@ -1146,12 +1178,49 @@ app.post("/questions", (req, res) => {
             title,
             expected_answer,
             allocated_time,
+            session_id,
+            question_order,
           });
         }
       }
     );
   });
 });
+
+app.put("/sessions/:sessionId/questions/:questionId", (req, res) => {
+  const token = req.headers["authorization"];
+  if (!token) {
+    return res.status(401).json({ message: "Access denied" });
+  }
+
+  jwt.verify(token, SECRET_KEY, (err) => {
+    if (err) {
+      return res.status(403).json({ message: "Invalid token" });
+    }
+
+    const { sessionId, questionId } = req.params;
+    const { question_order } = req.body;
+
+    db.run(
+      `UPDATE session_questions SET question_order = ? WHERE session_id = ? AND question_id = ?`,
+      [question_order, sessionId, questionId],
+      function (err) {
+        if (err) {
+          console.error("Database Error:", err);
+          return res.status(500).json({ message: "Failed to update question order" });
+        }
+
+        if (this.changes === 0) {
+          return res.status(404).json({ message: "Question not found in session" });
+        }
+
+        res.json({ message: "Question order updated successfully" });
+      }
+    );
+  });
+});
+
+
 
 app.post("/questions/:id/options", (req, res) => {
   const token = req.headers["authorization"];

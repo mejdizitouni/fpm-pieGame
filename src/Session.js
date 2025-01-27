@@ -31,52 +31,52 @@ function Session() {
   const [editingGroup, setEditingGroup] = useState(null); // To handle group editing
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        navigate("/");
-        return;
-      }
+  const fetchData = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/");
+      return;
+    }
 
-      try {
-        // Fetch session details (including title)
-        const sessionResponse = await axios.get(`${API_URL}/sessions/${id}`, {
+    try {
+      // Fetch session details (including title)
+      const sessionResponse = await axios.get(`${API_URL}/sessions/${id}`, {
+        headers: { Authorization: token },
+      });
+      setSessionDetails(sessionResponse.data);
+
+      // Fetch questions for the current session
+      const questionsResponse = await axios.get(
+        `${API_URL}/sessions/${id}/questions`,
+        {
           headers: { Authorization: token },
-        });
-        setSessionDetails(sessionResponse.data);
+        }
+      );
+      setQuestions(questionsResponse.data);
 
-        // Fetch questions for the current session
-        const questionsResponse = await axios.get(
-          `${API_URL}/sessions/${id}/questions`,
-          {
-            headers: { Authorization: token },
-          }
-        );
-        setQuestions(questionsResponse.data);
+      // Fetch all available questions (not linked to this session)
+      const availableQuestionsResponse = await axios.get(
+        `${API_URL}/sessions/${id}/available-questions`,
+        {
+          headers: { Authorization: token },
+        }
+      );
+      setAllQuestions(availableQuestionsResponse.data);
 
-        // Fetch all available questions (not linked to this session)
-        const availableQuestionsResponse = await axios.get(
-          `${API_URL}/sessions/${id}/available-questions`,
-          {
-            headers: { Authorization: token },
-          }
-        );
-        setAllQuestions(availableQuestionsResponse.data);
+      // Fetch groups
+      const groupsResponse = await axios.get(
+        `${API_URL}/sessions/${id}/groups`,
+        {
+          headers: { Authorization: token },
+        }
+      );
+      setGroups(groupsResponse.data);
+    } catch (err) {
+      console.error("Error fetching data:", err);
+    }
+  };
 
-        // Fetch groups
-        const groupsResponse = await axios.get(
-          `${API_URL}/sessions/${id}/groups`,
-          {
-            headers: { Authorization: token },
-          }
-        );
-        setGroups(groupsResponse.data);
-      } catch (err) {
-        console.error("Error fetching data:", err);
-      }
-    };
-
+  useEffect(() => {
     fetchData();
   }, [id, navigate]);
 
@@ -92,7 +92,7 @@ function Session() {
       // Link the newly created question to the session
       await axios.post(
         `${API_URL}/sessions/${id}/questions`,
-        { question_id: response.data.id },
+        { question_id: response.data.id, question_order: newQuestion.question_order },
         {
           headers: { Authorization: token },
         }
@@ -108,16 +108,8 @@ function Session() {
           }
         );
       }
-
-      setQuestions((prev) => [...prev, response.data]); // Update session-specific questions
-      setNewQuestion({
-        type: "",
-        title: "",
-        expected_answer: "",
-        allocated_time: "",
-        options: [],
-      });
       setShowNewQuestionForm(false); // Hide the form after creating the question
+      fetchData();
     } catch (err) {
       console.error("Failed to create and link question:", err);
     }
@@ -148,7 +140,7 @@ function Session() {
       // Link the existing question to the session
       await axios.post(
         `${API_URL}/sessions/${id}/questions`,
-        { question_id: selectedQuestionId },
+        { question_id: selectedQuestionId, question_order: newQuestion.question_order },
         {
           headers: { Authorization: token },
         }
@@ -162,10 +154,8 @@ function Session() {
         }
       );
 
-      // Append the full question details to the session's questions
-      setQuestions((prev) => [...prev, response.data]);
-
       setSelectedQuestionId(""); // Reset the dropdown
+      fetchData();
     } catch (err) {
       console.error("Failed to link existing question:", err);
     }
@@ -206,13 +196,12 @@ function Session() {
           `${API_URL}/questions/${questionId}/options`,
           { headers: { Authorization: token } }
         );
-        // Transform options to an array of strings
         questionData.options = optionsResponse.data.map((opt) => opt.option_text);
       } else {
-        questionData.options = []; // Clear options for non-red questions
+        questionData.options = [];
       }
   
-      setEditingQuestion(questionData); // Set the question being edited
+      setEditingQuestion(questionData); // Ensure question_order is included
     } catch (err) {
       console.error("Failed to fetch question details:", err);
     }
@@ -226,43 +215,23 @@ function Session() {
     try {
       // Update the question details
       await axios.put(
-        `${API_URL}/questions/${editingQuestion.id}`,
+        `${API_URL}/sessions/${id}/questions/${editingQuestion.id}`,
         {
-          type: editingQuestion.type,
-          title: editingQuestion.title,
-          expected_answer: editingQuestion.expected_answer,
-          allocated_time: editingQuestion.allocated_time,
+          question_order: editingQuestion.question_order, // Include question_order
         },
         {
           headers: { Authorization: token },
         }
       );
   
-      // If the question is a red question, update its options
-      if (editingQuestion.type === "red") {
-        await axios.post(
-          `${API_URL}/questions/${editingQuestion.id}/options`,
-          { options: editingQuestion.options },
-          {
-            headers: { Authorization: token },
-          }
-        );
-      }
-  
-      // Update the local state to reflect the changes
-      setQuestions((prevQuestions) =>
-        prevQuestions.map((q) =>
-          q.id === editingQuestion.id ? { ...q, ...editingQuestion } : q
-        )
-      );
-  
       setEditingQuestion(null); // Clear the editing state
+      fetchData(); // Refresh the questions list
     } catch (err) {
       console.error("Failed to update question:", err);
     }
   };
   
-
+  
   const editGroup = async (groupId) => {
     const token = localStorage.getItem("token");
     try {
@@ -365,34 +334,34 @@ function Session() {
         ) : (
           <table>
             <thead>
-              <tr>
-                <th>ID</th>
-                <th>Type</th>
-                <th>Title</th>
-                <th>Expected Answer</th>
-                <th>Allocated Time</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {questions.map((question) => (
-                <tr key={question.id}>
-                  <td>{question.id}</td>
-                  <td>{question.type}</td>
-                  <td>{question.title}</td>
-                  <td>{question.expected_answer}</td>
-                  <td>{question.allocated_time}</td>
-                  <td>
-                    <button onClick={() => editQuestion(question.id)}>Edit</button>
-                    <button
-                      onClick={() => removeQuestionFromSession(question.id)}
-                    >
-                      Remove
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
+  <tr>
+    <th>ID</th>
+    <th>Type</th>
+    <th>Title</th>
+    <th>Expected Answer</th>
+    <th>Allocated Time</th>
+    <th>Order</th> {/* New column for question_order */}
+    <th>Actions</th>
+  </tr>
+</thead>
+<tbody>
+  {questions.map((question) => (
+    <tr key={question.id}>
+      <td>{question.id}</td>
+      <td>{question.type}</td>
+      <td>{question.title}</td>
+      <td>{question.expected_answer}</td>
+      <td>{question.allocated_time}</td>
+      <td>{question.question_order || "-"}</td> {/* Display question_order */}
+      <td>
+        <button onClick={() => editQuestion(question.id)}>Edit</button>
+        <button onClick={() => removeQuestionFromSession(question.id)}>
+          Remove
+        </button>
+      </td>
+    </tr>
+  ))}
+</tbody>
           </table>
         )}
 
@@ -448,6 +417,18 @@ function Session() {
               }
               required
             />
+             <input
+      type="number"
+      placeholder="Order"
+      value={newQuestion.question_order || ""}
+      onChange={(e) =>
+        setNewQuestion({
+          ...newQuestion,
+          question_order: e.target.value,
+        })
+      }
+      required
+    />
             {/* Options for Red Questions */}
             {newQuestion.type === "red" && (
               <div>
@@ -519,6 +500,16 @@ function Session() {
         setEditingQuestion({
           ...editingQuestion,
           allocated_time: e.target.value,
+        })
+      }
+    />
+    <input
+      type="number"
+      value={editingQuestion.question_order || ""}
+      onChange={(e) =>
+        setEditingQuestion({
+          ...editingQuestion,
+          question_order: e.target.value,
         })
       }
     />
@@ -595,6 +586,18 @@ function Session() {
               </option>
             )}
           </select>
+          <input
+    type="number"
+    placeholder="Order"
+    value={newQuestion.question_order || ""}
+    onChange={(e) =>
+      setNewQuestion({
+        ...newQuestion,
+        question_order: e.target.value,
+      })
+    }
+    required
+  />
           <button type="submit" disabled={allQuestions.length === 0}>
             Link Question
           </button>
