@@ -236,6 +236,43 @@ function AdminGameControl() {
     return camemberts;
   };
 
+  const updatePoints = async (groupId, color, change) => {
+    const token = localStorage.getItem("token");
+  
+    try {
+      const response = await fetch(`${API_URL}/sessions/${sessionId}/update-points`, {
+        method: "POST",
+        headers: {
+          Authorization: token,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ groupId, color, change }),
+      });
+  
+      if (!response.ok) {
+        throw new Error("Failed to update points");
+      }
+  
+      const data = await response.json();
+  
+      // Update the camemberts state with the new points
+      setCamemberts((prev) =>
+        prev.map((cam) =>
+          cam.group_id === groupId
+            ? {
+                ...cam,
+                red_triangles: color === "red" ? data.updatedGroup.red_triangles : cam.red_triangles,
+                green_triangles: color === "green" ? data.updatedGroup.green_triangles : cam.green_triangles,
+              }
+            : cam
+        )
+      );
+    } catch (err) {
+      console.error("Error updating points:", err);
+    }
+  };
+  
+
   if (sessionStatus === null) {
     return <h1>Loading session details...</h1>;
   }
@@ -389,7 +426,40 @@ function AdminGameControl() {
             <ul className="pie-chart-list">
               {camemberts.map((cam) => (
                 <li key={cam.group_id}>
-                  <h3>{cam.name}</h3>
+                  <div className="group-header">
+        <h3>{cam.name}</h3>
+        <div className="points-control">
+          {/* Red Points */}
+          <button
+            className="minus-button"
+            onClick={() => updatePoints(cam.group_id, "red", -1)}
+          >
+            -
+          </button>
+          <span className="points-display">Red: {cam.red_triangles}</span>
+          <button
+            className="plus-button"
+            onClick={() => updatePoints(cam.group_id, "red", 1)}
+          >
+            +
+          </button>
+
+          {/* Green Points */}
+          <button
+            className="minus-button"
+            onClick={() => updatePoints(cam.group_id, "green", -1)}
+          >
+            -
+          </button>
+          <span className="points-display">Green: {cam.green_triangles}</span>
+          <button
+            className="plus-button"
+            onClick={() => updatePoints(cam.group_id, "green", 1)}
+          >
+            +
+          </button>
+        </div>
+      </div>
                   {generateCamemberts(
                     cam.red_triangles,
                     cam.green_triangles

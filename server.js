@@ -1318,6 +1318,91 @@ app.post("/sessions/:id/start", (req, res) => {
   });
 });
 
+// Update red or green points for a group in the current session
+app.post("/sessions/:id/update-points", (req, res) => {
+  const token = req.headers["authorization"];
+  if (!token) {
+    return res.status(401).json({ message: "Access denied" });
+  }
+
+  jwt.verify(token, SECRET_KEY, (err) => {
+    if (err) {
+      return res.status(403).json({ message: "Invalid token" });
+    }
+
+    const sessionId = req.params.id; // Get the session ID from the URL
+    const { groupId, color, change } = req.body; // Get group ID, color (red/green), and change (+1/-1)
+
+    if (!groupId || !color || !change || (color !== "red" && color !== "green")) {
+      return res
+        .status(400)
+        .json({ message: "Group ID, color, and change value are required" });
+    }
+
+    const triangleType = color === "red" ? "red_triangles" : "green_triangles";
+
+    // Ensure the group belongs to the current session
+    db.get(
+      `
+      SELECT cp.id
+      FROM camembert_progress cp
+      JOIN groups g ON cp.group_id = g.id
+      WHERE g.session_id = ? AND g.id = ?
+      `,
+      [sessionId, groupId],
+      (err, groupProgress) => {
+        if (err) {
+          console.error("Error validating group:", err);
+          return res.status(500).json({ message: "Database error" });
+        }
+
+        if (!groupProgress) {
+          return res.status(404).json({ message: "Group not found in session" });
+        }
+
+        // Update the points for the group
+        db.run(
+          `
+          UPDATE camembert_progress
+          SET ${triangleType} = MAX(0, ${triangleType} + ?)
+          WHERE id = ?
+          `,
+          [change, groupProgress.id],
+          function (err) {
+            if (err) {
+              console.error("Database Error:", err);
+              return res.status(500).json({ message: "Failed to update points" });
+            }
+
+            // Fetch the updated scores
+            db.get(
+              `
+              SELECT group_id, red_triangles, green_triangles
+              FROM camembert_progress
+              WHERE id = ?
+              `,
+              [groupProgress.id],
+              (err, updatedGroup) => {
+                if (err) {
+                  console.error("Error fetching updated points:", err);
+                  return res.status(500).json({ message: "Database error" });
+                }
+
+                res.json({
+                  message: `${triangleType} updated successfully`,
+                  updatedGroup,
+                });
+              }
+            );
+          }
+        );
+      }
+    );
+  });
+});
+
+
+
 // Catch-all route to serve React app
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "build", "index.html"));

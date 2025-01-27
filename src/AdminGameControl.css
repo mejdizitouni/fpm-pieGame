@@ -213,3 +213,36 @@ button {
     gap: 10px;
   }
 }
+
+
+.points-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.minus-button,
+.plus-button {
+  background-color: #ffcccc; /* Red for minus buttons */
+  color: #000;
+  border: 1px solid #999;
+  border-radius: 4px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.plus-button {
+  background-color: #ccffcc; /* Green for plus buttons */
+}
+
+.minus-button:hover,
+.plus-button:hover {
+  background-color: #999;
+  color: #fff;
+}
+
+.points-display {
+  font-weight: bold;
+  font-size: 16px;
+  margin: 0 8px;
+}
