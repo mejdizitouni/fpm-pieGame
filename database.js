@@ -45,6 +45,8 @@ db.serialize(() => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT,
       date TEXT,
+      green_questions_label TEXT,
+      red_questions_label TEXT,
       status TEXT DEFAULT 'Draft'
     )
   `);
@@ -125,7 +127,7 @@ db.serialize(() => {
   db.serialize(() => {
     // Add the Test Session
     db.run(
-      `INSERT INTO game_sessions (title, date, status) VALUES ('Test Session', '2024-01-01', 'Draft')`
+      `INSERT INTO game_sessions (title, date, green_questions_label, red_questions_label, status) VALUES ('Test Session', '2024-01-01', 'Hulk Color', 'Fire Color', 'Draft')`
     );
 
     // Get session ID

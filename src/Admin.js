@@ -205,7 +205,7 @@ function Admin() {
 
   const handleEdit = (session) => {
     setEditingSession(session);
-    setNewSession({ title: session.title, date: session.date });
+    setNewSession({ title: session.title, green_questions_label: session.green_questions_label, red_questions_label:session.red_questions_label, date: session.date });
     setShowForm(true); // Show the form when editing
   };
 
@@ -253,6 +253,8 @@ function Admin() {
             <tr>
               <th>ID</th>
               <th>Title</th>
+              <th>Green Questions Label</th>
+              <th>Red Questions Label</th>
               <th>Date</th>
               <th>Status</th>
               <th>Actions</th>
@@ -264,6 +266,8 @@ function Admin() {
                 <tr key={session.id}>
                   <td>{session.id}</td>
                   <td>{session.title}</td>
+                  <td>{session.green_questions_label}</td>
+                  <td>{session.red_questions_label}</td>
                   <td>{session.date}</td>
                   <td>{session.status}</td>
                   <td className="actions">
@@ -324,6 +328,24 @@ function Admin() {
                 value={newSession.title}
                 onChange={(e) =>
                   setNewSession({ ...newSession, title: e.target.value })
+                }
+                required
+              />
+              <input
+                type="text"
+                placeholder="Green Questions Label"
+                value={newSession.green_questions_label}
+                onChange={(e) =>
+                  setNewSession({ ...newSession, green_questions_label: e.target.value })
+                }
+                required
+              />
+              <input
+                type="text"
+                placeholder="Red Questions Label"
+                value={newSession.red_questions_label}
+                onChange={(e) =>
+                  setNewSession({ ...newSession, red_questions_label: e.target.value })
                 }
                 required
               />
