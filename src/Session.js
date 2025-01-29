@@ -247,7 +247,6 @@ function Session() {
           headers: { Authorization: token },
         }
       );
-      console.log("Group data fetched:", response.data); // Debugging line
       setEditingGroup(response.data);
     } catch (err) {
       console.error("Failed to fetch group details:", err);
@@ -305,7 +304,6 @@ function Session() {
           headers: { Authorization: token },
         }
       );
-      console.log("Group deleted:", response.data);
       setGroups(groups.filter((group) => group.id !== groupId)); // Remove group from state
     } catch (err) {
       console.error("Failed to delete group:", err);
@@ -321,7 +319,6 @@ function Session() {
           headers: { Authorization: token },
         }
       );
-      console.log("Question removed from session:", response.data);
       setQuestions(questions.filter((q) => q.id !== questionId)); // Remove question from state
     } catch (err) {
       console.error("Failed to remove question from session:", err);
@@ -332,40 +329,40 @@ function Session() {
     <>
       <Header />
       <div className="session-container">
-        <h1>Session {sessionDetails.title} Details</h1>
+        <h1>Contenu de la session {sessionDetails.title}</h1>
 
-        <h2>Questions</h2>
+        <h2 class="title">Questions</h2>
         {questions.length === 0 ? (
-          <p>No questions available for this session.</p>
+          <p>Aucune question crée pour cette session.</p>
         ) : (
           <table>
             <thead>
               <tr>
-                <th>Type</th>
-                <th>Title</th>
-                <th>Expected Answer</th>
-                <th>Allocated Time</th>
-                <th>Order</th> {/* New column for question_order */}
+                <th>Catégorie</th>
+                <th>Intitulé</th>
+                <th>Réponse attendue</th>
+                <th>Temps alloué</th>
+                <th>Order d'apparition</th> {/* New column for question_order */}
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {questions.map((question) => (
                 <tr key={question.id}>
-                  <td>{question.type}</td>
+                  <td>{question.type == "green" ? "Questiion de réponse rapide" : "Question de calcul"}</td>
                   <td>{question.title}</td>
                   <td>{question.expected_answer}</td>
                   <td>{question.allocated_time}</td>
                   <td>{question.question_order || "-"}</td>{" "}
                   {/* Display question_order */}
                   <td>
-                    <button onClick={() => editQuestion(question.id)}>
-                      Edit
+                    <button class="admin-button" onClick={() => editQuestion(question.id)}>
+                      Modifier
                     </button>
-                    <button
+                    <button class="admin-button"
                       onClick={() => removeQuestionFromSession(question.id)}
                     >
-                      Remove
+                      Supprimer
                     </button>
                   </td>
                 </tr>
@@ -375,8 +372,8 @@ function Session() {
         )}
 
         {/* New Question Button */}
-        <button onClick={() => setShowNewQuestionForm(!showNewQuestionForm)}>
-          {showNewQuestionForm ? "Cancel" : "New Question"}
+        <button class="admin-button" onClick={() => setShowNewQuestionForm(!showNewQuestionForm)}>
+          {showNewQuestionForm ? "Annuler" : "Nouvelle question"}
         </button>
 
         {/* New Question Form */}
@@ -389,13 +386,13 @@ function Session() {
               }
               required
             >
-              <option value="">Select Type</option>
-              <option value="red">Red</option>
-              <option value="green">Green</option>
+              <option value="">Séléctionner la catégorie Type</option>
+              <option value="red">Question de calcul</option>
+              <option value="green">Question réponse rapide</option>
             </select>
             <input
               type="text"
-              placeholder="Title"
+              placeholder="Initulé"
               value={newQuestion.title}
               onChange={(e) =>
                 setNewQuestion({ ...newQuestion, title: e.target.value })
@@ -404,7 +401,7 @@ function Session() {
             />
             <input
               type="text"
-              placeholder="Expected Answer"
+              placeholder="Réponse attendue"
               value={newQuestion.expected_answer}
               onChange={(e) =>
                 setNewQuestion({
@@ -416,7 +413,7 @@ function Session() {
             />
             <input
               type="number"
-              placeholder="Allocated Time"
+              placeholder="Temps alloué"
               value={newQuestion.allocated_time}
               onChange={(e) =>
                 setNewQuestion({
@@ -428,7 +425,7 @@ function Session() {
             />
             <input
               type="number"
-              placeholder="Order"
+              placeholder="Order d'apparition"
               value={newQuestion.question_order || ""}
               onChange={(e) =>
                 setNewQuestion({
@@ -441,29 +438,29 @@ function Session() {
             {/* Options for Red Questions */}
             {newQuestion.type === "red" && (
               <div>
-                <h4>Options</h4>
+                <h4>Réponses possibles</h4>
                 <ul>
                   {newQuestion.options.map((option, index) => (
                     <li key={index}>
                       {option}
-                      <button type="button" onClick={() => removeOption(index)}>
-                        Remove
+                      <button class="admin-button" type="button" onClick={() => removeOption(index)}>
+                        Supprimer
                       </button>
                     </li>
                   ))}
                 </ul>
                 <input
                   type="text"
-                  placeholder="Add option"
+                  placeholder="Ajouter une réponse possible"
                   value={optionInput}
                   onChange={(e) => setOptionInput(e.target.value)}
                 />
-                <button type="button" onClick={addOption}>
-                  Add Option
+                <button class="admin-button" type="button" onClick={addOption}>
+                  Ajouter la réponse possible
                 </button>
               </div>
             )}
-            <button type="submit">Create</button>
+            <button class="admin-button" type="submit">Créer</button>
           </form>
         )}
 
@@ -479,8 +476,8 @@ function Session() {
                 })
               }
             >
-              <option value="red">Red</option>
-              <option value="green">Green</option>
+              <option value="red">Question de calcul</option>
+              <option value="green">Question de réponse rapide</option>
             </select>
             <input
               type="text"
@@ -526,12 +523,12 @@ function Session() {
             {/* Options for Red Questions */}
             {editingQuestion.type === "red" && (
               <div>
-                <h4>Edit Options</h4>
+                <h4>Modifier les réponses possibles</h4>
                 <ul>
                   {editingQuestion.options.map((option, index) => (
                     <li key={index}>
                       {option}
-                      <button
+                      <button class="admin-button"
                         type="button"
                         onClick={() =>
                           setEditingQuestion((prev) => ({
@@ -540,7 +537,7 @@ function Session() {
                           }))
                         }
                       >
-                        Remove
+                        Supprimer
                       </button>
                     </li>
                   ))}
@@ -551,7 +548,7 @@ function Session() {
                   value={optionInput}
                   onChange={(e) => setOptionInput(e.target.value)}
                 />
-                <button
+                <button class="admin-button"
                   type="button"
                   onClick={() => {
                     if (optionInput.trim()) {
@@ -563,40 +560,40 @@ function Session() {
                     }
                   }}
                 >
-                  Add Option
+                  Ajouter une réponse possible
                 </button>
               </div>
             )}
-            <button type="submit">Update</button>
-            <button type="button" onClick={cancelQuestionEdit}>
-              Cancel
+            <button class="admin-button" type="submit">Mettre à jour</button>
+            <button class="admin-button" type="button" onClick={cancelQuestionEdit}>
+              Annuler
             </button>
           </form>
         )}
 
-        <h2>Link Existing Question</h2>
+        <h2 class="title">Lier une question existance</h2>
         <form onSubmit={linkExistingQuestion}>
           <select
             value={selectedQuestionId}
             onChange={(e) => setSelectedQuestionId(e.target.value)}
             required
           >
-            <option value="">Select a question</option>
+            <option value="">Séléctionner la question</option>
             {Array.isArray(allQuestions) && allQuestions.length > 0 ? (
               allQuestions.map((question) => (
                 <option key={question.id} value={question.id}>
-                  {question.title}
+                  {question.type == "green" ? "Question de réponse rapide" : "Question à calcul " + question.title}
                 </option>
               ))
             ) : (
               <option value="" disabled>
-                No questions available
+                Aucune question disponible
               </option>
             )}
           </select>
           <input
             type="number"
-            placeholder="Order"
+            placeholder="Order d'apparition"
             value={newQuestion.question_order || ""}
             onChange={(e) =>
               setNewQuestion({
@@ -606,19 +603,19 @@ function Session() {
             }
             required
           />
-          <button type="submit" disabled={allQuestions.length === 0}>
-            Link Question
+          <button class="admin-button" type="submit" disabled={allQuestions.length === 0}>
+            Lier la question
           </button>
         </form>
 
-        <h2>Groups</h2>
+        <h2 class="title">Groupes</h2>
         {groups.length === 0 ? (
-          <p>No groups available for this session.</p>
+          <p>Aucun groupe trouvé pour cette session.</p>
         ) : (
           <table>
             <thead>
               <tr>
-                <th>Name</th>
+                <th>Nom du groupe</th>
                 <th>Avatar</th>
                 <th>Actions</th>
               </tr>
@@ -635,9 +632,9 @@ function Session() {
                     />
                   </td>
                   <td class="actions">
-                    <button onClick={() => editGroup(group.id)}>Edit</button>
-                    <button onClick={() => deleteGroup(group.id)}>
-                      Delete
+                    <button class="admin-button" onClick={() => editGroup(group.id)}>Edit</button>
+                    <button class="admin-button" onClick={() => deleteGroup(group.id)}>
+                      Supprimer
                     </button>
                   </td>
                 </tr>
@@ -647,8 +644,8 @@ function Session() {
         )}
 
         {/* New Group Button */}
-        <button onClick={() => setShowNewGroupForm(!showNewGroupForm)}>
-          {showNewGroupForm ? "Cancel" : "New Group"}
+        <button class="admin-button" onClick={() => setShowNewGroupForm(!showNewGroupForm)}>
+          {showNewGroupForm ? "Annuler" : "Nouveau groupe"}
         </button>
 
         {/* New Group Form */}
@@ -656,7 +653,7 @@ function Session() {
           <form onSubmit={createGroup}>
             <input
               type="text"
-              placeholder="Group Name"
+              placeholder="Nom du groupe"
               value={newGroup.name}
               onChange={(e) =>
                 setNewGroup({ ...newGroup, name: e.target.value })
@@ -665,12 +662,11 @@ function Session() {
             />
             <input
               type="text"
-              placeholder="Group Description"
+              placeholder="Description du groupe"
               value={newGroup.description}
               onChange={(e) =>
                 setNewGroup({ ...newGroup, description: e.target.value })
               }
-              required
             />
             <select
               value={newGroup.avatar_name || ""}
@@ -679,13 +675,13 @@ function Session() {
               }
               required
             >
-              <option value="">Select Avatar</option>
-              <option value="Afroboy">Afroboy</option>
+              <option value="">Selectionner un avatar</option>
+              <option value="Afroboy"></option>
               <option value="Cloud">Cloud</option>
               <option value="Chaplin">Chaplin</option>
               <option value="Helmet">Helmet</option>
             </select>
-            <button type="submit">Create</button>
+            <button class="admin-button" type="submit">Créer</button>
           </form>
         )}
 
@@ -718,20 +714,20 @@ function Session() {
               }
               required
             >
-              <option value="">Select Avatar</option>
+              <option value="">Selectionner un avatar</option>
               <option value="Afroboy">Afroboy</option>
               <option value="Cloud">Cloud</option>
               <option value="Chaplin">Chaplin</option>
               <option value="Helmet">Helmet</option>
             </select>
-            <button type="submit">Update</button>
-            <button type="button" onClick={cancelGroupEdit}>
-              Cancel
+            <button class="admin-button" type="submit">Mettre à jour</button>
+            <button class="admin-button" type="button" onClick={cancelGroupEdit}>
+              Annuler
             </button>
           </form>
         )}
       </div>
-      {/* <Footer /> */}
+      <Footer />
     </>
   );
 }

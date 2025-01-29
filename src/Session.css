@@ -13,6 +13,7 @@ body {
   background-color: #ffffff;
   border-radius: 10px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  text-align: center
 }
 
 h1, h2 {
@@ -111,6 +112,7 @@ form {
 
 form input[type="text"],
 form input[type="number"],
+form input[type="date"],
 form select {
   width: calc(100% - 20px);
   padding: 10px;
@@ -181,4 +183,14 @@ ul li button:hover {
     font-size: 12px;
     padding: 8px;
   }
+}
+
+.admin-button {
+  background-color: cadetblue !important;
+}
+
+.title {
+  text-align: justify;
+  font-size: large;
+  text-decoration: underline !important;
 }

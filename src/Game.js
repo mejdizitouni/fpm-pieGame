@@ -9,7 +9,8 @@ const socket = io(process.env.REACT_APP_API_URL);
 function Game() {
   const { sessionId, groupId } = useParams();
 
-  const [status, setStatus] = useState("waiting"); // "waiting" | "active" | "timeUp" | "gameOver"
+  const [group, setGroup] = useState(null);
+  const [sessionDetails, setSessionDetails] = useState(null); // To store session details
   const [sessionStatus, setSessionStatus] = useState(null); // "Activated" or other
   const [question, setQuestion] = useState(null); // Current question
   const [questionOptions, setQuestionOptions] = useState([]); // Options for red questions
@@ -18,6 +19,8 @@ function Game() {
   const [submittedAnswer, setSubmittedAnswer] = useState(null); // Submitted answer
   const [waitingValidation, setWaitingValidation] = useState(false); // Waiting for validation
   const [validationResult, setValidationResult] = useState(null); // Validation result: "correct" or "wrong"
+  const [validationResultNoPoints, setValidationResultNoPoints] =
+    useState(null);
   const [correctAnswer, setCorrectAnswer] = useState(null); // Correct answer after reveal
   const [camemberts, setCamemberts] = useState([]); // Camembert scores
   const [questionIndex, setQuestionIndex] = useState(null); // Current question index
@@ -28,7 +31,6 @@ function Game() {
     const fetchSessionStatus = async () => {
       try {
         const token = localStorage.getItem("token");
-        if (!token) return;
 
         // Fetch session status
         const response = await fetch(
@@ -38,6 +40,7 @@ function Game() {
           }
         );
         const data = await response.json();
+        setSessionDetails(data);
 
         if (data.status === "Activated") {
           setSessionStatus("Activated");
@@ -54,11 +57,10 @@ function Game() {
   }, [sessionId]);
 
   useEffect(() => {
-    if (sessionStatus !== "Activated") return;
+    // if (sessionStatus !== "Activated") return;
 
     const fetchInitialData = async () => {
       const token = localStorage.getItem("token");
-      if (!token) return;
 
       try {
         const camembertsRes = await fetch(
@@ -75,27 +77,42 @@ function Game() {
 
     fetchInitialData();
 
+    const fetchGroupData = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_API_URL}/sessions/${sessionId}/groups/${groupId}`
+        );
+        const data = await response.json();
+        setGroup(data);
+      } catch (err) {
+        console.error("Failed to fetch group data:", err);
+      }
+    };
+
+    fetchGroupData();
+
     // Join session as a player
     socket.emit("joinSession", { sessionId, groupId, role: "player" });
 
     // Listen for game events
     socket.on("startGame", () => {
-      setStatus("active");
+      setSessionStatus("In Progress");
       setCorrectAnswer(null);
     });
 
     socket.on(
       "newQuestion",
       async ({ question, timer, questionIndex, totalQuestions }) => {
+        setSessionStatus("In Progress");
         setQuestion(question);
         setTimer(timer);
         setQuestionIndex(questionIndex);
         setTotalQuestions(totalQuestions);
-        setStatus("active");
-        setValidationResult(null);
         setSubmittedAnswer(null);
         setStoppedTimerGroup(null);
         setWaitingValidation(false);
+        setValidationResult(null);
+        setValidationResultNoPoints(null);
 
         // Fetch options if the question is red-type
         if (question.type === "red") {
@@ -111,7 +128,7 @@ function Game() {
             setQuestionOptions([]);
           }
         } else {
-          setQuestionOptions([]); // Clear options for green questions
+          setQuestionOptions([]);
         }
       }
     );
@@ -119,13 +136,11 @@ function Game() {
     socket.on("timerCountdown", (remainingTime) => {
       setTimer(remainingTime);
       if (remainingTime === 0) {
-        setStatus("timeUp");
       }
     });
 
     socket.on("timerStopped", ({ groupName }) => {
       setTimer(0);
-      setStatus("timeUp");
       setStoppedTimerGroup(groupName);
     });
 
@@ -140,17 +155,27 @@ function Game() {
       }
     });
 
+    socket.on(
+      "answerValidatedNoPoints",
+      ({ groupId: validatedGroupId, isCorrect }) => {
+        if (parseInt(validatedGroupId) === parseInt(groupId)) {
+          setValidationResultNoPoints(isCorrect ? "correct" : "wrong");
+          setWaitingValidation(false);
+        }
+      }
+    );
+
     socket.on("revealAnswer", (correctAnswer) => {
       setCorrectAnswer(correctAnswer);
     });
 
     socket.on("gameOver", () => {
-      setStatus("gameOver");
+      setSessionStatus("Game Over");
     });
 
-    return () => {
-      socket.disconnect();
-    };
+    // return () => {
+    //   socket.disconnect();
+    // };
   }, [sessionId, groupId, sessionStatus]);
 
   useEffect(() => {
@@ -204,30 +229,44 @@ function Game() {
   };
 
   if (sessionStatus === null) {
-    return <h1>Loading session details...</h1>;
+    return <h1>Chargement de la session...</h1>;
   }
 
   if (sessionStatus == "Draft") {
-    return <h1>This session is not active yet.</h1>;
+    return <h1>Cette session n'est pas encore Active.</h1>;
   }
 
   return (
     <div className="game-container">
-      {status === "waiting" && <h1>Waiting for the game to start...</h1>}
+      <div className="group-info">
+        {group && group.avatar_url && (
+          <img
+            src={group.avatar_url}
+            alt={`${group.name} Avatar`}
+            className="group-avatar"
+          />
+        )}
+        {group && group.name && <h1>{group.name}</h1>}
+      </div>
 
-      {status === "gameOver" && (
+      
+      {sessionStatus === "Activated" && <h1>En attente du démarrage de la session...</h1>}
+
+      {sessionStatus === "In Progress" && <h1>En attente de la question suivante...</h1>}
+
+      {sessionStatus === "Game Over" && (
         <>
           <h1>Game Over!</h1>
-          <h2>Final Scores</h2>
+          <h2>Score Final</h2>
           <ul className="pie-chart-list">
             {camemberts.map((cam) => (
               <li key={cam.group_id}>
+              <img
+                src={cam.avatar_url}
+                alt={`${cam.name} Avatar`}
+                className="group-avatar"
+              />
                 <h3>{cam.name}</h3>
-                    <img
-                  src={cam.avatar_url}
-                  alt={`${cam.name} Avatar`}
-                  className="group-avatar"
-                />
                 {generateCamemberts(cam.red_triangles, cam.green_triangles).map(
                   (segments, index) => (
                     <PieChart
@@ -242,15 +281,27 @@ function Game() {
         </>
       )}
 
-      {status !== "waiting" && status !== "gameOver" && question && (
+      {sessionStatus == "In Progress" && sessionStatus !== "Game Over" && question && (
         <>
           <div
             className={`question ${question.type === "red" ? "red" : "green"}`}
           >
-            <h2>
-              Question {questionIndex}/{totalQuestions}
-            </h2>
-            <h1>Question: {question.title}</h1>
+            <div className="question-header">
+              Question {questionIndex}/{totalQuestions}:
+              <img
+                class="question-type-avatar"
+                src={question.question_icon}
+                alt={`${question.type} Avatar`}
+              />
+              <div className={`question-label`}>
+                {question && question.type === "green"
+                  ? sessionDetails.green_questions_label
+                  : sessionDetails.red_questions_label}
+              </div>
+            </div>
+
+            <h3>{question.title}</h3>
+
             <div className="timer-circle">
               <svg className="progress-ring" width="100" height="100">
                 <circle
@@ -268,107 +319,117 @@ function Game() {
                 />
               </svg>
               <div className="timer-text">
-                {timer > 0 ? `${timer}s` : "Time's Up!"}
+                {timer > 0 ? `${timer}s` : "Fin du temps imparti"}
               </div>
             </div>
+
+            {!stoppedTimerGroup && !submittedAnswer && timer > 0 && (
+              <div>
+                {question.type === "red" ? (
+                  // Single choice for red questions
+                  <div>
+                    <h4>Choisir une option:</h4>
+                    <form>
+                      {questionOptions.map((option) => (
+                        <div key={option.id}>
+                          <label>
+                            <input
+                              type="radio"
+                              name="options"
+                              value={option.option_text}
+                              onChange={() => setAnswer(option.option_text)}
+                              checked={answer === option.option_text}
+                            />
+                            {option.option_text}
+                          </label>
+                        </div>
+                      ))}
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          submitAnswer(false);
+                        }}
+                        disabled={!answer}
+                      >
+                        Soumettre la réponse
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          submitAnswer(true);
+                        }}
+                        disabled={!answer}
+                      >
+                        Soumettre la réponse et arrêter le timer
+                      </button>
+                    </form>
+                  </div>
+                ) : (
+                  // Input for green questions
+                  <div>
+                    <input
+                      type="text"
+                      placeholder="Enter your answer"
+                      value={answer}
+                      onChange={(e) => setAnswer(e.target.value)}
+                    />
+                    <div class="submit-buttons-container">
+                      <button onClick={() => submitAnswer(false)}>
+                        Soumettre la réponse
+                      </button>
+                      <button onClick={() => submitAnswer(true)}>
+                        Soumettre la réponse et arrêter le timer
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
-          {stoppedTimerGroup && <h3>Timer stopped by: {stoppedTimerGroup}</h3>}
-
-          {!stoppedTimerGroup && !submittedAnswer && timer > 0 && (
-            <div>
-              {question.type === "red" ? (
-                // Single choice for red questions
-                <div>
-                  <h4>Select an option:</h4>
-                  <form>
-                    {questionOptions.map((option) => (
-                      <div key={option.id}>
-                        <label>
-                          <input
-                            type="radio"
-                            name="options"
-                            value={option.option_text}
-                            onChange={() => setAnswer(option.option_text)}
-                            checked={answer === option.option_text}
-                          />
-                          {option.option_text}
-                        </label>
-                      </div>
-                    ))}
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        submitAnswer(false);
-                      }}
-                      disabled={!answer}
-                    >
-                      Submit Answer
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        submitAnswer(true);
-                      }}
-                      disabled={!answer}
-                    >
-                      Stop Timer and Submit
-                    </button>
-                  </form>
-                </div>
-              ) : (
-                // Input for green questions
-                <div>
-                  <input
-                    type="text"
-                    placeholder="Enter your answer"
-                    value={answer}
-                    onChange={(e) => setAnswer(e.target.value)}
-                  />
-                  <button onClick={() => submitAnswer(false)}>
-                    Submit Answer
-                  </button>
-                  <button onClick={() => submitAnswer(true)}>
-                    Stop Timer and Submit
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+          {stoppedTimerGroup && <h3>Le timer a été arrête par: {stoppedTimerGroup}</h3>}
 
           {submittedAnswer && (
             <div>
-              <h3>Your Answer:</h3>
+              <h3>Votre réponse:</h3>
               <span>{submittedAnswer}</span>
-              {waitingValidation && <h3>Waiting for answer validation...</h3>}
+              {waitingValidation && <h3>En attente de validation de la réponse...</h3>}
               {validationResult === "correct" && (
                 <h3>
-                  Your answer is correct! You earned {stoppedTimerGroup ? 3 : 1}{" "}
+                  Votre réponse est correcte! Vous avez gagné  {stoppedTimerGroup ? 2 : 1}{" "}
                   point
                   {stoppedTimerGroup ? "s" : ""}!
                 </h3>
               )}
               {validationResult === "wrong" && (
                 <h3>
-                  Your answer is wrong!{" "}
+                  Votre réponse est incorrecte!{" "}
                   {stoppedTimerGroup && "Other players earned 1 point each."}
                 </h3>
+              )}
+              {validationResultNoPoints === "correct" && (
+                <h3>
+                  Votre réponse est correcte ! Choissisez la répartition de vos points.
+                </h3>
+              )}
+              {validationResultNoPoints === "wrong" && (
+                <h3>Votre réponse est incorrecte!</h3>
               )}
             </div>
           )}
 
           {correctAnswer && (
             <div>
-              <h3>The Correct Answer is: {correctAnswer}</h3>
+              <h3>Votre réponse est correcte: {correctAnswer}</h3>
             </div>
           )}
         </>
       )}
 
-      {status !== "gameOver" && (
+      {sessionStatus !== "Game Over" && (
         <>
           {" "}
-          <h2>Camembert Progress</h2>
+          <h2>Scores</h2>
           <ul className="pie-chart-list">
             {camemberts.map((cam) => (
               <li key={cam.group_id}>

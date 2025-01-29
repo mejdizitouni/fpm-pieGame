@@ -9,10 +9,14 @@ body {
 
 .admin-game-control-container {
   padding: 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 h1, h2, h3, h4 {
-  color: #4a4a4a;
   text-align: center;
 }
 
@@ -28,25 +32,25 @@ button {
 
 .start-game-button,
 .next-question-button {
-  background-color: #4caf50;
+  background-color: cadetblue !important;
   color: #fff;
   transition: background-color 0.3s;
 }
 
 .start-game-button:hover,
 .next-question-button:hover {
-  background-color: #45a049;
+  background-color: cadetblue !important;
 }
 
 .reveal-answer-button {
-  background-color: #f39c12;
+  background-color: cadetblue !important;
   color: #fff;
   margin: 20px 0;
   transition: background-color 0.3s;
 }
 
 .reveal-answer-button:hover {
-  background-color: #e67e22;
+  background-color: cadetblue !important;
 }
 
 .validate-button {
@@ -97,14 +101,17 @@ button {
 
 .current-question.red {
   border: 15px solid #FB4141;
+  background-color: #FB4141;
+  width: fit-content;
 }
 
 .current-question.green {
-  border: 15px solid #5CB338;
+  border: 15px solid #5cb338;
+  background-color: #5cb338;
+  width: fit-content;
 }
 
 .current-question h3 {
-  color: #2c3e50;
 }
 
 .options-list {
@@ -253,4 +260,16 @@ button {
   margin-left: 10px;
   border-radius: 50%; /* Makes it circular */
   object-fit: cover; /* Ensures the image fits well */
+}
+
+.question-type-avatar {
+  width: 30px;
+}
+
+.question-header {
+  display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 40px;
+    gap: 10px;
 }

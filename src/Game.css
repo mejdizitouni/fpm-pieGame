@@ -5,10 +5,13 @@
     background-color: #f9f9f9;
     border-radius: 10px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
   }
   
   h1, h2, h3 {
-    color: #333;
   }
   
   h1 {
@@ -31,7 +34,7 @@
   }
   
   button {
-    background-color: #007bff;
+    background-color: cadetblue !important;
     color: white;
     border: none;
     border-radius: 5px;
@@ -43,7 +46,7 @@
   }
   
   button:hover {
-    background-color: #0056b3;
+    background-color: cadetblue !important;
   }
   
   button:disabled {
@@ -64,6 +67,7 @@
     display: inline-block;
     text-align: left;
     margin: 10px auto;
+    width: 90%;
   }
   
   form div {
@@ -98,10 +102,14 @@
 
   .question.red {
     border: 15px solid #FB4141;
+    background-color: #FB4141;
+    width: fit-content;
   }
   
   .question.green {
-    border: 15px solid #5CB338;
+    border: 15px solid #5cb338;
+    background-color: #5cb338;
+    width: fit-content;
   }
   
   .pie-chart-list {
@@ -155,5 +163,25 @@
     font-size: 1.2rem;
     font-weight: bold;
     color: #333;
+  }
+  
+  .question-header {
+    display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 40px;
+      gap: 10px;
+  }
+
+  .submit-buttons-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    gap: 10px
+  }
+
+  .question-type-avatar {
+    width: 30px;
   }
   

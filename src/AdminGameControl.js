@@ -10,6 +10,7 @@ function AdminGameControl() {
   const API_URL = process.env.REACT_APP_API_URL;
   const { sessionId } = useParams();
 
+  const [sessionDetails, setSessionDetails] = useState(null); // To store session details
   const [sessionStatus, setSessionStatus] = useState(null); // To store session status
   const [groups, setGroups] = useState([]);
   const [camemberts, setCamemberts] = useState([]);
@@ -21,7 +22,6 @@ function AdminGameControl() {
   const [correctAnswer, setCorrectAnswer] = useState(null);
   const [questionIndex, setQuestionIndex] = useState(null);
   const [totalQuestions, setTotalQuestions] = useState(null);
-  const [status, setStatus] = useState("waiting");
   const [stoppedTimerGroup, setStoppedTimerGroup] = useState(null);
   const socket = io(API_URL);
   const navigate = useNavigate();
@@ -41,6 +41,7 @@ function AdminGameControl() {
         });
         const data = await response.json();
 
+        setSessionDetails(data);
         if (data.status === "Activated") {
           setSessionStatus("Activated");
         } else {
@@ -56,7 +57,6 @@ function AdminGameControl() {
   }, [API_URL, sessionId, navigate]);
 
   useEffect(() => {
-    if (sessionStatus !== "Activated") return;
 
     const fetchInitialData = async () => {
       const token = localStorage.getItem("token");
@@ -96,7 +96,7 @@ function AdminGameControl() {
         setAnswers([]);
         setCorrectAnswer(null);
         setStoppedTimerGroup(null);
-        setStatus("active");
+        setSessionStatus("In Progress");
 
         // Fetch options if the question is red-type
         if (question.type === "red") {
@@ -135,7 +135,7 @@ function AdminGameControl() {
       setCurrentQuestion(null);
       setTimer(0);
       setIsTimeUp(false);
-      setStatus("gameOver");
+      setSessionStatus("Game Over");
     });
 
     return () => {
@@ -184,9 +184,19 @@ function AdminGameControl() {
   };
 
   const validateAnswer = (answer, groupId, isCorrect) => {
-    if (!currentQuestion) return;
 
     socket.emit("validateAnswer", {
+      sessionId,
+      groupId,
+      questionId: currentQuestion.id,
+      isCorrect,
+      stoppedTimer: answer.stoppedTimer,
+    });
+  };
+
+  const validateAnswerNoPoints = (answer, groupId, isCorrect) => {
+
+    socket.emit("validateAnswerNoPoints", {
       sessionId,
       groupId,
       questionId: currentQuestion.id,
@@ -282,47 +292,47 @@ function AdminGameControl() {
   };
 
   if (sessionStatus === null) {
-    return <h1>Loading session details...</h1>;
+    return <h1>Chargement de la session...</h1>;
   }
 
   if (sessionStatus == "Draft") {
-    return <h1>This session is not active yet.</h1>;
+    return <h1>Cette session n'est pas encore Active.</h1>;
   }
 
   return (
     <>
       <Header />
       <div className="admin-game-control-container">
-        <h1>Admin Game Control</h1>
 
-        {status === "waiting" && (
+        {sessionStatus === "Activated" && (
           <button className="start-game-button" onClick={startGame}>
-            Start Game
+            Démarrer la session
           </button>
         )}
-        {status === "active" && currentQuestion && (
+        {sessionStatus === "In Progress" && currentQuestion && (
           <button
             className="next-question-button"
             onClick={nextQuestion}
             disabled={!currentQuestion}
           >
-            Next Question
+            Question Suivante
           </button>
         )}
+        
 
-        {status === "gameOver" && (
+        {sessionStatus === "Game Over" && (
           <>
             <h1>Game Over!</h1>
-            <h2>Final Scores</h2>
+            <h2>Score Final</h2>
             <ul className="pie-chart-list">
               {camemberts.map((cam) => (
                 <li key={cam.group_id}>
                   <h3>{cam.name}</h3>
                   <img
-                  src={cam.avatar_url}
-                  alt={`${cam.name} Avatar`}
-                  className="group-avatar"
-                />
+                    src={cam.avatar_url}
+                    alt={`${cam.name} Avatar`}
+                    className="group-avatar"
+                  />
                   {generateCamemberts(
                     cam.red_triangles,
                     cam.green_triangles
@@ -338,18 +348,33 @@ function AdminGameControl() {
           </>
         )}
 
-        {status !== "gameOver" && currentQuestion && (
+        {sessionStatus !== "Game Over" && currentQuestion && (
           <>
             <div
               className={`current-question ${
                 currentQuestion.type === "red" ? "red" : "green"
               }`}
             >
-              <h2>
-                Question {questionIndex}/{totalQuestions}
-              </h2>
+              <div className="question-header">
+                Question {questionIndex}/{totalQuestions}:
+                <img
+                  class="question-type-avatar"
+                  src={currentQuestion.question_icon}
+                  alt={`${currentQuestion.type} Avatar`}
+                />
+                <div
+                  className={`question-label ${
+                    currentQuestion && currentQuestion.type === "green"
+                      ? "green-label"
+                      : "red-label"
+                  }`}
+                ></div>
+                {currentQuestion && currentQuestion.type === "green"
+                  ? sessionDetails.green_questions_label
+                  : sessionDetails.red_questions_label}
+              </div>
               <h3>{currentQuestion.title}</h3>
-              <p>Expected Answer: {currentQuestion.expected_answer}</p>
+              <p>Réponse attendue: {currentQuestion.expected_answer}</p>
               <div className="timer-circle">
                 <svg className="progress-ring" width="100" height="100">
                   <circle
@@ -374,7 +399,7 @@ function AdminGameControl() {
 
               {isTimeUp && <h3>Time's Up!</h3>}
               {stoppedTimerGroup && (
-                <h4>Timer was stopped by: {stoppedTimerGroup.groupName}</h4>
+                <h4>e timer a été arrêté par: {stoppedTimerGroup.groupName}</h4>
               )}
               {currentQuestion.type === "red" && (
                 <div>
@@ -388,24 +413,29 @@ function AdminGameControl() {
               )}
             </div>
 
-            <button
+            {sessionStatus === "In Progress" && currentQuestion && (
+          <button
+            className="next-question-button"
+            onClick={nextQuestion}
+            disabled={!currentQuestion}
+          >
+            Question suivante
+          </button>
+        )}
+
+            {/* <button
               className="reveal-answer-button"
               onClick={revealAnswer}
               disabled={correctAnswer}
             >
-              Reveal Answer
-            </button>
-            {correctAnswer && (
-              <div>
-                <h3>Correct Answer: {correctAnswer}</h3>
-              </div>
-            )}
+              Réponse
+            </button> */}
           </>
         )}
 
-        {status !== "gameOver" && (
+        {sessionStatus !== "Game Over" && answers && answers.length > 0 && (
           <>
-            <h2>Answers Submitted</h2>
+            <h2>Réponses soumises</h2>
             <ul className="answers-list">
               {answers.map((answer, index) => (
                 <li key={index} className="answer-item">
@@ -415,7 +445,15 @@ function AdminGameControl() {
                     className="validate-button correct"
                     onClick={() => validateAnswer(answer, answer.groupId, true)}
                   >
-                    Correct
+                    Correcte
+                  </button>
+                  <button
+                    className="validate-button correct"
+                    onClick={() =>
+                      validateAnswerNoPoints(answer, answer.groupId, true)
+                    }
+                  >
+                    Correcte (attribution manuelle des points)
                   </button>
                   {answer.stoppedTimer && (
                     <button
@@ -424,7 +462,17 @@ function AdminGameControl() {
                         validateAnswer(answer, answer.groupId, false)
                       }
                     >
-                      Incorrect
+                      Incorrecte
+                    </button>
+                  )}
+                  {answer.stoppedTimer && (
+                    <button
+                      className="validate-button incorrect"
+                      onClick={() =>
+                        validateAnswerNoPoints(answer, answer.groupId, false)
+                      }
+                    >
+                      Incorrecte (attribution manuelle des points)
                     </button>
                   )}
                 </li>
@@ -433,19 +481,19 @@ function AdminGameControl() {
           </>
         )}
 
-        {status !== "gameOver" && (
+        {sessionStatus !== "Game Over" && (
           <>
-            <h2>Camembert Progress</h2>
+            <h2>Scores</h2>
             <ul className="pie-chart-list">
               {camemberts.map((cam) => (
                 <li key={cam.group_id}>
                   <div className="group-header">
                     <h3>{cam.name}</h3>
                     <img
-                  src={cam.avatar_url}
-                  alt={`${cam.name} Avatar`}
-                  className="group-avatar"
-                />
+                      src={cam.avatar_url}
+                      alt={`${cam.name} Avatar`}
+                      className="group-avatar"
+                    />
                     <div className="points-control">
                       {/* Red Points */}
                       <button
@@ -455,7 +503,7 @@ function AdminGameControl() {
                         -
                       </button>
                       <span className="points-display">
-                        Red: {cam.red_triangles}
+                        Rouge: {cam.red_triangles}
                       </span>
                       <button
                         className="plus-button"
@@ -472,7 +520,7 @@ function AdminGameControl() {
                         -
                       </button>
                       <span className="points-display">
-                        Green: {cam.green_triangles}
+                        Vert: {cam.green_triangles}
                       </span>
                       <button
                         className="plus-button"

@@ -58,7 +58,8 @@ db.serialize(() => {
       type TEXT,
       title TEXT,
       expected_answer TEXT,
-      allocated_time INTEGER
+      allocated_time INTEGER,
+      question_icon TEXT
     )
   `);
 
@@ -150,7 +151,7 @@ db.serialize(() => {
             type: "red",
             title: "What is the capital of Germany?",
             expected_answer: "Berlin",
-            allocated_time: 30,
+            allocated_time: 100000,
             options: ["Berlin", "Munich", "Hamburg", "Frankfurt"],
             question_order: 1,
           },
@@ -158,7 +159,7 @@ db.serialize(() => {
             type: "red",
             title: "What is the largest continent by area?",
             expected_answer: "Asia",
-            allocated_time: 30,
+            allocated_time: 100000,
             options: ["Asia", "Africa", "Europe", "Antarctica"],
             question_order: 2,
           },
@@ -166,7 +167,7 @@ db.serialize(() => {
             type: "red",
             title: "Which country has the most islands?",
             expected_answer: "Sweden",
-            allocated_time: 30,
+            allocated_time: 100000,
             options: ["Sweden", "Indonesia", "Philippines", "Finland"],
             question_order: 3,
           },
@@ -174,7 +175,7 @@ db.serialize(() => {
             type: "red",
             title: "What is the capital of Canada?",
             expected_answer: "Ottawa",
-            allocated_time: 30,
+            allocated_time: 100000,
             options: ["Ottawa", "Toronto", "Vancouver", "Montreal"],
             question_order: 4,
           },
@@ -182,7 +183,7 @@ db.serialize(() => {
             type: "red",
             title: "Which desert is the largest in the world?",
             expected_answer: "Sahara",
-            allocated_time: 30,
+            allocated_time: 100000,
             options: ["Sahara", "Gobi", "Kalahari", "Mojave"],
             question_order: 5,
           },
@@ -190,7 +191,7 @@ db.serialize(() => {
             type: "red",
             title: "What is the longest river in the world?",
             expected_answer: "Nile",
-            allocated_time: 30,
+            allocated_time: 100000,
             options: ["Nile", "Amazon", "Yangtze", "Mississippi"],
             question_order: 6,
           },
@@ -199,50 +200,50 @@ db.serialize(() => {
             type: "green",
             title: "What is the smallest country in the world?",
             expected_answer: "Vatican City",
-            allocated_time: 20,
+            allocated_time: 100000,
             question_order: 1,
           },
           {
             type: "green",
             title: "What is the capital of Japan?",
             expected_answer: "Tokyo",
-            allocated_time: 20,
+            allocated_time: 100000,
             question_order: 2,
           },
           {
             type: "green",
             title: "Which country has the most population?",
             expected_answer: "China",
-            allocated_time: 20,
+            allocated_time: 100000,
             question_order: 3,
           },
           {
             type: "green",
             title: "What is the highest mountain in the world?",
             expected_answer: "Mount Everest",
-            allocated_time: 20,
+            allocated_time: 100000,
             question_order: 4,
           },
           {
             type: "green",
             title: "Which ocean is the largest?",
             expected_answer: "Pacific Ocean",
-            allocated_time: 20,
+            allocated_time: 100000,
             question_order: 5,
           },
           {
             type: "green",
             title: "What is the capital of Australia?",
             expected_answer: "Canberra",
-            allocated_time: 20,
+            allocated_time: 100000,
             question_order: 6,
           },
         ];
 
         geographyQuestions.forEach((q) => {
           db.run(
-            `INSERT INTO questions (type, title, expected_answer, allocated_time) VALUES (?, ?, ?, ?)`,
-            [q.type, q.title, q.expected_answer, q.allocated_time],
+            `INSERT INTO questions (type, title, expected_answer, allocated_time, question_icon) VALUES (?, ?, ?, ?, ?)`,
+            [q.type, q.title, q.expected_answer, q.allocated_time, "/avatars/"+q.type+".svg"],
             function (err) {
               if (!err) {
                 db.run(

@@ -50,8 +50,22 @@ io.on("connection", (socket) => {
     const state = sessionState[sessionId];
 
     if (state.currentIndex >= state.totalQuestions) {
-      io.to(sessionId).emit("gameOver");
-      return;
+      // Update the session status to 'Activated'
+      db.run(
+        `UPDATE game_sessions SET status = 'Game Over' WHERE id = ?`,
+        [sessionId],
+        function (err) {
+          if (err) {
+            console.error("Error updating session status:", err);
+            return err;
+          }
+
+          io.to(sessionId).emit("gameOver");
+          return;
+
+
+        }
+      );
     }
 
     const questionType = state.currentIndex % 2 === 0 ? "green" : "red";
@@ -60,7 +74,7 @@ io.on("connection", (socket) => {
       : "";
 
     const sql = `
-      SELECT q.* 
+      SELECT q.*
       FROM questions q
       JOIN session_questions sq ON q.id = sq.question_id
       WHERE sq.session_id = ? AND q.type = ? ${notInClause}
@@ -164,7 +178,7 @@ io.on("connection", (socket) => {
           const updates = [];
 
           if (isCorrect) {
-            const points = stoppedTimer ? 3 : 1;
+            const points = stoppedTimer ? 2 : 1;
 
             // Push the correct answer update operation to the array
             updates.push(
@@ -236,7 +250,7 @@ io.on("connection", (socket) => {
             .then(() => {
               // Fetch updated camembert progress from the database
               db.all(
-                `SELECT g.id AS group_id, g.name, cp.red_triangles, cp.green_triangles
+                `SELECT g.id AS group_id, g.avatar_url AS avatar_url, g.name, cp.red_triangles, cp.green_triangles
              FROM groups g
              LEFT JOIN camembert_progress cp ON g.id = cp.group_id
              WHERE g.session_id = ?`,
@@ -254,7 +268,6 @@ io.on("connection", (socket) => {
                   io.to(sessionId).emit("camembertUpdated", {
                     updatedCamemberts,
                   });
-                  console.log("Emitted updated camemberts:", updatedCamemberts);
                 }
               );
             })
@@ -266,6 +279,13 @@ io.on("connection", (socket) => {
           io.to(sessionId).emit("answerValidated", { groupId, isCorrect });
         }
       );
+    }
+  );
+
+  socket.on(
+    "validateAnswerNoPoints",
+    ({ sessionId, groupId, questionId, isCorrect, stoppedTimer }) => {
+      io.to(sessionId).emit("answerValidatedNoPoints", { groupId, isCorrect });
     }
   );
 
@@ -737,17 +757,7 @@ app.put("/sessions/:sessionId/groups/:groupId", (req, res) => {
 
 // Fetch session details by ID
 app.get("/sessions/:id", (req, res) => {
-  const token = req.headers["authorization"];
-  if (!token) {
-    return res.status(401).json({ message: "Access denied" });
-  }
-
-  jwt.verify(token, SECRET_KEY, (err) => {
-    if (err) {
-      return res.status(403).json({ message: "Invalid token" });
-    }
-
-    const sessionId = req.params.id;
+  const sessionId = req.params.id;
 
     db.get(
       `SELECT * FROM game_sessions WHERE id = ?`,
@@ -763,7 +773,6 @@ app.get("/sessions/:id", (req, res) => {
         res.json(row); // Send the session details as response
       }
     );
-  });
 });
 
 // Add a new endpoint to update the session
@@ -961,17 +970,7 @@ app.post("/sessions/:id/activate", (req, res) => {
 
 // Fetch group camembert progress
 app.get("/sessions/:id/camemberts", (req, res) => {
-  const token = req.headers["authorization"];
-  if (!token) {
-    return res.status(401).json({ message: "Access denied" });
-  }
-
-  jwt.verify(token, SECRET_KEY, (err) => {
-    if (err) {
-      return res.status(403).json({ message: "Invalid token" });
-    }
-
-    const sessionId = req.params.id;
+  const sessionId = req.params.id;
 
     db.all(
       `
@@ -990,7 +989,6 @@ app.get("/sessions/:id/camemberts", (req, res) => {
         res.json(rows || []);
       }
     );
-  });
 });
 
 // Validate group answers and update scores
@@ -1021,7 +1019,6 @@ app.post("/sessions/:id/validate", (req, res) => {
         // Update camembert progress
         const scoreChange = isCorrect ? multiplier : -1;
 
-        console.log("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB");
         db.run(
           `
           UPDATE camembert_progress
@@ -1090,17 +1087,7 @@ app.get("/sessions/:id/answers", (req, res) => {
 
 // Fetch options for a specific question
 app.get("/questions/:id/options", (req, res) => {
-  const token = req.headers["authorization"];
-  if (!token) {
-    return res.status(401).json({ message: "Access denied" });
-  }
-
-  jwt.verify(token, SECRET_KEY, (err) => {
-    if (err) {
-      return res.status(403).json({ message: "Invalid token" });
-    }
-
-    const questionId = req.params.id;
+  const questionId = req.params.id;
 
     db.all(
       `SELECT id, option_text FROM question_options WHERE question_id = ?`,
@@ -1114,7 +1101,6 @@ app.get("/questions/:id/options", (req, res) => {
         res.json(rows || []);
       }
     );
-  });
 });
 
 // Add a new question with options for red questions
@@ -1410,6 +1396,29 @@ app.post("/sessions/:id/update-points", (req, res) => {
                   return res.status(500).json({ message: "Database error" });
                 }
 
+                // Fetch updated camembert progress from the database
+              db.all(
+                `SELECT g.avatar_url AS avatar_url, g.id AS group_id, g.name, cp.red_triangles, cp.green_triangles
+             FROM groups g
+             LEFT JOIN camembert_progress cp ON g.id = cp.group_id
+             WHERE g.session_id = ?`,
+                [sessionId],
+                (err, updatedCamemberts) => {
+                  if (err) {
+                    console.error(
+                      "Error fetching updated camembert scores:",
+                      err
+                    );
+                    return;
+                  }
+
+                  // Emit the updated camemberts to all clients
+                  io.to(sessionId).emit("camembertUpdated", {
+                    updatedCamemberts,
+                  });
+                }
+              );
+
                 res.json({
                   message: `${triangleType} updated successfully`,
                   updatedGroup,
@@ -1423,6 +1432,40 @@ app.post("/sessions/:id/update-points", (req, res) => {
   });
 });
 
+app.delete("/sessions/:id", (req, res) => {
+  const token = req.headers["authorization"];
+  if (!token) {
+    return res.status(401).json({ message: "Access denied" });
+  }
+
+  jwt.verify(token, SECRET_KEY, (err) => {
+    if (err) {
+      return res.status(403).json({ message: "Invalid token" });
+    }
+
+    const sessionId = req.params.id;
+
+    // Delete session-related data
+    db.serialize(() => {
+      db.run(`DELETE FROM session_questions WHERE session_id = ?`, [sessionId]);
+      db.run(`DELETE FROM camembert_progress WHERE group_id IN (SELECT id FROM groups WHERE session_id = ?)`, [sessionId]);
+      db.run(`DELETE FROM groups WHERE session_id = ?`, [sessionId]);
+      db.run(`DELETE FROM answers WHERE session_id = ?`, [sessionId]);
+      db.run(`DELETE FROM game_sessions WHERE id = ?`, [sessionId], function (err) {
+        if (err) {
+          console.error("Error deleting session:", err);
+          return res.status(500).json({ message: "Database error" });
+        }
+
+        if (this.changes === 0) {
+          return res.status(404).json({ message: "Session not found" });
+        }
+
+        res.json({ message: "Session deleted successfully" });
+      });
+    });
+  });
+});
 
 
 // Catch-all route to serve React app

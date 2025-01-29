@@ -71,6 +71,33 @@ function Admin() {
     }
   };
 
+  const deleteSession = async (sessionId) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("Unauthorized! Please log in.");
+      return;
+    }
+  
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette session ?")) {
+      return; // Stop if user cancels
+    }
+  
+    try {
+      await axios.delete(`${API_URL}/sessions/${sessionId}`, {
+        headers: { Authorization: token },
+      });
+  
+      // Remove the session from the UI
+      setGameSessions((prevSessions) => prevSessions.filter(session => session.id !== sessionId));
+  
+      alert("Session supprimée avec succès !");
+    } catch (err) {
+      console.error("Failed to delete session:", err);
+      alert("Erreur lors de la suppression de la session.");
+    }
+  };
+  
+
   const cloneSession = async (sessionId) => {
     const token = localStorage.getItem("token");
 
@@ -89,6 +116,8 @@ function Admin() {
       const newSessionData = {
         title: `Clone - ${originalSession.title}`,
         status: "Draft", // Make sure to set a status here
+        green_questions_label: originalSession.green_questions_label,
+        red_questions_label: originalSession.red_questions_label,
         date: new Date().toISOString().split("T")[0], // Set today's date
       };
 
@@ -118,6 +147,7 @@ function Admin() {
           {
             name: group.name,
             description: group.description,
+            avatar_name: group.avatar_name,
           },
           {
             headers: { Authorization: token },
@@ -247,15 +277,21 @@ function Admin() {
     <>
       <Header />
       <div className="admin-container">
-        <h2>Game Sessions</h2>
+        <div class="session-header-container"> 
+        <h2 class="title">Sessions de jeu</h2>
+        <button class="admin-button" onClick={() => setShowForm(!showForm)}>
+          {showForm ? "Annuler" : "Créer une nouvelle session"}
+        </button>
+          </div>
+         
         <table>
           <thead>
             <tr>
-              <th>Title</th>
-              <th>Green Questions Label</th>
-              <th>Red Questions Label</th>
-              <th>Date</th>
-              <th>Status</th>
+              <th>Nom</th>
+              <th>Catégorie 1</th>
+              <th>Catégorie 2</th>
+              <th>Date de la session</th>
+              <th>Statut</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -269,60 +305,57 @@ function Admin() {
                   <td>{session.date}</td>
                   <td>{session.status}</td>
                   <td className="actions">
-                    <button onClick={() => handleEdit(session)}>Edit</button>
+                    <button class="admin-button" onClick={() => handleEdit(session)}>Modifier</button>
                     {session.status === "Draft" && (
                       <>
-                        <button
+                        <button class="admin-button"
                           onClick={() => navigate(`/session/${session.id}`)}
                         >
-                          View Details
+                          Contenu
                         </button>
-                        <button onClick={() => activateSession(session.id)}>
-                          Activate
+                        <button class="admin-button" onClick={() => activateSession(session.id)}>
+                          Activer
                         </button>
                       </>
                     )}
-                    {(session.status === "Activated" ||
-                      session.status === "In Progress") && (
+                    {(session.status !== "Draft") && (
                       <>
                         <button
+                        class="admin-button"
                           onClick={() => navigate(`/admin/game/${session.id}`)}
                         >
-                          Control Game
+                          Contrôle 
                         </button>
 
-                        <button onClick={() => fetchGroupURLs(session.id)}>
-                          View Groups URLs
+                        <button class="admin-button" onClick={() => fetchGroupURLs(session.id)}>
+                          Liens de jeu
                         </button>
                       </>
                     )}
-                    <button onClick={() => cloneSession(session.id)}>
-                      Clone
+                    <button class="admin-button" onClick={() => cloneSession(session.id)}>
+                      Cloner
                     </button>
+                    <button class="admin-button delete" onClick={() => deleteSession(session.id)}>Supprimer</button> {/* NEW DELETE BUTTON */}
+
                   </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan="5">No game sessions found.</td>
+                <td colSpan="5">Aucune session de jeu trouvée.</td>
               </tr>
             )}
           </tbody>
         </table>
 
-        <button onClick={() => setShowForm(!showForm)}>
-          {showForm ? "Cancel" : "Create New Session"}
-        </button>
-
         {showForm && (
           <div>
-            <h2>{editingSession ? "Edit Session" : "Create New Session"}</h2>
             <form
               onSubmit={editingSession ? handleUpdateSession : createSession}
             >
               <input
                 type="text"
-                placeholder="Title"
+                placeholder="Nom"
                 value={newSession.title}
                 onChange={(e) =>
                   setNewSession({ ...newSession, title: e.target.value })
@@ -331,7 +364,7 @@ function Admin() {
               />
               <input
                 type="text"
-                placeholder="Green Questions Label"
+                placeholder="Catégorie 1"
                 value={newSession.green_questions_label}
                 onChange={(e) =>
                   setNewSession({ ...newSession, green_questions_label: e.target.value })
@@ -340,7 +373,7 @@ function Admin() {
               />
               <input
                 type="text"
-                placeholder="Red Questions Label"
+                placeholder="Catégorie 2"
                 value={newSession.red_questions_label}
                 onChange={(e) =>
                   setNewSession({ ...newSession, red_questions_label: e.target.value })
@@ -355,8 +388,8 @@ function Admin() {
                 }
                 required
               />
-              <button type="submit">
-                {editingSession ? "Update" : "Create"} Session
+              <button class="admin-button" type="submit">
+                {editingSession ? "Mettre à jour" : "Créer"} la session
               </button>
             </form>
           </div>
@@ -364,10 +397,10 @@ function Admin() {
 
         {activeSessionGroups.length > 0 && (
           <>
-            <h2>Group Join URLs</h2>
+            <h2 class="title">Liens joueurs</h2>
             <ul>
               {activeSessionGroups.map((group) => (
-                <li key={group.id}>
+                <li class="urls" key={group.id}>
                   <strong>{group.name}:</strong>{" "}
                   <a href={group.join_url} target="_blank" rel="noreferrer">
                     {group.join_url}
@@ -380,10 +413,9 @@ function Admin() {
 
         {adminSessionLink && (
           <>
-            <h2>Admin Session Link</h2>
+            <h2 class="title">Lien administrateur</h2>
             <ul>
-              <li>
-                <strong>Admin Link:</strong>{" "}
+              <li class="urls" >
                 <a href={adminSessionLink} target="_blank" rel="noreferrer">
                   {adminSessionLink}
                 </a>
