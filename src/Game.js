@@ -387,7 +387,7 @@ function Game() {
             )}
           </div>
 
-          {stoppedTimerGroup && <h3>Le timer a été arrête par: {stoppedTimerGroup}</h3>}
+          {stoppedTimerGroup && <h3>Le timer a été arrêté par: {stoppedTimerGroup}</h3>}
 
           {submittedAnswer && (
             <div>

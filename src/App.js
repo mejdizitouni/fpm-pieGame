@@ -56,6 +56,7 @@ function App() {
   return (
     <>
       <Header />
+      <h1>Trivial Chem</h1>
       <div className="login-container">
         <form onSubmit={handleLogin}>
           <input
