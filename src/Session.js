@@ -708,7 +708,7 @@ function Session() {
               required
             >
               <option value="">Selectionner un avatar</option>
-              <option value="Afroboy"></option>
+              <option value="Afroboy">Afroboy</option>
               <option value="Cloud">Cloud</option>
               <option value="Chaplin">Chaplin</option>
               <option value="Helmet">Helmet</option>
