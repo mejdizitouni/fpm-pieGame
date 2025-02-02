@@ -583,46 +583,50 @@ app.get("/sessions/:id/groups/:groupId", (req, res) => {
 
 // Add a new group to a session
 app.post("/sessions/:id/groups", (req, res) => {
-  const token = req.headers["authorization"];
-  if (!token) {
-    return res.status(401).json({ message: "Access denied" });
+  const sessionId = req.params.id;
+  const { name, description, avatar_name } = req.body;
+
+  if (!avatar_name) {
+    return res.status(400).json({ message: "Avatar name is required" });
   }
 
-  jwt.verify(token, SECRET_KEY, (err) => {
-    if (err) {
-      return res.status(403).json({ message: "Invalid token" });
-    }
+  const avatar_url = `/avatars/${avatar_name}.svg`;
 
-    const sessionId = req.params.id;
-    const { name, description, avatar_name } = req.body;
-
-    if (!avatar_name) {
-      return res.status(400).json({ message: "Avatar name is required" });
-    }
-
-    const avatar_url = `/avatars/${avatar_name}.svg`;
-
-    db.run(
-      `INSERT INTO groups (session_id, name, description, avatar_name, avatar_url)
-       VALUES (?, ?, ?, ?, ?)`,
-      [sessionId, name, description, avatar_name, avatar_url],
-      function (err) {
-        if (err) {
-          console.error("Insert Error:", err);
-          return res.status(500).json({ message: "Database error" });
-        }
-        res.json({
-          id: this.lastID,
-          session_id: sessionId,
-          name,
-          description,
-          avatar_name,
-          avatar_url,
-        });
+  db.run(
+    `INSERT INTO groups (session_id, name, description, avatar_name, avatar_url) VALUES (?, ?, ?, ?, ?)`,
+    [sessionId, name, description, avatar_name, avatar_url],
+    function (err) {
+      if (err) {
+        console.error("Insert Error:", err);
+        return res.status(500).json({ message: "Database error" });
       }
-    );
-  });
+
+      const groupId = this.lastID; // Get the ID of the newly created group
+
+      // Insert into camembert_progress
+      db.run(
+        `INSERT INTO camembert_progress (group_id) VALUES (?)`,
+        [groupId],
+        function (err) {
+          if (err) {
+            console.error("Error initializing camembert progress:", err);
+            return res.status(500).json({ message: "Database error" });
+          }
+
+          res.json({
+            id: groupId,
+            session_id: sessionId,
+            name,
+            description,
+            avatar_name,
+            avatar_url,
+          });
+        }
+      );
+    }
+  );
 });
+
 
 // Delete a group from the database
 app.delete("/sessions/:sessionId/groups/:groupId", (req, res) => {

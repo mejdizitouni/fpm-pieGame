@@ -248,7 +248,9 @@ function AdminGameControl() {
 
   const updatePoints = async (groupId, color, change) => {
     const token = localStorage.getItem("token");
-
+    console.log('typeof groupId', typeof groupId,' and value is ', groupId);
+    console.log('typeof color', typeof color,' and value is ', color);
+    console.log('typeof change', typeof change,' and value is ', change);
     try {
       const response = await fetch(
         `${API_URL}/sessions/${sessionId}/update-points`,
