@@ -99,7 +99,7 @@ function AdminGameControl() {
         setSessionStatus("In Progress");
 
         // Fetch options if the question is red-type
-        if (question.type === "red") {
+        if (question.response_type === "Question à choix unique") {
           const token = localStorage.getItem("token");
           try {
             const optionsRes = await fetch(
@@ -401,7 +401,7 @@ function AdminGameControl() {
               {stoppedTimerGroup && (
                 <h4>e timer a été arrêté par: {stoppedTimerGroup.groupName}</h4>
               )}
-              {currentQuestion.type === "red" && (
+              {currentQuestion.response_type === "Question à choix unique" && (
                 <div>
                   <h4>Options:</h4>
                   <ul className="options-list">

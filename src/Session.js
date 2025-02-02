@@ -12,6 +12,7 @@ function Session() {
   const [questions, setQuestions] = useState([]);
   const [newQuestion, setNewQuestion] = useState({
     type: "",
+    response_type: "",
     title: "",
     expected_answer: "",
     allocated_time: "",
@@ -102,7 +103,7 @@ function Session() {
       );
 
       // If the question has options, save them
-      if (newQuestion.type === "red" && newQuestion.options.length > 0) {
+      if (newQuestion.response_type === "Question à choix unique"  && newQuestion.options.length > 0) {
         await axios.post(
           `${API_URL}/questions/${response.data.id}/options`,
           { options: newQuestion.options },
@@ -197,7 +198,7 @@ function Session() {
       const questionData = response.data;
 
       // If the question is a red question, fetch its options
-      if (questionData.type === "red") {
+      if (questionData.response_type === "Question à choix unique" ) {
         const optionsResponse = await axios.get(
           `${API_URL}/questions/${questionId}/options`,
           { headers: { Authorization: token } }
@@ -225,6 +226,13 @@ function Session() {
         `${API_URL}/sessions/${id}/questions/${editingQuestion.id}`,
         {
           question_order: editingQuestion.question_order, // Include question_order
+          type: editingQuestion.type,
+          title: editingQuestion.title,
+          expected_answer: editingQuestion.expected_answer,
+          allocated_time: editingQuestion.allocated_time,
+          question_icon: editingQuestion.question_icon,
+          options: editingQuestion.options, // Ensure options are included if applicable
+          response_type: editingQuestion.response_type,
         },
         {
           headers: { Authorization: token },
@@ -339,6 +347,7 @@ function Session() {
             <thead>
               <tr>
                 <th>Catégorie</th>
+                <th>Type de réponse</th>
                 <th>Intitulé</th>
                 <th>Réponse attendue</th>
                 <th>Temps alloué</th>
@@ -349,7 +358,8 @@ function Session() {
             <tbody>
               {questions.map((question) => (
                 <tr key={question.id}>
-                  <td>{question.type == "green" ? "Questiion de réponse rapide" : "Question de calcul"}</td>
+                  <td>{question.type == "green" ? "Question de réponse rapide" : "Question de calcul"}</td>
+                  <td>{question.response_type}</td>
                   <td>{question.title}</td>
                   <td>{question.expected_answer}</td>
                   <td>{question.allocated_time}</td>
@@ -389,6 +399,15 @@ function Session() {
               <option value="">Séléctionner la catégorie Type</option>
               <option value="red">Question de calcul</option>
               <option value="green">Question réponse rapide</option>
+            </select>
+            <select
+              value={newQuestion.response_type}
+              onChange={(e) => setNewQuestion({ ...newQuestion, response_type: e.target.value })}
+              required
+            >
+              <option value="">Type de réponse</option>
+              <option value="Question à choix unique">Question à choix unique</option>
+              <option value="Réponse libre">Réponse libre</option>
             </select>
             <input
               type="text"
@@ -436,7 +455,7 @@ function Session() {
               required
             />
             {/* Options for Red Questions */}
-            {newQuestion.type === "red" && (
+            {newQuestion.response_type === "Question à choix unique" && (
               <div>
                 <h4>Réponses possibles</h4>
                 <ul>
@@ -478,6 +497,15 @@ function Session() {
             >
               <option value="red">Question de calcul</option>
               <option value="green">Question de réponse rapide</option>
+            </select>
+            <select
+              value={editingQuestion.response_type}
+              onChange={(e) => setEditingQuestion({ ...editingQuestion, response_type: e.target.value })}
+              required
+            >
+              <option value="">Type de réponse</option>
+              <option value="Question à choix unique">Question à choix unique</option>
+              <option value="Réponse libre">Réponse libre</option>
             </select>
             <input
               type="text"
@@ -521,7 +549,7 @@ function Session() {
             />
 
             {/* Options for Red Questions */}
-            {editingQuestion.type === "red" && (
+            {editingQuestion.response_type === "Question à choix unique"  && (
               <div>
                 <h4>Modifier les réponses possibles</h4>
                 <ul>

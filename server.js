@@ -78,7 +78,7 @@ io.on("connection", (socket) => {
       FROM questions q
       JOIN session_questions sq ON q.id = sq.question_id
       WHERE sq.session_id = ? AND q.type = ? ${notInClause}
-      ORDER BY sq.question_order DESC
+      ORDER BY sq.question_order ASC
       LIMIT 1
     `;
 
@@ -107,6 +107,7 @@ io.on("connection", (socket) => {
               timer: question.allocated_time || 30,
               questionIndex: state.currentIndex,
               totalQuestions: state.totalQuestions,
+              response_type: question.response_type,
             });
           }
         );
@@ -116,6 +117,7 @@ io.on("connection", (socket) => {
           timer: question.allocated_time || 30,
           questionIndex: state.currentIndex,
           totalQuestions: state.totalQuestions,
+          response_type: state.response_type,
         });
       }
     });
@@ -459,12 +461,12 @@ app.post("/questions", (req, res) => {
       return res.status(403).json({ message: "Invalid token" });
     }
 
-    const { type, title, expected_answer, allocated_time } = req.body;
+    const { type, title, response_type, expected_answer, allocated_time} = req.body;
 
     db.run(
-      `INSERT INTO questions (type, title, expected_answer, allocated_time)
-       VALUES (?, ?, ?, ?)`,
-      [type, title, expected_answer, allocated_time],
+      `INSERT INTO questions (type, response_type, title, expected_answer, allocated_time)
+       VALUES (?, ?, ?, ?, ?)`,
+      [type, response_type, title, expected_answer, allocated_time],
       function (err) {
         if (err) {
           console.error("Insert Error:", err);
@@ -473,6 +475,7 @@ app.post("/questions", (req, res) => {
         res.json({
           id: this.lastID,
           type,
+          response_type,
           title,
           expected_answer,
           allocated_time,
@@ -496,17 +499,17 @@ app.put("/questions/:id", (req, res) => {
     }
 
     const questionId = req.params.id;
-    const { type, title, expected_answer, allocated_time } = req.body;
+    const { type, response_type, title, expected_answer, allocated_time } = req.body;
 
     // Check if required fields are provided
-    if (!title || !expected_answer || !allocated_time) {
+    if (!title || !response_type || !expected_answer || !allocated_time) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
     // Update the question in the database
     db.run(
-      `UPDATE questions SET type = ?, title = ?, expected_answer = ?, allocated_time = ? WHERE id = ?`,
-      [type, title, expected_answer, allocated_time, questionId],
+      `UPDATE questions SET type = ?, response_type = ?, title = ?, expected_answer = ?, allocated_time = ? WHERE id = ?`,
+      [type, response_type, title, expected_answer, allocated_time, questionId],
       function (err) {
         if (err) {
           console.error("Database Error:", err);
@@ -521,6 +524,7 @@ app.put("/questions/:id", (req, res) => {
         res.json({
           id: questionId,
           type,
+          response_type,
           title,
           expected_answer,
           allocated_time,
@@ -1115,12 +1119,12 @@ app.post("/questions", (req, res) => {
       return res.status(403).json({ message: "Invalid token" });
     }
 
-    const { type, title, expected_answer, allocated_time, options, session_id, question_order } =
+    const { type, response_type, title, expected_answer, allocated_time, options, session_id, question_order } =
       req.body;
 
     db.run(
-      `INSERT INTO questions (type, title, expected_answer, allocated_time) VALUES (?, ?, ?, ?)`,
-      [type, title, expected_answer, allocated_time],
+      `INSERT INTO questions (type, response_type, title, expected_answer, allocated_time) VALUES (?, ?, ?, ?, ?)`,
+      [type, response_type, title, expected_answer, allocated_time],
       function (err) {
         if (err) {
           console.error("Insert Error:", err);
@@ -1167,6 +1171,7 @@ app.post("/questions", (req, res) => {
               res.json({
                 id: questionId,
                 type,
+                response_type,
                 title,
                 expected_answer,
                 allocated_time,
@@ -1183,6 +1188,7 @@ app.post("/questions", (req, res) => {
           res.json({
             id: questionId,
             type,
+            response_type,
             title,
             expected_answer,
             allocated_time,
@@ -1207,26 +1213,53 @@ app.put("/sessions/:sessionId/questions/:questionId", (req, res) => {
     }
 
     const { sessionId, questionId } = req.params;
-    const { question_order } = req.body;
+    const { question_order, type, title, expected_answer, allocated_time, question_icon, options, response_type } = req.body;
 
     db.run(
-      `UPDATE session_questions SET question_order = ? WHERE session_id = ? AND question_id = ?`,
-      [question_order, sessionId, questionId],
+      `UPDATE questions SET type = ?, response_type = ?,  title = ?, expected_answer = ?, allocated_time = ?, question_icon = ? WHERE id = ?`,
+      [type, response_type, title, expected_answer, allocated_time, question_icon, questionId],
       function (err) {
         if (err) {
           console.error("Database Error:", err);
-          return res.status(500).json({ message: "Failed to update question order" });
+          return res.status(500).json({ message: "Failed to update question details" });
         }
 
-        if (this.changes === 0) {
-          return res.status(404).json({ message: "Question not found in session" });
-        }
+        db.run(
+          `UPDATE session_questions SET question_order = ? WHERE session_id = ? AND question_id = ?`,
+          [question_order, sessionId, questionId],
+          function (err) {
+            if (err) {
+              console.error("Database Error:", err);
+              return res.status(500).json({ message: "Failed to update question order" });
+            }
 
-        res.json({ message: "Question order updated successfully" });
+            if (this.changes === 0) {
+              return res.status(404).json({ message: "Question not found in session" });
+            }
+
+            if (options && Array.isArray(options)) {
+              db.run(`DELETE FROM question_options WHERE question_id = ?`, [questionId], (err) => {
+                if (err) {
+                  console.error("Database Error:", err);
+                  return res.status(500).json({ message: "Failed to update question options" });
+                }
+
+                const stmt = db.prepare(`INSERT INTO question_options (question_id, option_text) VALUES (?, ?)`);
+                options.forEach(option => {
+                  stmt.run([questionId, option]);
+                });
+                stmt.finalize();
+              });
+            }
+
+            res.json({ message: "Question updated successfully" });
+          }
+        );
       }
     );
   });
 });
+
 
 
 

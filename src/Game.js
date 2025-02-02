@@ -115,7 +115,7 @@ function Game() {
         setValidationResultNoPoints(null);
 
         // Fetch options if the question is red-type
-        if (question.type === "red") {
+        if (question.response_type === "Question à choix unique") {
           const token = localStorage.getItem("token");
           try {
             const optionsRes = await fetch(
@@ -325,7 +325,7 @@ function Game() {
 
             {!stoppedTimerGroup && !submittedAnswer && timer > 0 && (
               <div>
-                {question.type === "red" ? (
+                {question.response_type === "Question à choix unique" ? (
                   // Single choice for red questions
                   <div>
                     <h4>Choisir une option:</h4>

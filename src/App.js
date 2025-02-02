@@ -56,9 +56,9 @@ function App() {
   return (
     <>
       <Header />
-      <h1>Trivial Chem</h1>
       <div className="login-container">
-        <form onSubmit={handleLogin}>
+        <h1 class="game-name">Trivial Chem</h1>
+        <form class="login" onSubmit={handleLogin}>
           <input
             type="text"
             placeholder="Username"
