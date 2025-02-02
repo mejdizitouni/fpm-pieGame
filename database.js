@@ -289,7 +289,7 @@ const createTestSession = () => {
           title:
             "Le carbonate neutre de sodium est utilisé comme étalon, quelle est sa formule chimique ?",
           expected_answer: "Na2CO3",
-          allocated_time: 100000,
+          allocated_time: 60,
           options: ["NaHCO3", "Na2CO3", "K2CO3", "Na3CO2", "KHCO3"],
           question_order: 1,
           response_type: "Question à choix unique",
@@ -299,7 +299,7 @@ const createTestSession = () => {
           title:
             "Quelle masse faut-il peser pour préparer 1L d’une solution étalon normale de Na2CO3 ?",
           expected_answer: "53 g",
-          allocated_time: 100000,
+          allocated_time: 180,
           question_order: 2,
           response_type: "Réponse libre",
         },
@@ -308,8 +308,8 @@ const createTestSession = () => {
           title: "Quelle est la définition correcte d'une solution étalon ?",
           expected_answer:
             "Une solution dont la concentration est connue avec précision et utilisée pour effectuer des titrages.",
-          allocated_time: 100000,
-          options: [
+            allocated_time: 60,
+            options: [
             "Une solution qui est utilisée pour préparer des échantillons à analyser.",
             "Une solution dont la concentration est connue avec précision et utilisée pour effectuer des titrages.",
             "Une solution qui est toujours de concentration faible et utilisée pour des tests qualitatifs.",
@@ -324,7 +324,7 @@ const createTestSession = () => {
           title:
             "Quel est le pH d’une solution 0,1 N de Na2CO3 ?\n(On donne pKa2 = 6,3 ; pKa1 = 10,35)",
           expected_answer: "11,52",
-          allocated_time: 100000,
+          allocated_time: 180,
           question_order: 4,
           response_type: "Réponse libre",
         },
@@ -334,8 +334,8 @@ const createTestSession = () => {
             "Pour neutraliser une solution molaire de Na2CO3, on utilise une solution de HCl 1N. Il s’agit d’un dosage :",
           expected_answer:
             "Impliquant deux points équivalents correspondant à la formation de NaHCO3 puis à sa neutralisation complète.",
-          allocated_time: 100000,
-          options: [
+            allocated_time: 60,
+            options: [
             "En une seule étape avec un changement de pH brutal.",
             "Impliquant deux points équivalents correspondant à la formation de NaHCO3 puis à sa neutralisation complète.",
             "En retour",
@@ -350,7 +350,7 @@ const createTestSession = () => {
           title:
             "Quel est le pH de la solution de Na2CO3 2N avant sa neutralisation par une solution de HCl ?\n(On donne : pKa2 = 6,3 ; pKa1 = 10,35)",
           expected_answer: "12,17",
-          allocated_time: 100000,
+          allocated_time: 180,
           question_order: 6,
           response_type: "Réponse libre",
         },
@@ -359,7 +359,7 @@ const createTestSession = () => {
           title:
             "Quelles sont les réactions mises en jeu lors du dosage d’une solution de Na2CO3 par une solution de HCl ?",
           expected_answer: "CO32- + H+ -> HCO3-  \nHCO3- + H+ -> H2CO3",
-          allocated_time: 100000,
+          allocated_time: 60,
           question_order: 7,
           response_type: "Réponse libre",
         },
@@ -368,7 +368,7 @@ const createTestSession = () => {
           title:
             "Quel est le volume nécessaire de HCl 1N pour neutraliser 100 ml d’une solution molaire de Na2CO3 ?",
           expected_answer: "200 ml",
-          allocated_time: 100000,
+          allocated_time: 180,
           question_order: 8,
           response_type: "Réponse libre",
         },
@@ -377,7 +377,7 @@ const createTestSession = () => {
           title:
             "Lors de la neutralisation de 100 ml d’une solution de Na2CO3 2N par une solution de HCl 1N, quelles sont les espèces présentes au niveau de l’erlenmeyer pour VHCl = 50 ml ?",
           expected_answer: "Na+, Cl-, HCO3-",
-          allocated_time: 100000,
+          allocated_time: 60,
           options: [
             "Na+ , Cl-, HCO3- , CO32-",
             "Na+ , Cl-, HCO3-",
@@ -393,7 +393,7 @@ const createTestSession = () => {
           title:
             "Pour neutraliser 100 ml d’une solution de Na2CO3 2N, on utilise 200 ml une solution de HCl 1N.\nCalculer le pH à VHCl=50 ml.\n(On donne : pKa2 = 6,3 ; pKa1 = 10,35)",
           expected_answer: "10,35",
-          allocated_time: 100000,
+          allocated_time: 180,
           question_order: 10,
           response_type: "Réponse libre",
         },
@@ -402,7 +402,7 @@ const createTestSession = () => {
           title:
             "Lorsqu'on ajoute 100 mL de HCl 1N à 100 mL d’une solution de Na2CO3 2N, sous quelle forme est de l'ion CO32- dans l'erlenmeyer après la réaction?",
           expected_answer: "HCO3-",
-          allocated_time: 100000,
+          allocated_time: 60,
           question_order: 11,
           response_type: "Réponse libre",
         },
@@ -411,7 +411,7 @@ const createTestSession = () => {
           title:
             "Pour neutraliser 100 ml une solution de Na2CO3 2N, on utilise 200 ml une solution de HCl. Quelle est la valeur du pH à la 1ère équivalence ?\n(On donne : pKa2 = 6,3 ; pKa1 = 10,35)",
           expected_answer: "8,23",
-          allocated_time: 100000,
+          allocated_time: 180,
           question_order: 12,
           response_type: "Réponse libre",
         },
@@ -420,7 +420,7 @@ const createTestSession = () => {
           title:
             "Lorsqu’on ajoute 150 mL d’une solution de HCl 1N à 100 mL d’une solution de Na2CO3 2N, quelles sont les espèces chimiques présentes dans l’erlenmeyer après la réaction ?",
           expected_answer: "Na+, Cl-, HCO3-",
-          allocated_time: 100000,
+          allocated_time: 60,
           options: [
             "Na+ , Cl-, HCO3- , CO32-",
             "Na+ , Cl-, HCO3-",
@@ -436,7 +436,7 @@ const createTestSession = () => {
           title:
             "Quelle serait la valeur du pH si on ajoute 150 ml de HCl 1N à 100 ml d’une solution de Na2CO3 2N ?\n(On donne : pKa2 = 6,3 ; pKa1 = 10,35)",
           expected_answer: "6,3",
-          allocated_time: 100000,
+          allocated_time: 180,
           question_order: 14,
           response_type: "Réponse libre",
         },
@@ -446,7 +446,7 @@ const createTestSession = () => {
             "À partir de cette courbe de variation du pH en fonction du volume de HCl lors dosage de Na2CO3 par pHmétrie, à quoi correspondent V1 et V2 ?",
           expected_answer:
             "V1 = neutralisation de la première basicité et V2 = neutralisation totale des deux basicités.",
-          allocated_time: 100000,
+          allocated_time: 60,
           question_order: 15,
           response_type: "Réponse libre",
         },
@@ -456,7 +456,7 @@ const createTestSession = () => {
           title:
             "Quel est le pH à l’équivalence après neutralisation totale de 100 ml d’une solution molaire de Na2CO3 par une solution de HCl 1N ?\n(On donne : pKa2 = 6,3 ; pKa1 = 10,35)",
           expected_answer: "3,38",
-          allocated_time: 100000,
+          allocated_time: 180,
           question_order: 16,
           response_type: "Réponse libre",
         },
@@ -466,7 +466,7 @@ const createTestSession = () => {
           title:
             "Quelles sont les espèces présentes en solution à -1% de la neutralisation de la première acidité d’une solution molaire de Na2CO3 par HCl 1N ?",
           expected_answer: "Na+, Cl-, HCO3-",
-          allocated_time: 100000,
+          allocated_time: 60,
           options: [
             "Na+ , Cl-, HCO3- , CO32-",
             "Na+ , Cl-, HCO3-",
@@ -483,7 +483,7 @@ const createTestSession = () => {
           title:
             "Calculer le pH à -1% de la neutralisation de la première acidité de 100 ml d’une solution molaire de Na2CO3 par une solution de HCl 1N.\n(On donne : pKa2 = 6,3 ; pKa1 = 10,35)",
           expected_answer: "8,35",
-          allocated_time: 100000,
+          allocated_time: 180,
           question_order: 18,
           response_type: "Réponse libre",
         },
@@ -493,7 +493,7 @@ const createTestSession = () => {
           title:
             "À quoi correspond le rapport des concentrations [HCO3-] / [H2CO3] +1% de la neutralisation de la première acidité de 100 ml d’une solution molaire de Na2CO3 par HCl 1N ?",
           expected_answer: "1/99",
-          allocated_time: 100000,
+          allocated_time: 60,
           options: ["1/99", "1/199", "99/1", "199/1", "1/100"],
           question_order: 19,
           response_type: "Question à choix unique",
@@ -504,7 +504,7 @@ const createTestSession = () => {
           title:
             "Calculer le pH à +1% de la neutralisation de la première acidité de 100 ml d’une solution molaire de Na2CO3 par une solution de HCl 1N.\n(On donne : pKa2 = 6,3 ; pKa1 = 10,35)",
           expected_answer: "8,29",
-          allocated_time: 100000,
+          allocated_time: 180,
           question_order: 20,
           response_type: "Réponse libre",
         },
@@ -515,7 +515,7 @@ const createTestSession = () => {
             "On dose 100 mL d’un mélange de NaOH(1N) + Na2CO3(1N) par l’acide chlorhydrique (1N). Quel est le principe du dosage ?",
           expected_answer:
             "Dosage direct d’un mélange de base forte et base faible par un acide fort en milieu aqueux",
-          allocated_time: 100000,
+          allocated_time: 60,
           question_order: 21,
           response_type: "Réponse libre",
         },
@@ -525,7 +525,7 @@ const createTestSession = () => {
           title:
             "On dose 100 ml d’un mélange de NaOH(1N) + Na2CO3(0,5 mol/L) par l’acide chlorhydrique (1N). Calculer le volume d’équivalence nécessaire pour neutraliser NaOH.",
           expected_answer: "100 ml",
-          allocated_time: 100000,
+          allocated_time: 180,
           question_order: 22,
           response_type: "Réponse libre",
         },
@@ -536,7 +536,7 @@ const createTestSession = () => {
             "Quelle est la définition d’un indicateur coloré utilisé lors d’un dosage acide-base ?",
           expected_answer:
             "Un acide ou une base faible dont les formes ionisée et non ionisée ont des structures et des couleurs différentes.",
-          allocated_time: 100000,
+          allocated_time: 60,
           options: [
             "Une solution qui neutralise l’acide ou la base à doser et change de couleur en fin de réaction.",
             "Une substance chimique ajoutée pour accélérer la réaction acide-base tout en restant colorée.",
@@ -553,7 +553,7 @@ const createTestSession = () => {
           title:
             "Calculer le volume d’équivalence nécessaire pour neutraliser Na2CO3 lors du dosage de 100 ml d’un mélange de NaOH(1N) + Na2CO3(0,5 mol/L) par l’acide chlorhydrique (1N).",
           expected_answer: "100 ml",
-          allocated_time: 100000,
+          allocated_time: 180,
           question_order: 24,
           response_type: "Réponse libre",
         },
@@ -564,7 +564,7 @@ const createTestSession = () => {
             "Comment se fait la neutralisation d’un mélange de NaOH(1N) + Na2CO3(0,5 mol/L) par l’acide chlorhydrique (1N) ?",
           expected_answer:
             "Neutralisation de NaOH en premier suivi de la première basicité de Na2CO3 suivi de la neutralisation de la deuxième basicité.",
-          allocated_time: 100000,
+          allocated_time: 60,
           options: [
             "Neutralisation de NaOH en premier suivi de la première basicité de Na2CO3 suivi de la neutralisation de la deuxième basicité.",
             "Neutralisation de la première basicité de Na2CO3 en premier suivi de la neutralisation de la deuxième basicité suivi de NaOH.",
@@ -581,7 +581,7 @@ const createTestSession = () => {
           title:
             "Calculer le pH de 100 ml d’un mélange de NaOH(1N) + Na2CO3(1N).",
           expected_answer: "14",
-          allocated_time: 100000,
+          allocated_time: 180,
           question_order: 26,
           response_type: "Réponse libre",
         },
@@ -591,7 +591,7 @@ const createTestSession = () => {
           title:
             "De quelle espèce chimique dépend le pH après ajout de 50 ml de HCl 1N à un mélange de 100 ml de NaOH(1N) + Na2CO3(1N) ?",
           expected_answer: "OH-",
-          allocated_time: 100000,
+          allocated_time: 60,
           question_order: 27,
           response_type: "Réponse libre",
         },
@@ -601,7 +601,7 @@ const createTestSession = () => {
           title:
             "On dose 100 ml d’un mélange de NaOH(1N) + Na2CO3(1N) par 200 ml d’acide chlorhydrique (1N). Calculer le pH à VHCl=50 ml.\n(On donne : pKa2 = 6,3 ; pKa1 = 10,35)",
           expected_answer: "13,52",
-          allocated_time: 100000,
+          allocated_time: 180,
           question_order: 28,
           response_type: "Réponse libre",
         },
@@ -610,7 +610,7 @@ const createTestSession = () => {
           title:
             "Quelle(s) base(s) est/sont neutralisée(s) après ajout de 100 ml de HCl à 100 ml de NaOH(1N) + Na2CO3(1N) ?",
           expected_answer: "OH-",
-          allocated_time: 100000,
+          allocated_time: 60,
           question_order: 29,
           response_type: "Réponse libre",
         },
@@ -619,7 +619,7 @@ const createTestSession = () => {
           title:
             "On dose 100 ml d’un mélange de NaOH(1N) + Na2CO3(1N) par 200 ml d’acide chlorhydrique (1N). Calculer le pH à VHCl=100 ml.",
           expected_answer: "11,87",
-          allocated_time: 100000,
+          allocated_time: 180,
           question_order: 30,
           response_type: "Réponse libre",
         },
