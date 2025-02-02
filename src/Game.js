@@ -26,6 +26,7 @@ function Game() {
   const [questionIndex, setQuestionIndex] = useState(null); // Current question index
   const [totalQuestions, setTotalQuestions] = useState(null); // Total questions in the session
   const [stoppedTimerGroup, setStoppedTimerGroup] = useState(null); // Group that stopped the timer
+  const [winningGroups, setWinningGroups] = useState([]); // Store winning group IDs
 
   useEffect(() => {
     const fetchSessionStatus = async () => {
@@ -169,8 +170,25 @@ function Game() {
       setCorrectAnswer(correctAnswer);
     });
 
-    socket.on("gameOver", () => {
+    socket.on("gameOver", (data) => {
       setSessionStatus("Game Over");
+      let winnersArray = [];
+  
+      if (Array.isArray(data.winners)) {
+        winnersArray = data.winners; // Multiple winners
+      } else if (data.winners) {
+        winnersArray = [data.winners]; // Convert single winner to an array
+      }
+
+    setWinningGroups(winnersArray.map((w) => w.group_id)); // Store winning group IDs
+
+    if (winnersArray.length > 1) {
+      alert(`🏆 Il y a un ex-aequo entre : ${winnersArray.map(w => w.name).join(", ")}`);
+    } else if (winnersArray.length === 1) {
+      alert(`🎉 Le gagnant est "${winnersArray[0].name}" ! 🏆`);
+    } else {
+      alert("Aucun gagnant. La partie est terminée !");
+    }
     });
 
     // return () => {
@@ -266,6 +284,10 @@ function Game() {
                 alt={`${cam.name} Avatar`}
                 className="group-avatar"
               />
+              
+              {winningGroups.includes(cam.group_id) && (
+                    <span className="winner-badge">🏆 Winner</span>
+                  )}
                 <h3>{cam.name}</h3>
                 {generateCamemberts(cam.red_triangles, cam.green_triangles).map(
                   (segments, index) => (

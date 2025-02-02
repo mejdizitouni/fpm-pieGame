@@ -460,7 +460,7 @@ function Session() {
             {/* Options for Red Questions */}
             {newQuestion.response_type === "Question à choix unique" && (
               <div>
-                <h4>Réponses possibles</h4>
+                <h4>Propositions</h4>
                 <ul>
                   {newQuestion.options.map((option, index) => (
                     <li key={index}>
@@ -473,12 +473,12 @@ function Session() {
                 </ul>
                 <input
                   type="text"
-                  placeholder="Ajouter une réponse possible"
+                  placeholder="Ajouter une proposition"
                   value={optionInput}
                   onChange={(e) => setOptionInput(e.target.value)}
                 />
                 <button class="admin-button" type="button" onClick={addOption}>
-                  Ajouter la réponse possible
+                  Ajouter la proposition
                 </button>
               </div>
             )}
@@ -555,7 +555,7 @@ function Session() {
             {/* Options for Red Questions */}
             {editingQuestion.response_type === "Question à choix unique"  && (
               <div>
-                <h4>Modifier les réponses possibles</h4>
+                <h4>Modifier les Propositions</h4>
                 <ul>
                   {editingQuestion.options.map((option, index) => (
                     <li key={index}>
@@ -592,7 +592,7 @@ function Session() {
                     }
                   }}
                 >
-                  Ajouter une réponse possible
+                  Ajouter une proposition
                 </button>
               </div>
             )}

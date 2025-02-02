@@ -50,22 +50,8 @@ io.on("connection", (socket) => {
     const state = sessionState[sessionId];
 
     if (state.currentIndex >= state.totalQuestions) {
-      // Update the session status to 'Activated'
-      db.run(
-        `UPDATE game_sessions SET status = 'Game Over' WHERE id = ?`,
-        [sessionId],
-        function (err) {
-          if (err) {
-            console.error("Error updating session status:", err);
-            return err;
-          }
-
-          io.to(sessionId).emit("gameOver");
-          return;
-
-
-        }
-      );
+      handleGameOver(sessionId);
+      return;
     }
 
     const questionType = state.currentIndex % 2 === 0 ? "green" : "red";
@@ -84,7 +70,7 @@ io.on("connection", (socket) => {
 
     db.get(sql, [sessionId, questionType], (err, question) => {
       if (err || !question) {
-        io.to(sessionId).emit("gameOver");
+        handleGameOver(sessionId);
         return;
       }
 
@@ -98,8 +84,8 @@ io.on("connection", (socket) => {
           (err, options) => {
             if (err) {
               console.error("Error fetching options:", err);
-              io.to(sessionId).emit("gameOver");
-              return;
+              handleGameOver(sessionId);
+    return;
             }
 
             io.to(sessionId).emit("newQuestion", {
@@ -398,7 +384,8 @@ app.post("/game-sessions", (req, res) => {
       return res.status(403).json({ message: "Invalid token" });
     }
 
-    const { title, green_questions_label, red_questions_label, date } = req.body;
+    const { title, green_questions_label, red_questions_label, date } =
+      req.body;
     db.run(
       `INSERT INTO game_sessions (title, green_questions_label, red_questions_label, date) VALUES (?, ?, ?, ?)`,
       [title, green_questions_label, red_questions_label, date],
@@ -448,7 +435,6 @@ app.get("/questions/:id", (req, res) => {
   });
 });
 
-
 // Add a new question
 app.post("/questions", (req, res) => {
   const token = req.headers["authorization"];
@@ -461,7 +447,8 @@ app.post("/questions", (req, res) => {
       return res.status(403).json({ message: "Invalid token" });
     }
 
-    const { type, title, response_type, expected_answer, allocated_time} = req.body;
+    const { type, title, response_type, expected_answer, allocated_time } =
+      req.body;
 
     db.run(
       `INSERT INTO questions (type, response_type, title, expected_answer, allocated_time)
@@ -499,7 +486,8 @@ app.put("/questions/:id", (req, res) => {
     }
 
     const questionId = req.params.id;
-    const { type, response_type, title, expected_answer, allocated_time } = req.body;
+    const { type, response_type, title, expected_answer, allocated_time } =
+      req.body;
 
     // Check if required fields are provided
     if (!title || !response_type || !expected_answer || !allocated_time) {
@@ -626,7 +614,6 @@ app.post("/sessions/:id/groups", (req, res) => {
     }
   );
 });
-
 
 // Delete a group from the database
 app.delete("/sessions/:sessionId/groups/:groupId", (req, res) => {
@@ -767,20 +754,20 @@ app.put("/sessions/:sessionId/groups/:groupId", (req, res) => {
 app.get("/sessions/:id", (req, res) => {
   const sessionId = req.params.id;
 
-    db.get(
-      `SELECT * FROM game_sessions WHERE id = ?`,
-      [sessionId],
-      (err, row) => {
-        if (err) {
-          console.error("Database Error:", err);
-          return res.status(500).json({ message: "Database error" });
-        }
-        if (!row) {
-          return res.status(404).json({ message: "Session not found" });
-        }
-        res.json(row); // Send the session details as response
+  db.get(
+    `SELECT * FROM game_sessions WHERE id = ?`,
+    [sessionId],
+    (err, row) => {
+      if (err) {
+        console.error("Database Error:", err);
+        return res.status(500).json({ message: "Database error" });
       }
-    );
+      if (!row) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      res.json(row); // Send the session details as response
+    }
+  );
 });
 
 // Add a new endpoint to update the session
@@ -798,7 +785,8 @@ app.put("/sessions/:id", (req, res) => {
 
     // Extract the session ID and the new data from the request
     const sessionId = req.params.id;
-    const { title, green_questions_label, red_questions_label, date } = req.body;
+    const { title, green_questions_label, red_questions_label, date } =
+      req.body;
 
     // Check if title and date are provided
     if (!title || !date || !green_questions_label || !red_questions_label) {
@@ -917,12 +905,16 @@ app.post("/sessions/:id/questions", (req, res) => {
           console.error("Insert Error:", err);
           return res.status(500).json({ message: "Database error" });
         }
-        res.json({ id: this.lastID, session_id: sessionId, question_id, question_order });
+        res.json({
+          id: this.lastID,
+          session_id: sessionId,
+          question_id,
+          question_order,
+        });
       }
     );
   });
 });
-
 
 // Activate a session
 app.post("/sessions/:id/activate", (req, res) => {
@@ -980,23 +972,23 @@ app.post("/sessions/:id/activate", (req, res) => {
 app.get("/sessions/:id/camemberts", (req, res) => {
   const sessionId = req.params.id;
 
-    db.all(
-      `
+  db.all(
+    `
       SELECT g.id AS group_id, g.name, g.avatar_name, avatar_url, cp.red_triangles, cp.green_triangles
       FROM groups g
       LEFT JOIN camembert_progress cp ON g.id = cp.group_id
       WHERE g.session_id = ?
       `,
-      [sessionId],
-      (err, rows) => {
-        if (err) {
-          console.error("Database Error:", err);
-          return res.status(500).json({ message: "Database error" });
-        }
-
-        res.json(rows || []);
+    [sessionId],
+    (err, rows) => {
+      if (err) {
+        console.error("Database Error:", err);
+        return res.status(500).json({ message: "Database error" });
       }
-    );
+
+      res.json(rows || []);
+    }
+  );
 });
 
 // Validate group answers and update scores
@@ -1097,18 +1089,18 @@ app.get("/sessions/:id/answers", (req, res) => {
 app.get("/questions/:id/options", (req, res) => {
   const questionId = req.params.id;
 
-    db.all(
-      `SELECT id, option_text FROM question_options WHERE question_id = ?`,
-      [questionId],
-      (err, rows) => {
-        if (err) {
-          console.error("Database Error:", err);
-          return res.status(500).json({ message: "Database error" });
-        }
-
-        res.json(rows || []);
+  db.all(
+    `SELECT id, option_text FROM question_options WHERE question_id = ?`,
+    [questionId],
+    (err, rows) => {
+      if (err) {
+        console.error("Database Error:", err);
+        return res.status(500).json({ message: "Database error" });
       }
-    );
+
+      res.json(rows || []);
+    }
+  );
 });
 
 // Add a new question with options for red questions
@@ -1123,8 +1115,16 @@ app.post("/questions", (req, res) => {
       return res.status(403).json({ message: "Invalid token" });
     }
 
-    const { type, response_type, title, expected_answer, allocated_time, options, session_id, question_order } =
-      req.body;
+    const {
+      type,
+      response_type,
+      title,
+      expected_answer,
+      allocated_time,
+      options,
+      session_id,
+      question_order,
+    } = req.body;
 
     db.run(
       `INSERT INTO questions (type, response_type, title, expected_answer, allocated_time) VALUES (?, ?, ?, ?, ?)`,
@@ -1217,15 +1217,34 @@ app.put("/sessions/:sessionId/questions/:questionId", (req, res) => {
     }
 
     const { sessionId, questionId } = req.params;
-    const { question_order, type, title, expected_answer, allocated_time, question_icon, options, response_type } = req.body;
+    const {
+      question_order,
+      type,
+      title,
+      expected_answer,
+      allocated_time,
+      question_icon,
+      options,
+      response_type,
+    } = req.body;
 
     db.run(
       `UPDATE questions SET type = ?, response_type = ?,  title = ?, expected_answer = ?, allocated_time = ?, question_icon = ? WHERE id = ?`,
-      [type, response_type, title, expected_answer, allocated_time, question_icon, questionId],
+      [
+        type,
+        response_type,
+        title,
+        expected_answer,
+        allocated_time,
+        question_icon,
+        questionId,
+      ],
       function (err) {
         if (err) {
           console.error("Database Error:", err);
-          return res.status(500).json({ message: "Failed to update question details" });
+          return res
+            .status(500)
+            .json({ message: "Failed to update question details" });
         }
 
         db.run(
@@ -1234,26 +1253,38 @@ app.put("/sessions/:sessionId/questions/:questionId", (req, res) => {
           function (err) {
             if (err) {
               console.error("Database Error:", err);
-              return res.status(500).json({ message: "Failed to update question order" });
+              return res
+                .status(500)
+                .json({ message: "Failed to update question order" });
             }
 
             if (this.changes === 0) {
-              return res.status(404).json({ message: "Question not found in session" });
+              return res
+                .status(404)
+                .json({ message: "Question not found in session" });
             }
 
             if (options && Array.isArray(options)) {
-              db.run(`DELETE FROM question_options WHERE question_id = ?`, [questionId], (err) => {
-                if (err) {
-                  console.error("Database Error:", err);
-                  return res.status(500).json({ message: "Failed to update question options" });
-                }
+              db.run(
+                `DELETE FROM question_options WHERE question_id = ?`,
+                [questionId],
+                (err) => {
+                  if (err) {
+                    console.error("Database Error:", err);
+                    return res
+                      .status(500)
+                      .json({ message: "Failed to update question options" });
+                  }
 
-                const stmt = db.prepare(`INSERT INTO question_options (question_id, option_text) VALUES (?, ?)`);
-                options.forEach(option => {
-                  stmt.run([questionId, option]);
-                });
-                stmt.finalize();
-              });
+                  const stmt = db.prepare(
+                    `INSERT INTO question_options (question_id, option_text) VALUES (?, ?)`
+                  );
+                  options.forEach((option) => {
+                    stmt.run([questionId, option]);
+                  });
+                  stmt.finalize();
+                }
+              );
             }
 
             res.json({ message: "Question updated successfully" });
@@ -1263,9 +1294,6 @@ app.put("/sessions/:sessionId/questions/:questionId", (req, res) => {
     );
   });
 });
-
-
-
 
 app.post("/questions/:id/options", (req, res) => {
   const token = req.headers["authorization"];
@@ -1329,8 +1357,6 @@ app.post("/questions/:id/options", (req, res) => {
   });
 });
 
-
-
 // Start the game and update session status
 app.post("/sessions/:id/end", (req, res) => {
   const token = req.headers["authorization"];
@@ -1345,22 +1371,8 @@ app.post("/sessions/:id/end", (req, res) => {
 
     const sessionId = req.params.id;
 
-    // Update session status to 'In Progress'
-    db.run(
-      `UPDATE game_sessions SET status = 'Game Over' WHERE id = ?`,
-      [sessionId],
-      function (err) {
-        if (err) {
-          console.error("Error updating session status:", err);
-          return err;
-        }
-    
-        io.to(sessionId).emit("gameOver");
-        return;
-    
-    
-      }
-    );
+    handleGameOver(sessionId);
+    return;
   });
 });
 
@@ -1413,7 +1425,12 @@ app.post("/sessions/:id/update-points", (req, res) => {
     const sessionId = req.params.id; // Get the session ID from the URL
     const { groupId, color, change } = req.body; // Get group ID, color (red/green), and change (+1/-1)
 
-    if (!groupId || !color || !change || (color !== "red" && color !== "green")) {
+    if (
+      !groupId ||
+      !color ||
+      !change ||
+      (color !== "red" && color !== "green")
+    ) {
       return res
         .status(400)
         .json({ message: "Group ID, color, and change value are required" });
@@ -1437,7 +1454,9 @@ app.post("/sessions/:id/update-points", (req, res) => {
         }
 
         if (!groupProgress) {
-          return res.status(404).json({ message: "Group not found in session" });
+          return res
+            .status(404)
+            .json({ message: "Group not found in session" });
         }
 
         // Update the points for the group
@@ -1451,7 +1470,9 @@ app.post("/sessions/:id/update-points", (req, res) => {
           function (err) {
             if (err) {
               console.error("Database Error:", err);
-              return res.status(500).json({ message: "Failed to update points" });
+              return res
+                .status(500)
+                .json({ message: "Failed to update points" });
             }
 
             // Fetch the updated scores
@@ -1469,27 +1490,27 @@ app.post("/sessions/:id/update-points", (req, res) => {
                 }
 
                 // Fetch updated camembert progress from the database
-              db.all(
-                `SELECT g.avatar_url AS avatar_url, g.id AS group_id, g.name, cp.red_triangles, cp.green_triangles
+                db.all(
+                  `SELECT g.avatar_url AS avatar_url, g.id AS group_id, g.name, cp.red_triangles, cp.green_triangles
              FROM groups g
              LEFT JOIN camembert_progress cp ON g.id = cp.group_id
              WHERE g.session_id = ?`,
-                [sessionId],
-                (err, updatedCamemberts) => {
-                  if (err) {
-                    console.error(
-                      "Error fetching updated camembert scores:",
-                      err
-                    );
-                    return;
-                  }
+                  [sessionId],
+                  (err, updatedCamemberts) => {
+                    if (err) {
+                      console.error(
+                        "Error fetching updated camembert scores:",
+                        err
+                      );
+                      return;
+                    }
 
-                  // Emit the updated camemberts to all clients
-                  io.to(sessionId).emit("camembertUpdated", {
-                    updatedCamemberts,
-                  });
-                }
-              );
+                    // Emit the updated camemberts to all clients
+                    io.to(sessionId).emit("camembertUpdated", {
+                      updatedCamemberts,
+                    });
+                  }
+                );
 
                 res.json({
                   message: `${triangleType} updated successfully`,
@@ -1520,21 +1541,28 @@ app.delete("/sessions/:id", (req, res) => {
     // Delete session-related data
     db.serialize(() => {
       db.run(`DELETE FROM session_questions WHERE session_id = ?`, [sessionId]);
-      db.run(`DELETE FROM camembert_progress WHERE group_id IN (SELECT id FROM groups WHERE session_id = ?)`, [sessionId]);
+      db.run(
+        `DELETE FROM camembert_progress WHERE group_id IN (SELECT id FROM groups WHERE session_id = ?)`,
+        [sessionId]
+      );
       db.run(`DELETE FROM groups WHERE session_id = ?`, [sessionId]);
       db.run(`DELETE FROM answers WHERE session_id = ?`, [sessionId]);
-      db.run(`DELETE FROM game_sessions WHERE id = ?`, [sessionId], function (err) {
-        if (err) {
-          console.error("Error deleting session:", err);
-          return res.status(500).json({ message: "Database error" });
-        }
+      db.run(
+        `DELETE FROM game_sessions WHERE id = ?`,
+        [sessionId],
+        function (err) {
+          if (err) {
+            console.error("Error deleting session:", err);
+            return res.status(500).json({ message: "Database error" });
+          }
 
-        if (this.changes === 0) {
-          return res.status(404).json({ message: "Session not found" });
-        }
+          if (this.changes === 0) {
+            return res.status(404).json({ message: "Session not found" });
+          }
 
-        res.json({ message: "Session deleted successfully" });
-      });
+          res.json({ message: "Session deleted successfully" });
+        }
+      );
     });
   });
 });
@@ -1551,10 +1579,15 @@ app.post("/sessions/:id/reset", (req, res) => {
   //     return res.status(403).json({ message: "Invalid token" });
   //   }
 
-    const sessionId = req.params.id;
-
-    // Reset session status to "Draft"
-    db.run(`UPDATE game_sessions SET status = 'Draft' WHERE id = ?`, [sessionId], function (err) {
+  const sessionId = req.params.id;
+  if (sessionState[sessionId]) {
+    delete sessionState[sessionId];
+}
+  // Reset session status to "Draft"
+  db.run(
+    `UPDATE game_sessions SET status = 'Draft' WHERE id = ?`,
+    [sessionId],
+    function (err) {
       if (err) {
         console.error("Error resetting session status:", err);
         return res.status(500).json({ message: "Database error" });
@@ -1592,10 +1625,79 @@ app.post("/sessions/:id/reset", (req, res) => {
           );
         }
       );
-    });
+    }
+  );
   // });
 });
 
+const determineGameWinner = (sessionId, callback) => {
+  db.all(
+    `SELECT g.id AS group_id, g.name, g.avatar_url, cp.red_triangles, cp.green_triangles
+     FROM groups g
+     LEFT JOIN camembert_progress cp ON g.id = cp.group_id
+     WHERE g.session_id = ?`,
+    [sessionId],
+    (err, groups) => {
+      if (err) {
+        console.error("Error fetching groups for game over:", err);
+        return callback(null);
+      }
+
+      if (!groups.length) {
+        return callback(null); // No groups in session
+      }
+
+      let winners = [];
+      let maxCamemberts = 0;
+      let maxPoints = 0;
+
+      groups.forEach((group) => {
+        // Calculate the number of complete camemberts (4 red + 4 green each)
+        const completeCamemberts = Math.min(
+          Math.floor(group.green_triangles / 4),
+          Math.floor(group.red_triangles / 4)
+        );
+
+        const totalPoints = group.green_triangles + group.red_triangles;
+
+        if (completeCamemberts > maxCamemberts) {
+          maxCamemberts = completeCamemberts;
+          maxPoints = totalPoints;
+          winners = [group]; // Reset winners list
+        } else if (completeCamemberts === maxCamemberts) {
+          if (totalPoints > maxPoints) {
+            maxPoints = totalPoints;
+            winners = [group]; // Reset winners list
+          } else if (totalPoints === maxPoints) {
+            winners.push(group); // Add to the tie list
+          }
+        }
+      });
+
+      callback(winners);
+    }
+  );
+};
+
+
+const handleGameOver = (sessionId) => {
+  determineGameWinner(sessionId, (winners) => {
+    io.to(sessionId).emit("gameOver", {
+      winners: winners.length > 1 ? winners : winners[0] || null,
+      isTie: winners.length > 1,
+    });
+
+    db.run(
+      `UPDATE game_sessions SET status = 'Game Over' WHERE id = ?`,
+      [sessionId],
+      function (err) {
+        if (err) {
+          console.error("Error updating session status:", err);
+        }
+      }
+    );
+  });
+};
 
 // Catch-all route to serve React app
 app.get("*", (req, res) => {
