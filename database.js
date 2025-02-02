@@ -174,6 +174,138 @@ const createTestSession = () => {
 
       const sessionId = this.lastID;
 
+      // Add 12 geography questions (6 red, 6 green)
+      const geographyQuestions = [
+        // Red Questions
+        {
+          type: "red",
+          title: "What is the capital of Germany?\n(Hint: It's known for its Brandenburg Gate)",
+          expected_answer: "Berlin",
+          allocated_time: 100000,
+          options: ["Berlin", "Munich", "Hamburg", "Frankfurt"],
+          question_order: 1,
+          response_type: "Question à choix unique"
+        },
+        {
+          type: "red",
+          title: "What is the largest continent by area?\n(Africa or Asia?)",
+          expected_answer: "Asia",
+          allocated_time: 100000,
+          options: ["Asia", "Africa", "Europe", "Antarctica"],
+          question_order: 2,
+          response_type: "Question à choix unique"
+        },
+        {
+          type: "red",
+          title: "Which country has the most islands?",
+          expected_answer: "Sweden",
+          allocated_time: 100000,
+          options: ["Sweden", "Indonesia", "Philippines", "Finland"],
+          question_order: 3,
+          response_type: "Question à choix unique"
+        },
+        {
+          type: "red",
+          title: "What is the capital of Canada?",
+          expected_answer: "Ottawa",
+          allocated_time: 100000,
+          options: ["Ottawa", "Toronto", "Vancouver", "Montreal"],
+          question_order: 4,
+          response_type: "Question à choix unique"
+        },
+        {
+          type: "red",
+          title: "Which desert is the largest in the world?",
+          expected_answer: "Sahara",
+          allocated_time: 100000,
+          options: ["Sahara", "Gobi", "Kalahari", "Mojave"],
+          question_order: 5,
+          response_type: "Question à choix unique"
+        },
+        {
+          type: "red",
+          title: "What is the longest river in the world?",
+          expected_answer: "Nile",
+          allocated_time: 100000,
+          options: ["Nile", "Amazon", "Yangtze", "Mississippi"],
+          question_order: 6,
+          response_type: "Question à choix unique"
+        },
+        // Green Questions
+        {
+          type: "green",
+          title: "What is the smallest country in the world?\n(Size matters!)",
+          expected_answer: "Vatican City",
+          allocated_time: 100000,
+          question_order: 1,
+          response_type: "Réponse libre"
+        },
+        {
+          type: "green",
+          title: "What is the capital of Japan?",
+          expected_answer: "Tokyo",
+          allocated_time: 100000,
+          question_order: 2,
+          response_type: "Réponse libre"
+        },
+        {
+          type: "green",
+          title: "Which country has the most population?",
+          expected_answer: "China",
+          allocated_time: 100000,
+          question_order: 3,
+          response_type: "Réponse libre"
+        },
+        {
+          type: "green",
+          title: "What is the highest mountain in the world?",
+          expected_answer: "Mount Everest",
+          allocated_time: 100000,
+          question_order: 4,
+          response_type: "Réponse libre"
+        },
+        {
+          type: "green",
+          title: "Which ocean is the largest?\n(Hint: It borders the Americas and Asia)",
+          expected_answer: "Pacific Ocean",
+          allocated_time: 100000,
+          question_order: 5,
+          response_type: "Réponse libre"
+        },
+        {
+          type: "green",
+          title: "What is the capital of Australia?",
+          expected_answer: "Canberra",
+          allocated_time: 100000,
+          question_order: 6,
+          response_type: "Réponse libre"
+        },
+      ];
+
+      geographyQuestions.forEach((q) => {
+        db.run(
+          `INSERT INTO questions (type, title, expected_answer, allocated_time, question_icon, response_type) VALUES (?, ?, ?, ?, ?, ?)`,
+          [q.type, q.title, q.expected_answer, q.allocated_time, "/avatars/"+q.type+".svg", q.response_type],
+          function (err) {
+            if (!err) {
+              db.run(
+                `INSERT INTO session_questions (session_id, question_id, question_order) VALUES (?, ?, ?)`,
+                [sessionId, this.lastID, q.question_order]
+              );
+
+              if (q.type === "red" && q.options) {
+                q.options.forEach((option) => {
+                  db.run(
+                    `INSERT INTO question_options (question_id, option_text) VALUES (?, ?)`,
+                    [this.lastID, option]
+                  );
+                });
+              }
+            }
+          }
+        );
+      });
+      
       const groups = [
         { name: "Group Alpha", avatar_name: "Afroboy" },
         { name: "Group Beta", avatar_name: "Chaplin" },
