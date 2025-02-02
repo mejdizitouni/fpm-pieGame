@@ -150,7 +150,7 @@ db.serialize(() => {
           // Red Questions
           {
             type: "red",
-            title: "What is the capital of Germany?",
+            title: "What is the capital of Germany?\n(Hint: It's known for its Brandenburg Gate)",
             expected_answer: "Berlin",
             allocated_time: 100000,
             options: ["Berlin", "Munich", "Hamburg", "Frankfurt"],
@@ -159,7 +159,7 @@ db.serialize(() => {
           },
           {
             type: "red",
-            title: "What is the largest continent by area?",
+            title: "What is the largest continent by area?\n(Africa or Asia?)",
             expected_answer: "Asia",
             allocated_time: 100000,
             options: ["Asia", "Africa", "Europe", "Antarctica"],
@@ -205,7 +205,7 @@ db.serialize(() => {
           // Green Questions
           {
             type: "green",
-            title: "What is the smallest country in the world?",
+            title: "What is the smallest country in the world?\n(Size matters!)",
             expected_answer: "Vatican City",
             allocated_time: 100000,
             question_order: 1,
@@ -237,7 +237,7 @@ db.serialize(() => {
           },
           {
             type: "green",
-            title: "Which ocean is the largest?",
+            title: "Which ocean is the largest?\n(Hint: It borders the Americas and Asia)",
             expected_answer: "Pacific Ocean",
             allocated_time: 100000,
             question_order: 5,

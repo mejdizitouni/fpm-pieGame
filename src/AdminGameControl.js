@@ -375,8 +375,9 @@ function AdminGameControl() {
                   ? sessionDetails.green_questions_label
                   : sessionDetails.red_questions_label}
               </div>
-              <h3>{currentQuestion.title}</h3>
-              <p>Réponse attendue: {currentQuestion.expected_answer}</p>
+              <h3 style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+  {currentQuestion.title}
+</h3>              <p>Réponse attendue: {currentQuestion.expected_answer}</p>
               <div className="timer-circle">
                 <svg className="progress-ring" width="100" height="100">
                   <circle

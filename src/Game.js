@@ -300,8 +300,9 @@ function Game() {
               </div>
             </div>
 
-            <h3>{question.title}</h3>
-
+            <h3 style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+  {question.title}
+</h3>
             <div className="timer-circle">
               <svg className="progress-ring" width="100" height="100">
                 <circle

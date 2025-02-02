@@ -360,8 +360,11 @@ function Session() {
                 <tr key={question.id}>
                   <td>{question.type == "green" ? "Question de réponse rapide" : "Question de calcul"}</td>
                   <td>{question.response_type}</td>
-                  <td>{question.title}</td>
-                  <td>{question.expected_answer}</td>
+                  <td>
+  <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+    {question.title}
+  </pre>
+</td>                  <td>{question.expected_answer}</td>
                   <td>{question.allocated_time}</td>
                   <td>{question.question_order || "-"}</td>{" "}
                   {/* Display question_order */}
@@ -409,13 +412,13 @@ function Session() {
               <option value="Question à choix unique">Question à choix unique</option>
               <option value="Réponse libre">Réponse libre</option>
             </select>
-            <input
-              type="text"
-              placeholder="Initulé"
+            <textarea
+              placeholder="Intitulé de la question"
               value={newQuestion.title}
               onChange={(e) =>
                 setNewQuestion({ ...newQuestion, title: e.target.value })
               }
+              rows={3} // Adjust number of visible lines
               required
             />
             <input
@@ -507,8 +510,7 @@ function Session() {
               <option value="Question à choix unique">Question à choix unique</option>
               <option value="Réponse libre">Réponse libre</option>
             </select>
-            <input
-              type="text"
+            <textarea
               value={editingQuestion.title}
               onChange={(e) =>
                 setEditingQuestion({
@@ -516,6 +518,8 @@ function Session() {
                   title: e.target.value,
                 })
               }
+              rows={3}
+              required
             />
             <input
               type="text"

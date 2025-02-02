@@ -113,6 +113,7 @@ form {
 form input[type="text"],
 form input[type="number"],
 form input[type="date"],
+form textarea,
 form select {
   width: calc(100% - 20px);
   padding: 10px;
