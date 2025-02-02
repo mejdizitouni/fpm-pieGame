@@ -664,7 +664,7 @@ function Session() {
                     />
                   </td>
                   <td class="actions">
-                    <button class="admin-button" onClick={() => editGroup(group.id)}>Edit</button>
+                    <button class="admin-button" onClick={() => editGroup(group.id)}>Modifier</button>
                     <button class="admin-button" onClick={() => deleteGroup(group.id)}>
                       Supprimer
                     </button>

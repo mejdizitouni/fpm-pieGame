@@ -151,132 +151,183 @@ io.on("connection", (socket) => {
     "validateAnswer",
     ({ sessionId, groupId, questionId, isCorrect, stoppedTimer }) => {
       db.get(
-        `SELECT type FROM questions WHERE id = ?`,
+        `SELECT type, expected_answer FROM questions WHERE id = ?`,
         [questionId],
         (err, question) => {
           if (err || !question) {
-            console.error("Error fetching question type:", err);
+            console.error("Error fetching question details:", err);
             return;
           }
-
+  
+          const correctAnswer = question.expected_answer;
           const triangleType =
             question.type === "red" ? "red_triangles" : "green_triangles";
-
-          // Prepare an array of database operations
-          const updates = [];
-
-          if (isCorrect) {
-            const points = stoppedTimer ? 2 : 1;
-
-            // Push the correct answer update operation to the array
-            updates.push(
-              new Promise((resolve, reject) => {
-                db.run(
-                  `UPDATE camembert_progress SET ${triangleType} = ${triangleType} + ? WHERE group_id = ?`,
-                  [points, groupId],
-                  (err) => {
-                    if (err) {
-                      console.error(
-                        "Error updating scores for the correct answer:",
-                        err
-                      );
-                      reject(err);
-                    } else {
-                      resolve();
-                    }
-                  }
-                );
-              })
-            );
-          } else {
-            // Fetch all groups for the incorrect answer logic
-            updates.push(
-              new Promise((resolve, reject) => {
-                db.all(
-                  `SELECT id FROM groups WHERE session_id = ?`,
-                  [sessionId],
-                  (err, allGroups) => {
-                    if (err) {
-                      console.error("Error fetching groups:", err);
-                      reject(err);
-                      return;
-                    }
-
-                    // For each group, update the camembert score (except the submitting group)
-                    const groupUpdates = allGroups.map((group) => {
-                      if (String(group.id) !== String(groupId)) {
-                        return new Promise((resolve, reject) => {
-                          db.run(
-                            `UPDATE camembert_progress SET ${triangleType} = ${triangleType} + 1 WHERE group_id = ?`,
-                            [group.id],
-                            (err) => {
-                              if (err) {
-                                console.error(
-                                  `Error updating scores for group ${group.id}:`,
-                                  err
-                                );
-                                reject(err);
-                              } else {
-                                resolve();
-                              }
-                            }
+  
+          db.get(
+            `SELECT name FROM groups WHERE id = ?`,
+            [groupId],
+            (err, group) => {
+              if (err || !group) {
+                console.error("Error fetching group name:", err);
+                return;
+              }
+  
+              const groupName = group.name;
+              const updates = [];
+  
+              if (isCorrect) {
+                const points = stoppedTimer ? 2 : 1;
+                updates.push(
+                  new Promise((resolve, reject) => {
+                    db.run(
+                      `UPDATE camembert_progress SET ${triangleType} = ${triangleType} + ? WHERE group_id = ?`,
+                      [points, groupId],
+                      (err) => {
+                        if (err) {
+                          console.error(
+                            "Error updating scores for the correct answer:",
+                            err
                           );
-                        });
+                          reject(err);
+                        } else {
+                          resolve();
+                        }
                       }
-                      return Promise.resolve(); // Skip the submitting group
-                    });
-
-                    Promise.all(groupUpdates).then(resolve).catch(reject);
-                  }
-                );
-              })
-            );
-          }
-
-          // Wait for all updates to complete
-          Promise.all(updates)
-            .then(() => {
-              // Fetch updated camembert progress from the database
-              db.all(
-                `SELECT g.id AS group_id, g.avatar_url AS avatar_url, g.name, cp.red_triangles, cp.green_triangles
-             FROM groups g
-             LEFT JOIN camembert_progress cp ON g.id = cp.group_id
-             WHERE g.session_id = ?`,
-                [sessionId],
-                (err, updatedCamemberts) => {
-                  if (err) {
-                    console.error(
-                      "Error fetching updated camembert scores:",
-                      err
                     );
-                    return;
-                  }
-
-                  // Emit the updated camemberts to all clients
-                  io.to(sessionId).emit("camembertUpdated", {
-                    updatedCamemberts,
+                  })
+                );
+              } else {
+                // Incorrect answer - award points to other groups
+                updates.push(
+                  new Promise((resolve, reject) => {
+                    db.all(
+                      `SELECT id FROM groups WHERE session_id = ?`,
+                      [sessionId],
+                      (err, allGroups) => {
+                        if (err) {
+                          console.error("Error fetching groups:", err);
+                          reject(err);
+                          return;
+                        }
+  
+                        const groupUpdates = allGroups.map((group) => {
+                          if (String(group.id) !== String(groupId)) {
+                            return new Promise((resolve, reject) => {
+                              db.run(
+                                `UPDATE camembert_progress SET ${triangleType} = ${triangleType} + 1 WHERE group_id = ?`,
+                                [group.id],
+                                (err) => {
+                                  if (err) {
+                                    console.error(
+                                      `Error updating scores for group ${group.id}:`,
+                                      err
+                                    );
+                                    reject(err);
+                                  } else {
+                                    resolve();
+                                  }
+                                }
+                              );
+                            });
+                          }
+                          return Promise.resolve();
+                        });
+  
+                        Promise.all(groupUpdates).then(resolve).catch(reject);
+                      }
+                    );
+                  })
+                );
+              }
+  
+              // Execute all updates
+              Promise.all(updates)
+                .then(() => {
+                  db.all(
+                    `SELECT g.id AS group_id, g.avatar_url AS avatar_url, g.name, cp.red_triangles, cp.green_triangles
+                     FROM groups g
+                     LEFT JOIN camembert_progress cp ON g.id = cp.group_id
+                     WHERE g.session_id = ?`,
+                    [sessionId],
+                    (err, updatedCamemberts) => {
+                      if (err) {
+                        console.error(
+                          "Error fetching updated camembert scores:",
+                          err
+                        );
+                        return;
+                      }
+  
+                      io.to(sessionId).emit("camembertUpdated", {
+                        updatedCamemberts,
+                      });
+                    }
+                  );
+  
+                  // Send correct validation result to all players
+                  io.to(sessionId).emit("answerValidated", {
+                    groupId,
+                    groupName,
+                    isCorrect,
+                    correctAnswer,
+                    message: isCorrect
+                      ? `Le groupe ${groupName} a répondu correctement à la question dont la réponse est "${correctAnswer}". Ils reçoivent ${
+                          stoppedTimer ? 2 : 1
+                        } point(s).`
+                      : `Le groupe ${groupName} a répondu incorrectement. Les autres groupes gagnent 1 point.`,
                   });
-                }
-              );
-            })
-            .catch((err) => {
-              console.error("Error during camembert updates:", err);
-            });
-
-          // Notify clients about the validation result
-          io.to(sessionId).emit("answerValidated", { groupId, isCorrect });
+                })
+                .catch((err) => {
+                  console.error("Error during camembert updates:", err);
+                });
+            }
+          );
         }
       );
     }
   );
-
+  
   socket.on(
     "validateAnswerNoPoints",
-    ({ sessionId, groupId, questionId, isCorrect, stoppedTimer }) => {
-      io.to(sessionId).emit("answerValidatedNoPoints", { groupId, isCorrect });
+    ({ sessionId, groupId, questionId, isCorrect }) => {
+      db.get(
+        `SELECT expected_answer FROM questions WHERE id = ?`,
+        [questionId],
+        (err, question) => {
+          if (err || !question) {
+            console.error("Error fetching question details:", err);
+            return;
+          }
+  
+          const correctAnswer = question.expected_answer;
+  
+          db.get(
+            `SELECT name FROM groups WHERE id = ?`,
+            [groupId],
+            (err, group) => {
+              if (err || !group) {
+                console.error("Error fetching group name:", err);
+                return;
+              }
+  
+              const groupName = group.name;
+  
+              io.to(sessionId).emit("answerValidatedNoPoints", {
+                groupId,
+                groupName,
+                isCorrect,
+                correctAnswer,
+                message: isCorrect
+                  ? `Le groupe ${groupName} a répondu correctement à la question dont la réponse est "${correctAnswer}". Ils vont choisir comment distribuer leurs points.`
+                  : `Le groupe ${groupName} a répondu incorrectement à la question dont la réponse est "${correctAnswer}". Les autres groupes décideront comment répartir les points.`,
+              });
+            }
+          );
+        }
+      );
     }
   );
-
+  
   socket.on("revealAnswer", (correctAnswer) => {
     io.emit("revealAnswer", correctAnswer);
   });

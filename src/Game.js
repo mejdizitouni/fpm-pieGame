@@ -149,23 +149,25 @@ function Game() {
       setCamemberts(updatedCamemberts);
     });
 
-    socket.on("answerValidated", ({ groupId: validatedGroupId, isCorrect }) => {
+    socket.on("answerValidated", ({ groupId: validatedGroupId, message }) => {
+      setWaitingValidation(null)
       if (parseInt(validatedGroupId) === parseInt(groupId)) {
-        setValidationResult(isCorrect ? "correct" : "wrong");
+        setValidationResult("correct");
         setWaitingValidation(false);
       }
+      setValidationResult(message);
     });
-
-    socket.on(
-      "answerValidatedNoPoints",
-      ({ groupId: validatedGroupId, isCorrect }) => {
-        if (parseInt(validatedGroupId) === parseInt(groupId)) {
-          setValidationResultNoPoints(isCorrect ? "correct" : "wrong");
-          setWaitingValidation(false);
-        }
+    
+    socket.on("answerValidatedNoPoints", ({ groupId: validatedGroupId, message }) => {
+      setWaitingValidation(null)
+      if (parseInt(validatedGroupId) === parseInt(groupId)) {
+        setValidationResultNoPoints("correct");
+        setWaitingValidation(false);
       }
-    );
-
+      setValidationResultNoPoints(message);
+    });
+    
+    
     socket.on("revealAnswer", (correctAnswer) => {
       setCorrectAnswer(correctAnswer);
     });
@@ -413,33 +415,49 @@ function Game() {
           {stoppedTimerGroup && <h3>Le timer a été arrêté par: {stoppedTimerGroup}</h3>}
 
           {submittedAnswer && (
-            <div>
-              <h3>Votre réponse:</h3>
-              <span>{submittedAnswer}</span>
-              {waitingValidation && <h3>En attente de validation de la réponse...</h3>}
-              {validationResult === "correct" && (
-                <h3>
-                  Votre réponse est correcte! Vous avez gagné  {stoppedTimerGroup ? 2 : 1}{" "}
-                  point
-                  {stoppedTimerGroup ? "s" : ""}!
-                </h3>
-              )}
-              {validationResult === "wrong" && (
-                <h3>
-                  Votre réponse est incorrecte!{" "}
-                  {stoppedTimerGroup && "Other players earned 1 point each."}
-                </h3>
-              )}
-              {validationResultNoPoints === "correct" && (
-                <h3>
-                  Votre réponse est correcte ! Choissisez la répartition de vos points.
-                </h3>
-              )}
-              {validationResultNoPoints === "wrong" && (
-                <h3>Votre réponse est incorrecte!</h3>
-              )}
-            </div>
-          )}
+  <div>
+    <h3>Votre réponse:</h3>
+    <span>{submittedAnswer}</span>
+    {waitingValidation && <h3>En attente de validation de la réponse...</h3>}
+
+    {/* If this group answered and got validated */}
+    {validationResult === "correct" && (
+      <h3>
+        🎉 Votre réponse est correcte! Vous avez gagné {stoppedTimerGroup ? 2 : 1}{" "}
+        point{stoppedTimerGroup ? "s" : ""}!
+      </h3>
+    )}
+    {validationResult === "wrong" && (
+      <h3>
+        ❌ Votre réponse est incorrecte!{" "}
+        {stoppedTimerGroup && "Les autres groupes ont gagné 1 point chacun."}
+      </h3>
+    )}
+
+    {validationResultNoPoints === "correct" && (
+      <h3>
+        ✅ Votre réponse est correcte ! Choisissez la répartition de vos points.
+      </h3>
+    )}
+    {validationResultNoPoints === "wrong" && (
+      <h3>❌ Votre réponse est incorrecte!</h3>
+    )}
+  </div>
+)}
+
+{/* NEW: Show a message when another group answers correctly */}
+{validationResult && typeof validationResult === "string" && (
+  <div>
+    <h3>{validationResult}</h3>
+  </div>
+)}
+
+{validationResultNoPoints && typeof validationResultNoPoints === "string" && (
+  <div>
+    <h3>{validationResultNoPoints}</h3>
+  </div>
+)}
+
 
           {correctAnswer && (
             <div>
