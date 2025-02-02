@@ -57,7 +57,6 @@ function AdminGameControl() {
   }, [API_URL, sessionId, navigate]);
 
   useEffect(() => {
-
     const fetchInitialData = async () => {
       const token = localStorage.getItem("token");
       if (!token) {
@@ -184,7 +183,6 @@ function AdminGameControl() {
   };
 
   const validateAnswer = (answer, groupId, isCorrect) => {
-
     socket.emit("validateAnswer", {
       sessionId,
       groupId,
@@ -195,7 +193,6 @@ function AdminGameControl() {
   };
 
   const validateAnswerNoPoints = (answer, groupId, isCorrect) => {
-
     socket.emit("validateAnswerNoPoints", {
       sessionId,
       groupId,
@@ -248,9 +245,9 @@ function AdminGameControl() {
 
   const updatePoints = async (groupId, color, change) => {
     const token = localStorage.getItem("token");
-    console.log('typeof groupId', typeof groupId,' and value is ', groupId);
-    console.log('typeof color', typeof color,' and value is ', color);
-    console.log('typeof change', typeof change,' and value is ', change);
+    console.log("typeof groupId", typeof groupId, " and value is ", groupId);
+    console.log("typeof color", typeof color, " and value is ", color);
+    console.log("typeof change", typeof change, " and value is ", change);
     try {
       const response = await fetch(
         `${API_URL}/sessions/${sessionId}/update-points`,
@@ -305,12 +302,21 @@ function AdminGameControl() {
     <>
       <Header />
       <div className="admin-game-control-container">
-
         {sessionStatus === "Activated" && (
           <button className="start-game-button" onClick={startGame}>
             Démarrer la session
           </button>
         )}
+
+{sessionStatus === "In Progress" && !currentQuestion && (
+          <button
+            className="next-question-button"
+            onClick={nextQuestion}
+          >
+            Question Suivante
+          </button>
+        )}
+
         {sessionStatus === "In Progress" && currentQuestion && (
           <button
             className="next-question-button"
@@ -320,7 +326,6 @@ function AdminGameControl() {
             Question Suivante
           </button>
         )}
-        
 
         {sessionStatus === "Game Over" && (
           <>
@@ -376,8 +381,9 @@ function AdminGameControl() {
                   : sessionDetails.red_questions_label}
               </div>
               <h3 style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-  {currentQuestion.title}
-</h3>              <p>Réponse attendue: {currentQuestion.expected_answer}</p>
+                {currentQuestion.title}
+              </h3>{" "}
+              <p>Réponse attendue: {currentQuestion.expected_answer}</p>
               <div className="timer-circle">
                 <svg className="progress-ring" width="100" height="100">
                   <circle
@@ -399,7 +405,6 @@ function AdminGameControl() {
                   {timer > 0 ? `${timer}s` : "Time's Up!"}
                 </div>
               </div>
-
               {isTimeUp && <h3>Time's Up!</h3>}
               {stoppedTimerGroup && (
                 <h4>e timer a été arrêté par: {stoppedTimerGroup.groupName}</h4>
@@ -416,15 +421,25 @@ function AdminGameControl() {
               )}
             </div>
 
-            {sessionStatus === "In Progress" /*&& currentQuestion*/ && (
-          <button
-            className="next-question-button"
-            onClick={nextQuestion}
-            disabled={!currentQuestion}
-          >
-            Question suivante
-          </button>
-        )}
+            {sessionStatus === "In Progress" && !currentQuestion && (
+              <button
+                className="next-question-button"
+                onClick={nextQuestion}
+              >
+                Question suivante
+              </button>
+            )}
+
+
+            {sessionStatus === "In Progress" && currentQuestion && (
+              <button
+                className="next-question-button"
+                onClick={nextQuestion}
+                disabled={!currentQuestion}
+              >
+                Question suivante
+              </button>
+            )}
 
             {/* <button
               className="reveal-answer-button"
