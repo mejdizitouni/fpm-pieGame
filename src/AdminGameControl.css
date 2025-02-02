@@ -101,13 +101,13 @@ button {
 
 .current-question.red {
   border: 15px solid #FB4141;
-  background-color: #FB4141;
+  background-color: #FFCCCC;
   width: fit-content;
 }
 
 .current-question.green {
   border: 15px solid #5cb338;
-  background-color: #5cb338;
+  background-color: #CCFFCC;
   width: fit-content;
 }
 
@@ -272,4 +272,5 @@ button {
     align-items: center;
     font-size: 40px;
     gap: 10px;
+    flex-direction: column;
 }

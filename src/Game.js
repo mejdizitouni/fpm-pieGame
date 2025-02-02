@@ -288,11 +288,11 @@ function Game() {
           >
             <div className="question-header">
               Question {questionIndex}/{totalQuestions}:
-              <img
+              {/* <img
                 class="question-type-avatar"
                 src={question.question_icon}
                 alt={`${question.type} Avatar`}
-              />
+              /> */}
               <div className={`question-label`}>
                 {question && question.type === "green"
                   ? sessionDetails.green_questions_label

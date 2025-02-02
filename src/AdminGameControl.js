@@ -359,11 +359,11 @@ function AdminGameControl() {
             >
               <div className="question-header">
                 Question {questionIndex}/{totalQuestions}:
-                <img
+                {/* <img
                   class="question-type-avatar"
                   src={currentQuestion.question_icon}
                   alt={`${currentQuestion.type} Avatar`}
-                />
+                /> */}
                 <div
                   className={`question-label ${
                     currentQuestion && currentQuestion.type === "green"
@@ -416,7 +416,7 @@ function AdminGameControl() {
               )}
             </div>
 
-            {sessionStatus === "In Progress" && currentQuestion && (
+            {sessionStatus === "In Progress" /*&& currentQuestion*/ && (
           <button
             className="next-question-button"
             onClick={nextQuestion}
