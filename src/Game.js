@@ -114,6 +114,8 @@ function Game() {
         setWaitingValidation(false);
         setValidationResult(null);
         setValidationResultNoPoints(null);
+        setCorrectAnswer(null);
+
 
         // Fetch options if the question is red-type
         if (question.response_type === "Question à choix unique") {
@@ -156,6 +158,8 @@ function Game() {
         setWaitingValidation(false);
       }
       setValidationResult(message);
+      setCorrectAnswer(null);
+
     });
     
     socket.on("answerValidatedNoPoints", ({ groupId: validatedGroupId, message }) => {
@@ -165,10 +169,13 @@ function Game() {
         setWaitingValidation(false);
       }
       setValidationResultNoPoints(message);
+      setCorrectAnswer(null);
+
     });
     
     
     socket.on("revealAnswer", (correctAnswer) => {
+      setWaitingValidation(false);
       setCorrectAnswer(correctAnswer);
     });
 
@@ -461,8 +468,7 @@ function Game() {
 
           {correctAnswer && (
             <div>
-              <h3>Votre réponse est correcte: {correctAnswer}</h3>
-            </div>
+              <h3>Aucun groupe n'a correctement répondu à la question, La bonne réponse était: {correctAnswer}</h3>              </div>
           )}
         </>
       )}

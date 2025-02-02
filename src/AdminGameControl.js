@@ -246,7 +246,6 @@ function AdminGameControl() {
   const revealAnswer = () => {
     if (currentQuestion) {
       socket.emit("revealAnswer", currentQuestion.expected_answer);
-      setCorrectAnswer(currentQuestion.expected_answer);
     }
   };
 
@@ -491,13 +490,13 @@ function AdminGameControl() {
               </button>
             )}
 
-            {/* <button
+            <button
               className="reveal-answer-button"
               onClick={revealAnswer}
               disabled={correctAnswer}
             >
-              Réponse
-            </button> */}
+              Révéler la bonne réponse
+            </button>
           </>
         )}
 

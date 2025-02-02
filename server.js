@@ -271,7 +271,7 @@ io.on("connection", (socket) => {
                     isCorrect,
                     correctAnswer,
                     message: isCorrect
-                      ? `Le groupe ${groupName} a répondu correctement à la question dont la réponse est "${correctAnswer}". Il reçoive ${
+                      ? `Le groupe ${groupName} a répondu correctement à la question dont la réponse est "${correctAnswer}". Il reçoit ${
                           stoppedTimer ? 2 : 1
                         } point(s).`
                       : `Le groupe ${groupName} a répondu incorrectement. Les autres groupes gagnent 1 point.`,
@@ -318,8 +318,8 @@ io.on("connection", (socket) => {
                 isCorrect,
                 correctAnswer,
                 message: isCorrect
-                  ? `Le groupe ${groupName} a répondu correctement à la question dont la réponse est "${correctAnswer}". Ils vont choisir comment distribuer leurs points.`
-                  : `Le groupe ${groupName} a répondu incorrectement à la question dont la réponse est "${correctAnswer}". Les autres groupes décideront comment répartir les points.`,
+                  ? `Le groupe ${groupName} a répondu correctement à la question dont la réponse est "${correctAnswer}". Il va choisir comment distribuer leurs points.`
+                  : `Le groupe ${groupName} a répondu incorrectement à la question dont la réponse est "${correctAnswer}".`,
               });
             }
           );
