@@ -71,6 +71,36 @@ function Admin() {
     }
   };
 
+  const resetSession = async (sessionId) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("Unauthorized! Please log in.");
+      return;
+    }
+  
+    if (!window.confirm("Êtes-vous sûr de vouloir réinitialiser cette session ?")) {
+      return; // Stop if user cancels
+    }
+  
+    try {
+      const response = await axios.post(`${API_URL}/sessions/${sessionId}/reset`, {
+        headers: { Authorization: token },
+      });
+  
+      // Update session list and UI
+      setGameSessions((prevSessions) =>
+        prevSessions.map((session) =>
+          session.id === sessionId ? { ...session, status: "Draft" } : session
+        )
+      );
+  
+      alert("Session réinitialisée avec succès !");
+    } catch (err) {
+      console.error("Failed to reset session:", err);
+      alert("Erreur lors de la réinitialisation de la session.");
+    }
+  };
+  
   const deleteSession = async (sessionId) => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -335,6 +365,7 @@ function Admin() {
                     <button class="admin-button" onClick={() => cloneSession(session.id)}>
                       Cloner
                     </button>
+                    <button class="admin-button" onClick={() => resetSession(session.id)}>Réinitialiser</button> {/* NEW DELETE BUTTON */}
                     <button class="admin-button delete" onClick={() => deleteSession(session.id)}>Supprimer</button> {/* NEW DELETE BUTTON */}
 
                   </td>

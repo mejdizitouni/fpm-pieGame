@@ -1329,6 +1329,41 @@ app.post("/questions/:id/options", (req, res) => {
   });
 });
 
+
+
+// Start the game and update session status
+app.post("/sessions/:id/end", (req, res) => {
+  const token = req.headers["authorization"];
+  if (!token) {
+    return res.status(401).json({ message: "Access denied" });
+  }
+
+  jwt.verify(token, SECRET_KEY, (err) => {
+    if (err) {
+      return res.status(403).json({ message: "Invalid token" });
+    }
+
+    const sessionId = req.params.id;
+
+    // Update session status to 'In Progress'
+    db.run(
+      `UPDATE game_sessions SET status = 'Game Over' WHERE id = ?`,
+      [sessionId],
+      function (err) {
+        if (err) {
+          console.error("Error updating session status:", err);
+          return err;
+        }
+    
+        io.to(sessionId).emit("gameOver");
+        return;
+    
+    
+      }
+    );
+  });
+});
+
 // Start the game and update session status
 app.post("/sessions/:id/start", (req, res) => {
   const token = req.headers["authorization"];
@@ -1502,6 +1537,63 @@ app.delete("/sessions/:id", (req, res) => {
       });
     });
   });
+});
+
+// Reset session status to Draft and reset camembert progress
+app.post("/sessions/:id/reset", (req, res) => {
+  // const token = req.headers["authorization"];
+  // if (!token) {
+  //   return res.status(401).json({ message: "Access denied" });
+  // }
+
+  // jwt.verify(token, SECRET_KEY, (err) => {
+  //   if (err) {
+  //     return res.status(403).json({ message: "Invalid token" });
+  //   }
+
+    const sessionId = req.params.id;
+
+    // Reset session status to "Draft"
+    db.run(`UPDATE game_sessions SET status = 'Draft' WHERE id = ?`, [sessionId], function (err) {
+      if (err) {
+        console.error("Error resetting session status:", err);
+        return res.status(500).json({ message: "Database error" });
+      }
+
+      // Reset all camembert progress
+      db.run(
+        `UPDATE camembert_progress SET red_triangles = 0, green_triangles = 0 WHERE group_id IN 
+        (SELECT id FROM groups WHERE session_id = ?)`,
+        [sessionId],
+        function (err) {
+          if (err) {
+            console.error("Error resetting camembert progress:", err);
+            return res.status(500).json({ message: "Database error" });
+          }
+
+          // Fetch updated camembert progress
+          db.all(
+            `SELECT g.avatar_url AS avatar_url, g.id AS group_id, g.name, cp.red_triangles, cp.green_triangles
+             FROM groups g
+             LEFT JOIN camembert_progress cp ON g.id = cp.group_id
+             WHERE g.session_id = ?`,
+            [sessionId],
+            (err, updatedCamemberts) => {
+              if (err) {
+                console.error("Error fetching updated camembert scores:", err);
+                return res.status(500).json({ message: "Database error" });
+              }
+
+              res.json({
+                message: "Session successfully reset",
+                updatedCamemberts,
+              });
+            }
+          );
+        }
+      );
+    });
+  // });
 });
 
 

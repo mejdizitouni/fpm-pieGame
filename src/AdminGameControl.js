@@ -182,6 +182,27 @@ function AdminGameControl() {
     }
   };
 
+  const endGame = async () => {
+    const token = localStorage.getItem("token");
+
+    try {
+      // API call to update session status to "In Progress"
+      const response = await fetch(`${API_URL}/sessions/${sessionId}/end`, {
+        method: "POST",
+        headers: {
+          Authorization: token,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to end session .");
+      }
+    } catch (err) {
+      console.error("Error ending the game:", err);
+    }
+  }
+
   const validateAnswer = (answer, groupId, isCorrect) => {
     socket.emit("validateAnswer", {
       sessionId,
@@ -305,6 +326,12 @@ function AdminGameControl() {
         {sessionStatus === "Activated" && (
           <button className="start-game-button" onClick={startGame}>
             Démarrer la session
+          </button>
+        )}
+
+        {sessionStatus === "In Progress" && (
+          <button className="end-game-button" onClick={endGame}>
+            Arrêter la session
           </button>
         )}
 
