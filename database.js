@@ -81,7 +81,8 @@ const createTables = async () => {
           date TEXT,
           green_questions_label TEXT,
           red_questions_label TEXT,
-          status TEXT DEFAULT 'Draft'
+          status TEXT DEFAULT 'Draft',
+          session_rules TEXT
         )
       `);
 
@@ -167,8 +168,8 @@ const createTables = async () => {
 // Function to create the Test Session
 const createTestSession = () => {
   db.run(
-    `INSERT INTO game_sessions (title, date, green_questions_label, red_questions_label, status) 
-     VALUES ('Test Session', '2024-01-01', 'Hulk Color', 'Fire Color', 'Draft')`,
+    `INSERT INTO game_sessions (title, date, green_questions_label, red_questions_label, status, session_rules) 
+     VALUES ('Test Session', '2024-01-01', 'Hulk Color', 'Fire Color', 'Draft', '2.1. Déroulement d’une Partie\n\n1. Création d’une session\n\t• Un administrateur crée une session et ajoute des questions.\n\t• Les questions sont associées à une session avec un ordre spécifique.\n\t• Des groupes sont créés et peuvent rejoindre la session via un lien dédié.\n\n2. Lancement du jeu\n\t• L’administrateur active la session et lance le jeu.\n\t• Chaque groupe rejoint via son lien et voit les questions en temps réel.\n\t• Les questions sont posées une par une, avec un chronomètre.\n\t• Les joueurs soumettent leurs réponses avant la fin du temps imparti.\n\n3. Validation des réponses\n\t• L’administrateur valide ou rejette les réponses.\n\t• Un système de points est appliqué selon la rapidité et la justesse de la réponse.\n\n4. Gestion des scores\n\t• Chaque groupe accumule des points sous forme de camemberts (sections de couleurs).\n\t• Un camembert est complété lorsqu’un groupe répond correctement à un certain nombre de questions rouges et vertes.\n\n5. Fin de la partie\n\t• Le jeu s’arrête lorsqu’un groupe atteint le nombre maximal de camemberts ou après la dernière question.\n\t• Le gagnant est déterminé en fonction du nombre de camemberts complets.')`,
     function (err) {
       if (err) return console.error("Error creating Test Session:", err);
 

@@ -435,11 +435,11 @@ app.post("/game-sessions", (req, res) => {
       return res.status(403).json({ message: "Invalid token" });
     }
 
-    const { title, green_questions_label, red_questions_label, date } =
+    const { title, green_questions_label, red_questions_label, date, session_rules } =
       req.body;
     db.run(
-      `INSERT INTO game_sessions (title, green_questions_label, red_questions_label, date) VALUES (?, ?, ?, ?)`,
-      [title, green_questions_label, red_questions_label, date],
+      `INSERT INTO game_sessions (title, green_questions_label, red_questions_label, date, session_rules) VALUES (?, ?, ?, ?, ?)`,
+      [title, green_questions_label, red_questions_label, date, session_rules],
       function (err) {
         if (err) {
           console.error("Insert Error:", err); // Log insert errors
@@ -836,7 +836,7 @@ app.put("/sessions/:id", (req, res) => {
 
     // Extract the session ID and the new data from the request
     const sessionId = req.params.id;
-    const { title, green_questions_label, red_questions_label, date } =
+    const { title, green_questions_label, red_questions_label, date, session_rules } =
       req.body;
 
     // Check if title and date are provided
@@ -846,8 +846,8 @@ app.put("/sessions/:id", (req, res) => {
 
     // Update the session in the database
     db.run(
-      `UPDATE game_sessions SET title = ?, green_questions_label = ?, red_questions_label = ?, date = ? WHERE id = ?`,
-      [title, green_questions_label, red_questions_label, date, sessionId],
+      `UPDATE game_sessions SET title = ?, green_questions_label = ?, red_questions_label = ?, date = ?, session_rules = ? WHERE id = ?`,
+      [title, green_questions_label, red_questions_label, date, session_rules, sessionId],
       function (err) {
         if (err) {
           console.error("Database Error:", err);

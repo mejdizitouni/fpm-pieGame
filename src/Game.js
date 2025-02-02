@@ -27,6 +27,8 @@ function Game() {
   const [totalQuestions, setTotalQuestions] = useState(null); // Total questions in the session
   const [stoppedTimerGroup, setStoppedTimerGroup] = useState(null); // Group that stopped the timer
   const [winningGroups, setWinningGroups] = useState([]); // Store winning group IDs
+  const [showRules, setShowRules] = useState(false); // Manage rules popup visibility
+
 
   useEffect(() => {
     const fetchSessionStatus = async () => {
@@ -265,6 +267,24 @@ function Game() {
 
   return (
     <div className="game-container">
+      {/* Top right button for rules */}
+      <button className="rules-button" onClick={() => setShowRules(true)}>
+        Règle du jeu
+      </button>
+
+      {/* Rules Modal */}
+      {showRules && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h2>Règle du jeu</h2>
+            <br></br>
+            <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+            {sessionDetails?.session_rules || "Aucune règle définie."}
+  </pre>
+            <button className="close-button" onClick={() => setShowRules(false)}>Fermer</button>
+          </div>
+        </div>
+      )}
       <div className="group-info">
         {group && group.avatar_url && (
           <img

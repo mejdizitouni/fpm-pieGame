@@ -149,6 +149,7 @@ function Admin() {
         green_questions_label: originalSession.green_questions_label,
         red_questions_label: originalSession.red_questions_label,
         date: new Date().toISOString().split("T")[0], // Set today's date
+        session_rules: originalSession.session_rules,
       };
 
       const response = await axios.post(
@@ -265,7 +266,7 @@ function Admin() {
 
   const handleEdit = (session) => {
     setEditingSession(session);
-    setNewSession({ title: session.title, green_questions_label: session.green_questions_label, red_questions_label:session.red_questions_label, date: session.date });
+    setNewSession({ title: session.title, green_questions_label: session.green_questions_label, red_questions_label:session.red_questions_label, date: session.date, session_rules: session.session_rules });
     setShowForm(true); // Show the form when editing
   };
 
@@ -419,6 +420,15 @@ function Admin() {
                 }
                 required
               />
+               <textarea
+              placeholder="Règles du jeu"
+              value={newSession.session_rules}
+              onChange={(e) =>
+                setNewSession({ ...newSession, session_rules: e.target.value })
+              }
+              rows={3} // Adjust number of visible lines
+              required
+            />
               <button class="admin-button" type="submit">
                 {editingSession ? "Mettre à jour" : "Créer"} la session
               </button>
