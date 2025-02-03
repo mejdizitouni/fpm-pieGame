@@ -277,13 +277,13 @@ ul li button:hover {
       margin: 0 !important;
 }
 
-.options-list {
+.options-list-session {
   display: flex
 ;
     justify-content: space-between;
     align-items: center;
 }
 
-.options-list button {
+.options-list-session button {
   margin: 0 !important;
 }

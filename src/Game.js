@@ -299,7 +299,7 @@ function Game() {
       
       {sessionStatus === "Activated" && <h1>En attente du démarrage de la session...</h1>}
 
-      {sessionStatus === "In Progress" && <h1>En attente de la question suivante...</h1>}
+      {sessionStatus === "In Progress" && !question && <h1>En attente de la question suivante...</h1>}
 
       {sessionStatus === "Game Over" && (
         <>

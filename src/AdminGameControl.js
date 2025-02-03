@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState , useRef} from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { io } from "socket.io-client";
 import Header from "./Header";
@@ -25,7 +25,113 @@ function AdminGameControl() {
   const [stoppedTimerGroup, setStoppedTimerGroup] = useState(null);
   const [winningGroups, setWinningGroups] = useState([]); // Store winning group IDs
 
-  const socket = io(API_URL);
+  // Keep WebSocket instance in a ref to prevent reinitialization
+  const socketRef = useRef(null);
+
+  useEffect(() => {
+    const connectSocket = () => {
+      if (socketRef.current) {
+        socketRef.current.disconnect(); // Ensure previous instance is closed
+      }
+
+      socketRef.current = io(API_URL, {
+        reconnection: true, // Enable automatic reconnection
+        reconnectionAttempts: 5, // Try 5 times before failing
+        reconnectionDelay: 2000, // Wait 2s between attempts
+      });
+
+      socketRef.current.emit("joinSession", { sessionId, role: "admin" });
+
+      socketRef.current.on("connect", () => {
+        console.log("WebSocket connected");
+      });
+
+      socketRef.current.on("disconnect", (reason) => {
+        console.warn("WebSocket disconnected:", reason);
+        if (reason === "io server disconnect") {
+          socketRef.current.connect(); // Manually reconnect if server disconnects
+        }
+      });
+
+      socketRef.current.on("connect_error", (err) => {
+        console.error("WebSocket connection error:", err);
+      });
+
+      socketRef.current.on("newQuestion", async ({ question, timer, questionIndex, totalQuestions }) => {
+        setCurrentQuestion(question);
+        setTimer(timer);
+        setQuestionIndex(questionIndex);
+        setTotalQuestions(totalQuestions);
+        setIsTimeUp(false);
+        setAnswers([]);
+        setCorrectAnswer(null);
+        setStoppedTimerGroup(null);
+        setSessionStatus("In Progress");
+
+        if (question.response_type === "Question à choix unique") {
+          const token = localStorage.getItem("token");
+          try {
+            const optionsRes = await fetch(`${API_URL}/questions/${question.id}/options`, {
+              headers: { Authorization: token },
+            });
+            setQuestionOptions(await optionsRes.json());
+          } catch (err) {
+            console.error("Failed to fetch question options:", err);
+            setQuestionOptions([]);
+          }
+        } else {
+          setQuestionOptions([]);
+        }
+      });
+
+      socketRef.current.on("answerSubmitted", (answer) => {
+        setAnswers((prev) => [...prev, answer]);
+      });
+
+      socketRef.current.on("timerStopped", ({ groupId, groupName }) => {
+        setStoppedTimerGroup({ groupId, groupName });
+        setTimer(0);
+        setIsTimeUp(true);
+      });
+
+      socketRef.current.on("camembertUpdated", ({ updatedCamemberts }) => {
+        setCamemberts(updatedCamemberts);
+      });
+
+      socketRef.current.on("gameOver", (data) => {
+        setCurrentQuestion(null);
+        setTimer(0);
+        setIsTimeUp(false);
+        setSessionStatus("Game Over");
+
+        let winnersArray = [];
+        if (Array.isArray(data.winners)) {
+          winnersArray = data.winners;
+        } else if (data.winners) {
+          winnersArray = [data.winners];
+        }
+
+        setWinningGroups(winnersArray.map((w) => w.group_id));
+
+        if (winnersArray.length > 1) {
+          alert(`🏆 Il y a un ex-aequo entre : ${winnersArray.map(w => w.name).join(", ")}`);
+        } else if (winnersArray.length === 1) {
+          alert(`🎉 Le gagnant est "${winnersArray[0].name}" ! 🏆`);
+        } else {
+          alert("Aucun gagnant. La partie est terminée !");
+        }
+      });
+    };
+
+    connectSocket();
+
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
+    };
+  }, [API_URL, sessionId]);
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -83,83 +189,7 @@ function AdminGameControl() {
     };
 
     fetchInitialData();
-
-    socket.emit("joinSession", { sessionId, role: "admin" });
-
-    socket.on(
-      "newQuestion",
-      async ({ question, timer, questionIndex, totalQuestions }) => {
-        setCurrentQuestion(question);
-        setTimer(timer);
-        setQuestionIndex(questionIndex);
-        setTotalQuestions(totalQuestions);
-        setIsTimeUp(false);
-        setAnswers([]);
-        setCorrectAnswer(null);
-        setStoppedTimerGroup(null);
-        setSessionStatus("In Progress");
-
-        // Fetch options if the question is red-type
-        if (question.response_type === "Question à choix unique") {
-          const token = localStorage.getItem("token");
-          try {
-            const optionsRes = await fetch(
-              `${API_URL}/questions/${question.id}/options`,
-              { headers: { Authorization: token } }
-            );
-            setQuestionOptions(await optionsRes.json());
-          } catch (err) {
-            console.error("Failed to fetch question options:", err);
-            setQuestionOptions([]);
-          }
-        } else {
-          setQuestionOptions([]); // Clear options for green questions
-        }
-      }
-    );
-
-    socket.on("answerSubmitted", (answer) => {
-      setAnswers((prev) => [...prev, answer]);
-    });
-
-    socket.on("timerStopped", ({ groupId, groupName }) => {
-      setStoppedTimerGroup({ groupId, groupName });
-      setTimer(0);
-      setIsTimeUp(true);
-    });
-
-    socket.on("camembertUpdated", ({ updatedCamemberts }) => {
-      setCamemberts(updatedCamemberts);
-    });
-
-    socket.on("gameOver", (data) => {
-      setCurrentQuestion(null);
-      setTimer(0);
-      setIsTimeUp(false);
-      setSessionStatus("Game Over");
-  
-      let winnersArray = [];
-  
-        if (Array.isArray(data.winners)) {
-          winnersArray = data.winners; // Multiple winners
-        } else if (data.winners) {
-          winnersArray = [data.winners]; // Convert single winner to an array
-        }
-  
-      setWinningGroups(winnersArray.map((w) => w.group_id)); // Store winning group IDs
-  
-      if (winnersArray.length > 1) {
-        alert(`🏆 Il y a un ex-aequo entre : ${winnersArray.map(w => w.name).join(", ")}`);
-      } else if (winnersArray.length === 1) {
-        alert(`🎉 Le gagnant est "${winnersArray[0].name}" ! 🏆`);
-      } else {
-        alert("Aucun gagnant. La partie est terminée !");
-      }
-    });
-
-    return () => {
-      socket.disconnect();
-    };
+    
   }, [API_URL, sessionId, sessionStatus, navigate]);
 
   useEffect(() => {
@@ -196,7 +226,7 @@ function AdminGameControl() {
         throw new Error("Failed to update session status.");
       }
       // Emit socket event to notify players that the game has started
-      socket.emit("startGame", sessionId);
+      socketRef.current.emit("startGame", sessionId);
     } catch (err) {
       console.error("Error starting the game:", err);
     }
@@ -224,7 +254,7 @@ function AdminGameControl() {
   }
 
   const validateAnswer = (answer, groupId, isCorrect) => {
-    socket.emit("validateAnswer", {
+    socketRef.current.emit("validateAnswer", {
       sessionId,
       groupId,
       questionId: currentQuestion.id,
@@ -234,7 +264,7 @@ function AdminGameControl() {
   };
 
   const validateAnswerNoPoints = (answer, groupId, isCorrect) => {
-    socket.emit("validateAnswerNoPoints", {
+    socketRef.current.emit("validateAnswerNoPoints", {
       sessionId,
       groupId,
       questionId: currentQuestion.id,
@@ -245,12 +275,12 @@ function AdminGameControl() {
 
   const revealAnswer = () => {
     if (currentQuestion) {
-      socket.emit("revealAnswer", currentQuestion.expected_answer);
+      socketRef.current.emit("revealAnswer", currentQuestion.expected_answer);
     }
   };
 
   const nextQuestion = () => {
-    socket.emit("nextQuestion", sessionId);
+    socketRef.current.emit("nextQuestion", sessionId);
     setAnswers([]);
     setCorrectAnswer(null);
     setIsTimeUp(false);

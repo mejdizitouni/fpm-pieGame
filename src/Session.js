@@ -632,7 +632,7 @@ function Session() {
                     <h4>Modifier les Propositions</h4>
                     <ul>
                       {editingQuestion.options.map((option, index) => (
-                        <li  class="options-list" key={index}>
+                        <li  class="options-list-session" key={index}>
                           {option}
                           <button
                             class="admin-button"
