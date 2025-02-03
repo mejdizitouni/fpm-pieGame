@@ -342,6 +342,14 @@ function Session() {
       <div className="session-container">
         <h1>Contenu de la session {sessionDetails.title}</h1>
 
+ {/* New Question Button */}
+ <button
+          class="admin-button"
+          onClick={() => setShowNewQuestionForm(!showNewQuestionForm)}
+        >
+          {showNewQuestionForm ? "Annuler" : "Nouvelle question"}
+        </button>
+        
         <h2 class="title">Questions</h2>
         {questions.length === 0 ? (
           <p>Aucune question crée pour cette session.</p>
