@@ -103,7 +103,10 @@ function Session() {
       );
 
       // If the question has options, save them
-      if (newQuestion.response_type === "Question à choix unique"  && newQuestion.options.length > 0) {
+      if (
+        newQuestion.response_type === "Question à choix unique" &&
+        newQuestion.options.length > 0
+      ) {
         await axios.post(
           `${API_URL}/questions/${response.data.id}/options`,
           { options: newQuestion.options },
@@ -198,7 +201,7 @@ function Session() {
       const questionData = response.data;
 
       // If the question is a red question, fetch its options
-      if (questionData.response_type === "Question à choix unique" ) {
+      if (questionData.response_type === "Question à choix unique") {
         const optionsResponse = await axios.get(
           `${API_URL}/questions/${questionId}/options`,
           { headers: { Authorization: token } }
@@ -351,28 +354,53 @@ function Session() {
                 <th>Intitulé</th>
                 <th>Réponse attendue</th>
                 <th>Temps alloué</th>
-                <th>Order d'apparition</th> {/* New column for question_order */}
+                <th>Order d'apparition</th>{" "}
+                {/* New column for question_order */}
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {questions.map((question) => (
                 <tr key={question.id}>
-                  <td>{question.type == "green" ? "Question de réponse rapide" : "Question de calcul"}</td>
+                  <td>
+                    {question.type == "green"
+                      ? "Question de réponse rapide"
+                      : "Question de calcul"}
+                  </td>
                   <td>{question.response_type}</td>
                   <td>
-  <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-    {question.title}
-  </pre>
-</td>                  <td>{question.expected_answer}</td>
+                    <pre
+                      style={{
+                        whiteSpace: "pre-wrap",
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      {question.title}
+                    </pre>
+                  </td>
+                  <td>
+                    <pre
+                      style={{
+                        whiteSpace: "pre-wrap",
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      {question.expected_answer}
+                    </pre>
+                  </td>
+                  {/* <td>{question.expected_answer}</td> */}
                   <td>{question.allocated_time}</td>
                   <td>{question.question_order || "-"}</td>{" "}
                   {/* Display question_order */}
                   <td>
-                    <button class="admin-button" onClick={() => editQuestion(question.id)}>
+                    <button
+                      class="admin-button"
+                      onClick={() => editQuestion(question.id)}
+                    >
                       Modifier
                     </button>
-                    <button class="admin-button"
+                    <button
+                      class="admin-button"
                       onClick={() => removeQuestionFromSession(question.id)}
                     >
                       Supprimer
@@ -385,222 +413,282 @@ function Session() {
         )}
 
         {/* New Question Button */}
-        <button class="admin-button" onClick={() => setShowNewQuestionForm(!showNewQuestionForm)}>
+        <button
+          class="admin-button"
+          onClick={() => setShowNewQuestionForm(!showNewQuestionForm)}
+        >
           {showNewQuestionForm ? "Annuler" : "Nouvelle question"}
         </button>
 
         {/* New Question Form */}
         {showNewQuestionForm && (
-          <form onSubmit={createQuestion}>
-            <select
-              value={newQuestion.type}
-              onChange={(e) =>
-                setNewQuestion({ ...newQuestion, type: e.target.value })
-              }
-              required
-            >
-              <option value="">Séléctionner la catégorie Type</option>
-              <option value="red">Question de calcul</option>
-              <option value="green">Question réponse rapide</option>
-            </select>
-            <select
-              value={newQuestion.response_type}
-              onChange={(e) => setNewQuestion({ ...newQuestion, response_type: e.target.value })}
-              required
-            >
-              <option value="">Type de réponse</option>
-              <option value="Question à choix unique">Question à choix unique</option>
-              <option value="Réponse libre">Réponse libre</option>
-            </select>
-            <textarea
-              placeholder="Intitulé de la question"
-              value={newQuestion.title}
-              onChange={(e) =>
-                setNewQuestion({ ...newQuestion, title: e.target.value })
-              }
-              rows={3} // Adjust number of visible lines
-              required
-            />
-            <input
-              type="text"
-              placeholder="Réponse attendue"
-              value={newQuestion.expected_answer}
-              onChange={(e) =>
-                setNewQuestion({
-                  ...newQuestion,
-                  expected_answer: e.target.value,
-                })
-              }
-              required
-            />
-            <input
-              type="number"
-              placeholder="Temps alloué"
-              value={newQuestion.allocated_time}
-              onChange={(e) =>
-                setNewQuestion({
-                  ...newQuestion,
-                  allocated_time: e.target.value,
-                })
-              }
-              required
-            />
-            <input
-              type="number"
-              placeholder="Order d'apparition"
-              value={newQuestion.question_order || ""}
-              onChange={(e) =>
-                setNewQuestion({
-                  ...newQuestion,
-                  question_order: e.target.value,
-                })
-              }
-              required
-            />
-            {/* Options for Red Questions */}
-            {newQuestion.response_type === "Question à choix unique" && (
-              <div>
-                <h4>Propositions</h4>
-                <ul>
-                  {newQuestion.options.map((option, index) => (
-                    <li key={index}>
-                      {option}
-                      <button class="admin-button" type="button" onClick={() => removeOption(index)}>
-                        Supprimer
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-                <input
-                  type="text"
-                  placeholder="Ajouter une proposition"
-                  value={optionInput}
-                  onChange={(e) => setOptionInput(e.target.value)}
+          <div className="modal-overlay">
+            <div className="modal-content">
+              <form onSubmit={createQuestion}>
+                <select
+                  value={newQuestion.type}
+                  onChange={(e) =>
+                    setNewQuestion({ ...newQuestion, type: e.target.value })
+                  }
+                  required
+                >
+                  <option value="">Séléctionner la catégorie Type</option>
+                  <option value="red">Question de calcul</option>
+                  <option value="green">Question réponse rapide</option>
+                </select>
+                <select
+                  value={newQuestion.response_type}
+                  onChange={(e) =>
+                    setNewQuestion({
+                      ...newQuestion,
+                      response_type: e.target.value,
+                    })
+                  }
+                  required
+                >
+                  <option value="">Type de réponse</option>
+                  <option value="Question à choix unique">
+                    Question à choix unique
+                  </option>
+                  <option value="Réponse libre">Réponse libre</option>
+                </select>
+                <textarea
+                  placeholder="Intitulé de la question"
+                  value={newQuestion.title}
+                  onChange={(e) =>
+                    setNewQuestion({ ...newQuestion, title: e.target.value })
+                  }
+                  rows={3} // Adjust number of visible lines
+                  required
                 />
-                <button class="admin-button" type="button" onClick={addOption}>
-                  Ajouter la proposition
+
+                <textarea
+                  placeholder="Réponse attendue"
+                  value={newQuestion.expected_answer}
+                  onChange={(e) =>
+                    setNewQuestion({
+                      ...newQuestion,
+                      expected_answer: e.target.value,
+                    })
+                  }
+                  rows={3} // Adjust number of visible lines
+                  required
+                />
+
+                <input
+                  type="number"
+                  placeholder="Temps alloué"
+                  value={newQuestion.allocated_time}
+                  onChange={(e) =>
+                    setNewQuestion({
+                      ...newQuestion,
+                      allocated_time: e.target.value,
+                    })
+                  }
+                  required
+                />
+                <input
+                  type="number"
+                  placeholder="Order d'apparition"
+                  value={newQuestion.question_order || ""}
+                  onChange={(e) =>
+                    setNewQuestion({
+                      ...newQuestion,
+                      question_order: e.target.value,
+                    })
+                  }
+                  required
+                />
+                {/* Options for Red Questions */}
+                {newQuestion.response_type === "Question à choix unique" && (
+                  <div>
+                    <h4>Propositions</h4>
+                    <ul>
+                      {newQuestion.options.map((option, index) => (
+                        <li key={index}>
+                          {option}
+                          <button
+                            class="admin-button"
+                            type="button"
+                            onClick={() => removeOption(index)}
+                          >
+                            Supprimer
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                    <input
+                      type="text"
+                      placeholder="Ajouter une proposition"
+                      value={optionInput}
+                      onChange={(e) => setOptionInput(e.target.value)}
+                    />
+                    <button
+                      class="admin-button"
+                      type="button"
+                      onClick={addOption}
+                    >
+                      Ajouter la proposition
+                    </button>
+                  </div>
+                )}
+                <div class="flex-buttons-container">
+                <button class="admin-button" type="submit">
+                  Créer
                 </button>
-              </div>
-            )}
-            <button class="admin-button" type="submit">Créer</button>
-          </form>
+                <button
+                  class="admin-button"
+                  onClick={() => setShowNewQuestionForm(!showNewQuestionForm)}
+                >
+                  {showNewQuestionForm ? "Annuler" : "Nouvelle question"}
+                </button>
+                </div>
+               
+              </form>
+            </div>
+          </div>
         )}
 
         {/* Editing a Question */}
         {editingQuestion && (
-          <form onSubmit={updateQuestion}>
-            <select
-              value={editingQuestion.type}
-              onChange={(e) =>
-                setEditingQuestion({
-                  ...editingQuestion,
-                  type: e.target.value,
-                })
-              }
-            >
-              <option value="red">Question de calcul</option>
-              <option value="green">Question de réponse rapide</option>
-            </select>
-            <select
-              value={editingQuestion.response_type}
-              onChange={(e) => setEditingQuestion({ ...editingQuestion, response_type: e.target.value })}
-              required
-            >
-              <option value="">Type de réponse</option>
-              <option value="Question à choix unique">Question à choix unique</option>
-              <option value="Réponse libre">Réponse libre</option>
-            </select>
-            <textarea
-              value={editingQuestion.title}
-              onChange={(e) =>
-                setEditingQuestion({
-                  ...editingQuestion,
-                  title: e.target.value,
-                })
-              }
-              rows={3}
-              required
-            />
-            <input
-              type="text"
-              value={editingQuestion.expected_answer}
-              onChange={(e) =>
-                setEditingQuestion({
-                  ...editingQuestion,
-                  expected_answer: e.target.value,
-                })
-              }
-            />
-            <input
-              type="number"
-              value={editingQuestion.allocated_time}
-              onChange={(e) =>
-                setEditingQuestion({
-                  ...editingQuestion,
-                  allocated_time: e.target.value,
-                })
-              }
-            />
-            <input
-              type="number"
-              value={editingQuestion.question_order || ""}
-              onChange={(e) =>
-                setEditingQuestion({
-                  ...editingQuestion,
-                  question_order: e.target.value,
-                })
-              }
-            />
+          <div className="modal-overlay">
+            <div className="modal-content">
+              <form onSubmit={updateQuestion}>
+                <select
+                  value={editingQuestion.type}
+                  onChange={(e) =>
+                    setEditingQuestion({
+                      ...editingQuestion,
+                      type: e.target.value,
+                    })
+                  }
+                >
+                  <option value="red">Question de calcul</option>
+                  <option value="green">Question de réponse rapide</option>
+                </select>
+                <select
+                  value={editingQuestion.response_type}
+                  onChange={(e) =>
+                    setEditingQuestion({
+                      ...editingQuestion,
+                      response_type: e.target.value,
+                    })
+                  }
+                  required
+                >
+                  <option value="">Type de réponse</option>
+                  <option value="Question à choix unique">
+                    Question à choix unique
+                  </option>
+                  <option value="Réponse libre">Réponse libre</option>
+                </select>
+                <textarea
+                  value={editingQuestion.title}
+                  onChange={(e) =>
+                    setEditingQuestion({
+                      ...editingQuestion,
+                      title: e.target.value,
+                    })
+                  }
+                  rows={3}
+                  required
+                />
+                <textarea
+                  value={editingQuestion.expected_answer}
+                  onChange={(e) =>
+                    setEditingQuestion({
+                      ...editingQuestion,
+                      expected_answer: e.target.value,
+                    })
+                  }
+                  rows={3}
+                  required
+                />
+                <input
+                  type="number"
+                  value={editingQuestion.allocated_time}
+                  onChange={(e) =>
+                    setEditingQuestion({
+                      ...editingQuestion,
+                      allocated_time: e.target.value,
+                    })
+                  }
+                />
+                <input
+                  type="number"
+                  value={editingQuestion.question_order || ""}
+                  onChange={(e) =>
+                    setEditingQuestion({
+                      ...editingQuestion,
+                      question_order: e.target.value,
+                    })
+                  }
+                />
 
-            {/* Options for Red Questions */}
-            {editingQuestion.response_type === "Question à choix unique"  && (
-              <div>
-                <h4>Modifier les Propositions</h4>
-                <ul>
-                  {editingQuestion.options.map((option, index) => (
-                    <li key={index}>
-                      {option}
-                      <button class="admin-button"
-                        type="button"
-                        onClick={() =>
+                {/* Options for Red Questions */}
+                {editingQuestion.response_type ===
+                  "Question à choix unique" && (
+                  <div>
+                    <h4>Modifier les Propositions</h4>
+                    <ul>
+                      {editingQuestion.options.map((option, index) => (
+                        <li  class="options-list" key={index}>
+                          {option}
+                          <button
+                            class="admin-button"
+                            type="button"
+                            onClick={() =>
+                              setEditingQuestion((prev) => ({
+                                ...prev,
+                                options: prev.options.filter(
+                                  (_, i) => i !== index
+                                ),
+                              }))
+                            }
+                          >
+                            Supprimer
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                    <input
+                      type="text"
+                      placeholder="Add option"
+                      value={optionInput}
+                      onChange={(e) => setOptionInput(e.target.value)}
+                    />
+                    <button
+                      class="admin-button"
+                      type="button"
+                      onClick={() => {
+                        if (optionInput.trim()) {
                           setEditingQuestion((prev) => ({
                             ...prev,
-                            options: prev.options.filter((_, i) => i !== index),
-                          }))
+                            options: [...prev.options, optionInput.trim()],
+                          }));
+                          setOptionInput("");
                         }
-                      >
-                        Supprimer
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-                <input
-                  type="text"
-                  placeholder="Add option"
-                  value={optionInput}
-                  onChange={(e) => setOptionInput(e.target.value)}
-                />
-                <button class="admin-button"
-                  type="button"
-                  onClick={() => {
-                    if (optionInput.trim()) {
-                      setEditingQuestion((prev) => ({
-                        ...prev,
-                        options: [...prev.options, optionInput.trim()],
-                      }));
-                      setOptionInput("");
-                    }
-                  }}
-                >
-                  Ajouter une proposition
+                      }}
+                    >
+                      Ajouter une proposition
+                    </button>
+                  </div>
+                )}
+                <div class="flex-buttons-container">
+                <button class="admin-button" type="submit">
+                  Mettre à jour
                 </button>
-              </div>
-            )}
-            <button class="admin-button" type="submit">Mettre à jour</button>
-            <button class="admin-button" type="button" onClick={cancelQuestionEdit}>
-              Annuler
-            </button>
-          </form>
+                <button
+                  class="admin-button"
+                  type="button"
+                  onClick={cancelQuestionEdit}
+                >
+                  Annuler
+                </button>
+                  </div>
+              </form>
+            </div>
+          </div>
         )}
 
         <h2 class="title">Lier une question existance</h2>
@@ -614,7 +702,9 @@ function Session() {
             {Array.isArray(allQuestions) && allQuestions.length > 0 ? (
               allQuestions.map((question) => (
                 <option key={question.id} value={question.id}>
-                  {question.type == "green" ? "Question de réponse rapide" : "Question à calcul " + question.title}
+                  {question.type == "green"
+                    ? "Question de réponse rapide"
+                    : "Question à calcul " + question.title}
                 </option>
               ))
             ) : (
@@ -635,7 +725,11 @@ function Session() {
             }
             required
           />
-          <button class="admin-button" type="submit" disabled={allQuestions.length === 0}>
+          <button
+            class="admin-button"
+            type="submit"
+            disabled={allQuestions.length === 0}
+          >
             Lier la question
           </button>
         </form>
@@ -664,8 +758,16 @@ function Session() {
                     />
                   </td>
                   <td class="actions">
-                    <button class="admin-button" onClick={() => editGroup(group.id)}>Modifier</button>
-                    <button class="admin-button" onClick={() => deleteGroup(group.id)}>
+                    <button
+                      class="admin-button"
+                      onClick={() => editGroup(group.id)}
+                    >
+                      Modifier
+                    </button>
+                    <button
+                      class="admin-button"
+                      onClick={() => deleteGroup(group.id)}
+                    >
                       Supprimer
                     </button>
                   </td>
@@ -676,87 +778,118 @@ function Session() {
         )}
 
         {/* New Group Button */}
-        <button class="admin-button" onClick={() => setShowNewGroupForm(!showNewGroupForm)}>
+        <button
+          class="admin-button"
+          onClick={() => setShowNewGroupForm(!showNewGroupForm)}
+        >
           {showNewGroupForm ? "Annuler" : "Nouveau groupe"}
         </button>
 
         {/* New Group Form */}
         {showNewGroupForm && (
-          <form onSubmit={createGroup}>
-            <input
-              type="text"
-              placeholder="Nom du groupe"
-              value={newGroup.name}
-              onChange={(e) =>
-                setNewGroup({ ...newGroup, name: e.target.value })
-              }
-              required
-            />
-            <input
-              type="text"
-              placeholder="Description du groupe"
-              value={newGroup.description}
-              onChange={(e) =>
-                setNewGroup({ ...newGroup, description: e.target.value })
-              }
-            />
-            <select
-              value={newGroup.avatar_name || ""}
-              onChange={(e) =>
-                setNewGroup({ ...newGroup, avatar_name: e.target.value })
-              }
-              required
-            >
-              <option value="">Selectionner un avatar</option>
-              <option value="Afroboy">Afroboy</option>
-              <option value="Cloud">Cloud</option>
-              <option value="Chaplin">Chaplin</option>
-              <option value="Helmet">Helmet</option>
-            </select>
-            <button class="admin-button" type="submit">Créer</button>
-          </form>
+          <div className="modal-overlay">
+            <div className="modal-content">
+              <form onSubmit={createGroup}>
+                <input
+                  type="text"
+                  placeholder="Nom du groupe"
+                  value={newGroup.name}
+                  onChange={(e) =>
+                    setNewGroup({ ...newGroup, name: e.target.value })
+                  }
+                  required
+                />
+                <input
+                  type="text"
+                  placeholder="Description du groupe"
+                  value={newGroup.description}
+                  onChange={(e) =>
+                    setNewGroup({ ...newGroup, description: e.target.value })
+                  }
+                />
+                <select
+                  value={newGroup.avatar_name || ""}
+                  onChange={(e) =>
+                    setNewGroup({ ...newGroup, avatar_name: e.target.value })
+                  }
+                  required
+                >
+                  <option value="">Selectionner un avatar</option>
+                  <option value="Afroboy">Afroboy</option>
+                  <option value="Cloud">Cloud</option>
+                  <option value="Chaplin">Chaplin</option>
+                  <option value="Helmet">Helmet</option>
+                </select>
+                <div class="flex-buttons-container">
+                <button class="admin-button" type="submit">
+                  Créer
+                </button>
+                <button
+                  class="admin-button"
+                  onClick={() => setShowNewGroupForm(!showNewGroupForm)}
+                >
+                  {showNewGroupForm ? "Annuler" : "Nouveau groupe"}
+                </button>
+                </div>
+                
+              </form>
+            </div>
+          </div>
         )}
 
         {editingGroup && (
-          <form onSubmit={updateGroup}>
-            <input
-              type="text"
-              value={editingGroup.name}
-              onChange={(e) =>
-                setEditingGroup({ ...editingGroup, name: e.target.value })
-              }
-            />
-            <input
-              type="text"
-              value={editingGroup.description}
-              onChange={(e) =>
-                setEditingGroup({
-                  ...editingGroup,
-                  description: e.target.value,
-                })
-              }
-            />
-            <select
-              value={editingGroup.avatar_name || ""}
-              onChange={(e) =>
-                setEditingGroup({
-                  ...editingGroup,
-                  avatar_name: e.target.value,
-                })
-              }
-              required
-            >
-              <option value="">Selectionner un avatar</option>
-              <option value="Afroboy">Afroboy</option>
-              <option value="Cloud">Cloud</option>
-              <option value="Chaplin">Chaplin</option>
-              <option value="Helmet">Helmet</option>
-            </select>
-            <button class="admin-button" type="submit">Mettre à jour</button>
-            <button class="admin-button" type="button" onClick={cancelGroupEdit}>
-              Annuler
-            </button>
-          </form>
+          <div className="modal-overlay">
+            <div className="modal-content">
+              <form onSubmit={updateGroup}>
+                <input
+                  type="text"
+                  value={editingGroup.name}
+                  onChange={(e) =>
+                    setEditingGroup({ ...editingGroup, name: e.target.value })
+                  }
+                />
+                <input
+                  type="text"
+                  value={editingGroup.description}
+                  onChange={(e) =>
+                    setEditingGroup({
+                      ...editingGroup,
+                      description: e.target.value,
+                    })
+                  }
+                />
+                <select
+                  value={editingGroup.avatar_name || ""}
+                  onChange={(e) =>
+                    setEditingGroup({
+                      ...editingGroup,
+                      avatar_name: e.target.value,
+                    })
+                  }
+                  required
+                >
+                  <option value="">Selectionner un avatar</option>
+                  <option value="Afroboy">Afroboy</option>
+                  <option value="Cloud">Cloud</option>
+                  <option value="Chaplin">Chaplin</option>
+                  <option value="Helmet">Helmet</option>
+                </select>
+               
+                <div class="flex-buttons-container">
+                   <button class="admin-button" type="submit">
+                  Mettre à jour
+                </button>
+                <button
+                  class="admin-button"
+                  type="button"
+                  onClick={cancelGroupEdit}
+                >
+                  Annuler
+                </button>
+                </div>
+              </form>
+            </div>
+          </div>
         )}
       </div>
       <Footer />
