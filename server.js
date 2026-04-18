@@ -701,7 +701,7 @@ app.get("/sessions/:id/groups", (req, res) => {
 
     const sessionId = req.params.id;
     db.all(
-      `SELECT id, name, description, avatar_name, avatar_url FROM groups WHERE session_id = ?`,
+      `SELECT id, session_id, name, description, avatar_name, avatar_url, join_url FROM groups WHERE session_id = ?`,
       [sessionId],
       (err, rows) => {
         if (err) {
@@ -719,7 +719,7 @@ app.get("/sessions/:id/groups/:groupId", (req, res) => {
   const sessionId = req.params.id;
   const groupId = req.params.groupId;
   db.get(
-    `SELECT id, name, description, avatar_name, avatar_url FROM groups WHERE session_id = ? AND id = ?`,
+    `SELECT id, session_id, name, description, avatar_name, avatar_url, join_url FROM groups WHERE session_id = ? AND id = ?`,
     [sessionId, groupId],
     (err, row) => {
       if (err) {

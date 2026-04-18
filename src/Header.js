@@ -1,25 +1,34 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom'; // Import useNavigate
-import logo from "./logo-fpm.png"
-import "./Header.css"; // Import the CSS file for styling
+import { useNavigate } from 'react-router-dom';
+import logoFpm from "./logo-fpm-v2.png";
+import logoUniversite from "./logo-universite-v2.png";
+import "./Header.css";
 
 function Header() {
-  const navigate = useNavigate(); // Initialize useNavigate hook
+  const navigate = useNavigate();
 
   const handleLogout = () => {
-    localStorage.removeItem("token"); // Remove token from localStorage
-    navigate("/"); // Redirect to the root (login page)
+    localStorage.removeItem("token");
+    navigate("/");
   };
 
-  const isAuthenticated = localStorage.getItem("token"); // Check if authenticated
+  const isAuthenticated = localStorage.getItem("token");
 
   return (
     <header>
-      <img
-        src={logo}
-        alt="Game Management"
-        onClick={() => navigate("/admin")} // Navigate to /admin on logo click
-      />
+      <div className="header-logos">
+        <img
+          src={logoFpm}
+          alt="FPM Logo"
+          className="header-logo"
+          onClick={() => navigate("/admin")}
+        />
+        <img
+          src={logoUniversite}
+          alt="Université Logo"
+          className="header-logo header-logo-university"
+        />
+      </div>
       {isAuthenticated && (
         <button type="button" onClick={handleLogout} className="logout-button">
           Logout

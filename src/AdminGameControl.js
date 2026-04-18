@@ -4,6 +4,7 @@ import { io } from "socket.io-client";
 import Header from "./Header";
 import Footer from "./Footer";
 import PieChart from "./PieChart";
+import { toast } from "./toast";
 import "./AdminGameControl.css"; // Import the CSS file for styling
 
 function AdminGameControl() {
@@ -24,6 +25,8 @@ function AdminGameControl() {
   const [totalQuestions, setTotalQuestions] = useState(null);
   const [stoppedTimerGroup, setStoppedTimerGroup] = useState(null);
   const [winningGroups, setWinningGroups] = useState([]); // Store winning group IDs
+  const [socketConnected, setSocketConnected] = useState(false); // Connection status
+  const [validatedAnswers, setValidatedAnswers] = useState({}); // Track validated answer state
 
   // Keep WebSocket instance in a ref to prevent reinitialization
   const socketRef = useRef(null);
@@ -44,10 +47,12 @@ function AdminGameControl() {
 
       socketRef.current.on("connect", () => {
         console.log("WebSocket connected");
+        setSocketConnected(true);
       });
 
       socketRef.current.on("disconnect", (reason) => {
         console.warn("WebSocket disconnected:", reason);
+        setSocketConnected(false);
         if (reason === "io server disconnect") {
           socketRef.current.connect(); // Manually reconnect if server disconnects
         }
@@ -114,11 +119,11 @@ function AdminGameControl() {
         setWinningGroups(winnersArray.map((w) => w.group_id));
 
         if (winnersArray.length > 1) {
-          alert(`🏆 Il y a un ex-aequo entre : ${winnersArray.map(w => w.name).join(", ")}`);
+          toast.info(`🏆 Ex-aequo entre : ${winnersArray.map((w) => w.name).join(", ")}`);
         } else if (winnersArray.length === 1) {
-          alert(`🎉 Le gagnant est "${winnersArray[0].name}" ! 🏆`);
+          toast.success(`🎉 Gagnant : "${winnersArray[0].name}" ! 🏆`);
         } else {
-          alert("Aucun gagnant. La partie est terminée !");
+          toast.info("Aucun gagnant. La partie est terminée !");
         }
       });
     };
@@ -261,6 +266,7 @@ function AdminGameControl() {
       isCorrect,
       stoppedTimer: answer.stoppedTimer,
     });
+    setValidatedAnswers((prev) => ({ ...prev, [groupId]: isCorrect ? "correct" : "incorrect" }));
   };
 
   const validateAnswerNoPoints = (answer, groupId, isCorrect) => {
@@ -271,6 +277,7 @@ function AdminGameControl() {
       isCorrect,
       stoppedTimer: answer.stoppedTimer,
     });
+    setValidatedAnswers((prev) => ({ ...prev, [groupId]: isCorrect ? "correct" : "incorrect" }));
   };
 
   const revealAnswer = () => {
@@ -288,6 +295,7 @@ function AdminGameControl() {
     setCorrectAnswer(null);
     setIsTimeUp(false);
     setStoppedTimerGroup(null);
+    setValidatedAnswers({});
   };
 
   const generateCamemberts = (red, green) => {
@@ -398,6 +406,10 @@ function AdminGameControl() {
     <>
       <Header />
       <div className="admin-game-control-container">
+        <div className={`connection-status ${socketConnected ? "connected" : "disconnected"}`}>
+          <span className="connection-dot" />
+          {socketConnected ? "Connecté en temps réel" : "Reconnexion…"}
+        </div>
         {sessionStatus === "Activated" && (
           <button className="start-game-button" onClick={startGame}>
             Démarrer la session
@@ -571,9 +583,17 @@ function AdminGameControl() {
             <h2>Réponses soumises</h2>
             <ul className="answers-list">
               {answers.map((answer, index) => (
-                <li key={index} className="answer-item">
-                  <strong>{answer.groupName}</strong>: {answer.answer}
-                  {answer.stoppedTimer && <em> (Stopped Timer)</em>}
+                <li key={index} className={`answer-item${validatedAnswers[answer.groupId] ? ` answer-${validatedAnswers[answer.groupId]}` : ""}`}>
+                  <div className="answer-header">
+                    <strong>{answer.groupName}</strong>: {answer.answer}
+                    {answer.stoppedTimer && <em> (Stopped Timer)</em>}
+                    {validatedAnswers[answer.groupId] && (
+                      <span className={`validation-badge ${validatedAnswers[answer.groupId]}`}>
+                        {validatedAnswers[answer.groupId] === "correct" ? "✓ Correcte" : "✕ Incorrecte"}
+                      </span>
+                    )}
+                  </div>
+                  <div className="answer-actions">
                   <button
                     className="validate-button correct"
                     onClick={() => validateAnswer(answer, answer.groupId, true)}
@@ -586,7 +606,7 @@ function AdminGameControl() {
                       validateAnswerNoPoints(answer, answer.groupId, true)
                     }
                   >
-                    Correcte (attribution manuelle des points)
+                    Correcte (manuel)
                   </button>
                   {answer.stoppedTimer && (
                     <button
@@ -605,9 +625,10 @@ function AdminGameControl() {
                         validateAnswerNoPoints(answer, answer.groupId, false)
                       }
                     >
-                      Incorrecte (attribution manuelle des points)
+                      Incorrecte (manuel)
                     </button>
                   )}
+                  </div>
                 </li>
               ))}
             </ul>
