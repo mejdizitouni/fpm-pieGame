@@ -422,7 +422,7 @@ function Admin() {
           </tbody>
         </table>
 
-        <div className={`session-form-wrapper${showForm ? " form-open" : ""}`}>
+        {showForm && (
           <form
             className="session-form"
             onSubmit={editingSession ? handleUpdateSession : createSession}
@@ -475,7 +475,7 @@ function Admin() {
               {editingSession ? "Mettre à jour" : "Créer"} la session
             </button>
           </form>
-        </div>
+        )}
 
         {activeSessionGroups.length > 0 && (
           <>
