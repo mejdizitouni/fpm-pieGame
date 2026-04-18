@@ -110,6 +110,11 @@
   padding: 10px;
 }
 
+.pie-chart-list canvas {
+  width: min(100%, 240px);
+  height: auto;
+}
+
 .timer-circle {
   position: relative;
   width: 128px;
@@ -261,5 +266,44 @@
   .admin-game-control-container button {
     width: 100%;
     margin: 5px 0;
+  }
+
+  .answer-item .validate-button {
+    width: auto;
+    margin: 4px;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-game-control-container {
+    width: calc(100vw - 12px);
+    padding: 10px;
+  }
+
+  .timer-circle {
+    width: 112px;
+    height: 112px;
+  }
+
+  .timer-circle::before {
+    width: 72px;
+    height: 72px;
+  }
+
+  .timer-status {
+    font-size: 12px;
+  }
+
+  .answer-item {
+    padding: 10px;
+  }
+
+  .answer-item .validate-button {
+    width: 100%;
+    margin: 4px 0;
+  }
+
+  .pie-chart-list {
+    grid-template-columns: 1fr;
   }
 }

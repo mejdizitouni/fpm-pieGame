@@ -127,4 +127,35 @@ ul {
   .admin-button {
     width: 100%;
   }
+
+  .actions {
+    min-width: 320px;
+  }
+
+  .actions .admin-button {
+    width: auto;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-container {
+    width: calc(100vw - 12px);
+    padding: 10px;
+  }
+
+  .session-header-container {
+    gap: 8px;
+  }
+
+  table th,
+  table td {
+    padding: 8px;
+    font-size: 12px;
+  }
+
+  .admin-button {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
 }

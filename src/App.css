@@ -100,3 +100,23 @@
     transform: translateY(0) scale(1);
   }
 }
+
+@media (max-width: 480px) {
+  .login-container {
+    padding: 12px;
+  }
+
+  .login-card {
+    width: 100%;
+    border-radius: 22px;
+    padding: 18px 14px;
+  }
+
+  .game-name {
+    font-size: clamp(1.7rem, 11vw, 2.5rem);
+  }
+
+  .login-subtitle {
+    font-size: 14px;
+  }
+}

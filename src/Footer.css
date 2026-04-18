@@ -12,4 +12,15 @@ footer p {
   font-size: 14px;
   letter-spacing: 0.02em;
 }
+
+@media (max-width: 480px) {
+  footer {
+    margin-top: 24px;
+    padding: 14px 10px;
+  }
+
+  footer p {
+    font-size: 12px;
+  }
+}
   

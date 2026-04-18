@@ -205,6 +205,11 @@
   padding: 12px;
 }
 
+.pie-chart-list canvas {
+  width: min(100%, 240px);
+  height: auto;
+}
+
 .group-avatar {
   width: 52px;
   height: 52px;
@@ -247,6 +252,51 @@
   }
 
   .question {
+    padding: 12px;
+  }
+
+  .modal-content {
+    width: calc(100vw - 20px);
+    max-height: 88vh;
+  }
+}
+
+@media (max-width: 480px) {
+  .game-container {
+    width: calc(100vw - 12px);
+    padding: 10px;
+  }
+
+  .timer-circle {
+    width: 112px;
+    height: 112px;
+  }
+
+  .timer-circle::before {
+    width: 72px;
+    height: 72px;
+  }
+
+  .timer-status {
+    font-size: 12px;
+  }
+
+  .submit-buttons-container {
+    flex-direction: column;
+  }
+
+  .submit-buttons-container button,
+  .game-container form button {
+    width: 100%;
+    margin: 0;
+  }
+
+  .pie-chart-list {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-content {
+    width: calc(100vw - 12px);
     padding: 12px;
   }
 }

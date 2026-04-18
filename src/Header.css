@@ -58,4 +58,20 @@ header img:hover {
     font-size: 14px;
   }
 }
+
+@media (max-width: 480px) {
+  header {
+    gap: 10px;
+    padding: 8px 10px;
+  }
+
+  header img {
+    height: 38px;
+  }
+
+  .logout-button {
+    padding: 7px 10px;
+    font-size: 12px;
+  }
+}
   

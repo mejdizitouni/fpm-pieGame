@@ -41,6 +41,7 @@ body {
   font-family: "Manrope", "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
 #root {
@@ -75,4 +76,11 @@ input,
 textarea,
 select {
   font: inherit;
+}
+
+img,
+svg,
+canvas,
+video {
+  max-width: 100%;
 }
