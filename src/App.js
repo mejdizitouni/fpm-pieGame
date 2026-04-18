@@ -101,7 +101,7 @@ function App() {
               Élaboré par : Nesrine Zitouni, Kaouthar Zribi, Sarra Mahfoudhi, Yessin Mokni, Mejdi Zitouni
             </p>
             <p className="login-meta-audience">
-              Publique cible : Étudiants en 2ème et 3ème année du premier cycle des études pharmaceutiques
+              Publique cible : Étudiants en 2ème année du premier cycle des études pharmaceutiques
             </p>
           </div>
 
