@@ -27,6 +27,7 @@ function Header() {
           src={logoUniversite}
           alt="Université Logo"
           className="header-logo header-logo-university"
+          onClick={() => navigate("/admin")}
         />
       </div>
       {isAuthenticated && (

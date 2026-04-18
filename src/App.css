@@ -27,6 +27,12 @@
   height: 46px;
   width: auto;
   object-fit: contain;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.login-brand-logo:hover {
+  transform: translateY(-1px);
 }
 
 .login-brand-logo-university {

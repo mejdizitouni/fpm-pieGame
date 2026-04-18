@@ -61,11 +61,17 @@ function App() {
       <div className="login-container">
         <div className="login-card">
           <div className="login-brand-logos" aria-hidden="true">
-            <img src={logoFpm} alt="FPM" className="login-brand-logo" />
+            <img
+              src={logoFpm}
+              alt="FPM"
+              className="login-brand-logo"
+              onClick={() => navigate("/admin")}
+            />
             <img
               src={logoUniversite}
               alt="Université"
               className="login-brand-logo login-brand-logo-university"
+              onClick={() => navigate("/admin")}
             />
           </div>
           <p className="eyebrow">Live Multiplayer Experience</p>
