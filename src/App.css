@@ -15,6 +15,24 @@
   animation: rise-in 0.55s ease both;
 }
 
+.login-brand-logos {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+
+.login-brand-logo {
+  height: 46px;
+  width: auto;
+  object-fit: contain;
+}
+
+.login-brand-logo-university {
+  height: 44px;
+}
+
 .eyebrow {
   margin: 0;
   text-transform: uppercase;
@@ -118,5 +136,13 @@
 
   .login-subtitle {
     font-size: 14px;
+  }
+
+  .login-brand-logo {
+    height: 38px;
+  }
+
+  .login-brand-logo-university {
+    height: 36px;
   }
 }
