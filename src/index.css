@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Syne:wght@600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap");
 
 :root {
   --bg-0: #f7f8ef;
@@ -38,7 +38,7 @@ body {
     radial-gradient(1200px 500px at 0% 0%, rgba(217, 119, 6, 0.18), transparent 70%),
     radial-gradient(900px 400px at 100% 100%, rgba(15, 118, 110, 0.15), transparent 70%),
     linear-gradient(155deg, var(--bg-0), var(--bg-1) 45%, var(--bg-2));
-  font-family: "Manrope", "Segoe UI", sans-serif;
+  font-family: "Manrope", "Segoe UI", Tahoma, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
@@ -63,8 +63,8 @@ h1,
 h2,
 h3,
 h4 {
-  font-family: "Syne", "Manrope", sans-serif;
-  letter-spacing: -0.02em;
+  font-family: "Manrope", "Segoe UI", Tahoma, sans-serif;
+  letter-spacing: -0.01em;
 }
 
 a {
@@ -83,4 +83,13 @@ svg,
 canvas,
 video {
   max-width: 100%;
+}
+
+/* Global page rhythm: keep comfortable spacing between major blocks */
+.admin-container > * + *,
+.session-container > * + *,
+.game-container > * + *,
+.admin-game-control-container > * + *,
+.login-card > * + * {
+  margin-top: clamp(10px, 1.6vw, 18px);
 }

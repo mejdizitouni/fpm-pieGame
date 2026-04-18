@@ -16,13 +16,7 @@ function Header() {
 
   return (
     <header>
-      <div className="header-logos">
-        <img
-          src={logoFpm}
-          alt="FPM Logo"
-          className="header-logo header-logo-fpm"
-          onClick={() => navigate("/admin")}
-        />
+      <div className="header-left">
         <img
           src={logoUniversite}
           alt="Université Logo"
@@ -30,11 +24,20 @@ function Header() {
           onClick={() => navigate("/admin")}
         />
       </div>
-      {isAuthenticated && (
-        <button type="button" onClick={handleLogout} className="logout-button">
-          Logout
-        </button>
-      )}
+
+      <div className="header-right">
+        {isAuthenticated && (
+          <button type="button" onClick={handleLogout} className="logout-button">
+            Deconnexion
+          </button>
+        )}
+        <img
+          src={logoFpm}
+          alt="FPM Logo"
+          className="header-logo header-logo-fpm"
+          onClick={() => navigate("/admin")}
+        />
+      </div>
     </header>
   );
 }

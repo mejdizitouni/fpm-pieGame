@@ -3,7 +3,7 @@ header {
   top: 0;
   z-index: 20;
   display: flex;
-  justify-content: flex-start;
+  justify-content: space-between;
   align-items: center;
   gap: 16px;
   padding: 12px 20px;
@@ -17,19 +17,11 @@ header img {
   border-radius: 10px;
 }
 
-.header-logos {
+.header-left,
+.header-right {
   display: flex;
   align-items: center;
   gap: 14px;
-  order: 1;
-}
-
-.header-logo-fpm {
-  order: 1;
-}
-
-.header-logo-university {
-  order: 2;
 }
 
 .header-logo {
@@ -44,8 +36,6 @@ header img {
 }
 
 .logout-button {
-  order: 2;
-  margin-left: auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -89,6 +79,11 @@ header img {
   header {
     gap: 10px;
     padding: 8px 10px;
+  }
+
+  .header-left,
+  .header-right {
+    gap: 8px;
   }
 
   header img {

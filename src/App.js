@@ -51,7 +51,7 @@ function App() {
       localStorage.setItem("token", response.data.token); // Save JWT in local storage
       navigate("/admin"); // Redirect to /admin after successful login
     } catch (err) {
-      setError("Invalid credentials");
+      setError("Identifiants invalides");
     }
   };
 
@@ -74,26 +74,26 @@ function App() {
               onClick={() => navigate("/admin")}
             />
           </div>
-          <p className="eyebrow">Live Multiplayer Experience</p>
+          <p className="eyebrow">Experience multijoueur en direct</p>
           <h1 className="game-name">Trivial Chem</h1>
           <p className="login-subtitle">
-            Connect your team, launch sessions, and control the game in real time.
+            Connectez votre equipe, lancez les sessions et controlez le jeu en temps reel.
           </p>
 
           <form className="login" onSubmit={handleLogin}>
             <input
               type="text"
-              placeholder="Username"
+              placeholder="Nom d'utilisateur"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
             />
             <input
               type="password"
-              placeholder="Password"
+              placeholder="Mot de passe"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
-            <button type="submit">Login</button>
+            <button type="submit">Se connecter</button>
           </form>
 
           <div className="login-meta">
