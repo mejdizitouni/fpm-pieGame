@@ -509,10 +509,26 @@ function Admin() {
             <ul>
               {activeSessionGroups.map((group) => (
                 <li className="urls" key={group.id}>
-                  <strong>{group.name}:</strong>{" "}
-                  <a href={group.join_url} target="_blank" rel="noreferrer">
-                    {group.join_url}
-                  </a>
+                  {(() => {
+                    const groupUrl =
+                      group.join_url ||
+                      (group.session_id
+                        ? `${window.location.origin}/game/${group.session_id}/${group.id}`
+                        : "");
+
+                    return (
+                      <>
+                        <strong>{group.name}:</strong>{" "}
+                        {groupUrl ? (
+                          <a href={groupUrl} target="_blank" rel="noreferrer">
+                            {groupUrl}
+                          </a>
+                        ) : (
+                          <span>Lien indisponible</span>
+                        )}
+                      </>
+                    );
+                  })()}
                 </li>
               ))}
             </ul>
