@@ -20,7 +20,7 @@ function Header() {
         <img
           src={logoFpm}
           alt="FPM Logo"
-          className="header-logo"
+          className="header-logo header-logo-fpm"
           onClick={() => navigate("/admin")}
         />
         <img

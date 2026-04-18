@@ -3,7 +3,7 @@ header {
   top: 0;
   z-index: 20;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   gap: 16px;
   padding: 12px 20px;
@@ -21,6 +21,15 @@ header img {
   display: flex;
   align-items: center;
   gap: 14px;
+  order: 1;
+}
+
+.header-logo-fpm {
+  order: 1;
+}
+
+.header-logo-university {
+  order: 2;
 }
 
 .header-logo {
@@ -35,6 +44,8 @@ header img {
 }
 
 .logout-button {
+  order: 2;
+  margin-left: auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
