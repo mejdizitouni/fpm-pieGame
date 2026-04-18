@@ -34,10 +34,6 @@ header img {
   transform: translateY(-1px);
 }
 
-.header-logo-university {
-  cursor: default;
-}
-
 .logout-button {
   display: inline-flex;
   align-items: center;
