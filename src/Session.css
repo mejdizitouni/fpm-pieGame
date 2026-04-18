@@ -62,6 +62,18 @@ table tr:last-child td {
   border-bottom: none;
 }
 
+.session-container td.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.session-container td.actions .admin-button {
+  margin: 0;
+  white-space: nowrap;
+}
+
 form {
   margin: 14px 0;
   padding: 16px;
@@ -148,7 +160,7 @@ ul li {
   }
 
   .actions {
-    min-width: 180px;
+    min-width: 220px;
   }
 
   .actions .admin-button {
@@ -167,6 +179,10 @@ ul li {
   table td {
     padding: 8px;
     font-size: 12px;
+  }
+
+  .session-container td.actions {
+    gap: 8px;
   }
 
   .modal-content {
