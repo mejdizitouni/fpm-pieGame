@@ -107,6 +107,27 @@
   font-weight: 700;
 }
 
+.login-meta {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--line);
+}
+
+.login-meta p {
+  margin: 4px 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-1);
+}
+
+.login-meta-names {
+  font-weight: 600;
+}
+
+.login-meta-audience {
+  font-style: italic;
+}
+
 @keyframes rise-in {
   from {
     opacity: 0;
@@ -136,6 +157,10 @@
 
   .login-subtitle {
     font-size: 14px;
+  }
+
+  .login-meta p {
+    font-size: 12px;
   }
 
   .login-brand-logo {

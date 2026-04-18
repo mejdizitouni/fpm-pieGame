@@ -90,6 +90,15 @@ function App() {
             <button type="submit">Login</button>
           </form>
 
+          <div className="login-meta">
+            <p className="login-meta-names">
+              Élaboré par : Nesrine Zitouni, Kaouthar Zribi, Sarra Mahfoudhi, Yessin Mokni, Mejdi Zitouni
+            </p>
+            <p className="login-meta-audience">
+              Publique cible : Étudiants en 2ème et 3ème année du premier cycle des études pharmaceutiques
+            </p>
+          </div>
+
           {error && <p className="login-error">{error}</p>}
         </div>
       </div>

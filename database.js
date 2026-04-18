@@ -24,29 +24,69 @@ const checkTableExists = (tableName) => {
   });
 };
 
-// Function to delete Test Session and related data
+// Function to delete default seeded session and related data
 const deleteTestSession = () => {
   return new Promise((resolve, reject) => {
-    db.get(
-      `SELECT id FROM game_sessions WHERE title = 'Test Session'`,
-      (err, session) => {
-        if (err) return reject(err);
-        if (!session) return resolve(); // No test session found
+    const titles = ["Test Session", "Protométrie en milieux aqueux"];
+    db.serialize(() => {
+      db.run(
+        `DELETE FROM session_questions WHERE session_id IN (SELECT id FROM game_sessions WHERE title IN (?, ?))`,
+        titles
+      );
+      db.run(
+        `DELETE FROM answers WHERE session_id IN (SELECT id FROM game_sessions WHERE title IN (?, ?))`,
+        titles
+      );
+      db.run(
+        `DELETE FROM camembert_progress WHERE group_id IN (SELECT id FROM groups WHERE session_id IN (SELECT id FROM game_sessions WHERE title IN (?, ?)))`,
+        titles
+      );
+      db.run(
+        `DELETE FROM groups WHERE session_id IN (SELECT id FROM game_sessions WHERE title IN (?, ?))`,
+        titles
+      );
+      db.run(
+        `DELETE FROM game_sessions WHERE title IN (?, ?)`,
+        titles,
+        function (err) {
+          if (err) return reject(err);
+          resolve();
+        }
+      );
+    });
+  });
+};
 
-        const sessionId = session.id;
+// Keep legacy seeded data aligned with latest naming
+const migrateLegacySessionLabels = () => {
+  return new Promise((resolve, reject) => {
+    db.serialize(() => {
+      db.run(
+        `UPDATE game_sessions SET title = 'Protométrie en milieux aqueux' WHERE title = 'Test Session'`,
+        (err) => {
+          if (err) return reject(err);
+        }
+      );
 
-        db.serialize(() => {
-          db.run(`DELETE FROM session_questions WHERE session_id = ?`, [sessionId]);
-          db.run(`DELETE FROM answers WHERE session_id = ?`, [sessionId]);
-          db.run(`DELETE FROM camembert_progress WHERE group_id IN (SELECT id FROM groups WHERE session_id = ?)`, [sessionId]);
-          db.run(`DELETE FROM groups WHERE session_id = ?`, [sessionId]);
-          db.run(`DELETE FROM game_sessions WHERE id = ?`, [sessionId], function (err) {
-            if (err) return reject(err);
-            resolve();
-          });
-        });
-      }
-    );
+      db.run(
+        `UPDATE game_sessions
+         SET green_questions_label = 'Flash réponse'
+         WHERE title = 'Protométrie en milieux aqueux' AND green_questions_label = 'Hulk Color'`,
+        (err) => {
+          if (err) return reject(err);
+        }
+      );
+
+      db.run(
+        `UPDATE game_sessions
+         SET red_questions_label = 'Expert calcul'
+         WHERE title = 'Protométrie en milieux aqueux' AND red_questions_label = 'Fire Color'`,
+        (err) => {
+          if (err) return reject(err);
+          resolve();
+        }
+      );
+    });
   });
 };
 
@@ -191,13 +231,13 @@ const createIndexes = () => {
   });
 };
 
-// Function to create the Test Session
+// Function to create the default session
 const createTestSession = () => {
   db.run(
     `INSERT INTO game_sessions 
 (title, date, green_questions_label, red_questions_label, status, session_rules) 
 VALUES 
-('Test Session', '2024-01-01', 'Hulk Color', 'Fire Color', 'Draft', 
+('Protométrie en milieux aqueux', '2024-01-01', 'Flash réponse', 'Expert calcul', 'Draft', 
 'Vous êtes invités à répondre tous en même temps à des questions chronométrées qui vont défiler sous forme de cartes de jeu rouges, de type Expert calcul (basée sur le calcul), et vertes, de type Flash réponse (basée sur les connaissances), de façon alternée.\n\n
 Une récompense sous forme d’un triangle de la même couleur que la carte vous sera offerte si vous êtes les premiers à avoir répondu juste.\n\n
 Vous avez la possibilité, si vous êtes sûrs de votre réponse, de la soumettre et d’arrêter le chronomètre. Si votre réponse est juste, vous gagnerez deux triangles de la couleur de votre choix. Si elle est fausse, vous perdrez un triangle de la même couleur que la carte.\n\n
@@ -706,7 +746,7 @@ Certaines réponses soumises comme correctes ne sont pas suffisantes pour être 
         );
       });
 
-      console.log("Test Session created successfully.");
+      console.log("Default session created successfully.");
     }
   );
 };
@@ -717,16 +757,17 @@ Certaines réponses soumises comme correctes ne sont pas suffisantes pour être 
     console.log("Checking for existing tables...");
     await createTables(); // Create tables if they don't exist
     createIndexes(); // Ensure indexes exist for current and future databases
+    await migrateLegacySessionLabels();
 
     const shouldSeedTestSession =
       process.env.SEED_TEST_SESSION === "true" ||
       process.env.NODE_ENV !== "production";
 
     if (shouldSeedTestSession) {
-      console.log("Deleting existing Test Session...");
+      console.log("Deleting existing default session...");
       await deleteTestSession(); // Delete existing Test Session
 
-      console.log("Creating new Test Session...");
+      console.log("Creating new default session...");
       createTestSession(); // Insert new Test Session
     } else {
       console.log("Skipping Test Session seed in production mode.");
