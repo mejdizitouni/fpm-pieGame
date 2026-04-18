@@ -257,6 +257,29 @@ function Game() {
     return camemberts;
   };
 
+  const getTimerVisualState = () => {
+    if (!question || !question.allocated_time) {
+      return "normal";
+    }
+
+    if (timer <= 0) {
+      return "expired";
+    }
+
+    const ratio = timer / question.allocated_time;
+    if (ratio <= 0.2) {
+      return "critical";
+    }
+
+    if (ratio <= 0.5) {
+      return "warning";
+    }
+
+    return "normal";
+  };
+
+  const timerVisualState = getTimerVisualState();
+
   if (sessionStatus === null) {
     return <h1>Chargement de la session...</h1>;
   }
@@ -340,7 +363,7 @@ function Game() {
             <div className="question-header">
               Question {questionIndex}/{totalQuestions}:
               {/* <img
-                class="question-type-avatar"
+                className="question-type-avatar"
                 src={question.question_icon}
                 alt={`${question.type} Avatar`}
               /> */}
@@ -354,25 +377,35 @@ function Game() {
             <h3 style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
   {question.title}
 </h3>
-            <div className="timer-circle">
-              <svg className="progress-ring" width="100" height="100">
+            <div className={`timer-circle ${timerVisualState}`}>
+              <svg className="progress-ring" width="112" height="112">
                 <circle
-                  className="progress-ring__circle"
-                  stroke="#007bff"
+                  className={`progress-ring__circle ${timerVisualState}`}
+                  stroke="currentColor"
                   strokeWidth="6"
                   fill="transparent"
-                  r="45"
-                  cx="50"
-                  cy="50"
+                  r="50"
+                  cx="56"
+                  cy="56"
                   style={{
-                    strokeDasharray: 283, // Circumference of the circle (2 * π * r)
-                    strokeDashoffset: (283 * timer) / question.allocated_time, // Progress
+                    strokeDasharray: 314,
+                    strokeDashoffset:
+                      (314 * Math.max(timer, 0)) / question.allocated_time,
                   }}
                 />
               </svg>
-              <div className="timer-text">
-                {timer > 0 ? `${timer}s` : "Fin du temps imparti"}
+              <div className={`timer-text ${timerVisualState}`}>
+                {timer > 0 ? `${timer}s` : "Time's Up!"}
               </div>
+            </div>
+            <div className={`timer-status ${timerVisualState}`}>
+              {timerVisualState === "critical"
+                ? "Vite! plus que quelques secondes"
+                : timerVisualState === "warning"
+                ? "Dépêchez-vous"
+                : timerVisualState === "expired"
+                ? "Temps écoulé"
+                : "Temps restant"}
             </div>
 
             {!stoppedTimerGroup && !submittedAnswer && timer > 0 && (
@@ -425,7 +458,7 @@ function Game() {
                       value={answer}
                       onChange={(e) => setAnswer(e.target.value)}
                     />
-                    <div class="submit-buttons-container">
+                    <div className="submit-buttons-container">
                       <button onClick={() => submitAnswer(false)}>
                         Soumettre la réponse
                       </button>

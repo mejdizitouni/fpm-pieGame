@@ -21,9 +21,9 @@ function Header() {
         onClick={() => navigate("/admin")} // Navigate to /admin on logo click
       />
       {isAuthenticated && (
-        <a onClick={handleLogout} className="logout-button">
+        <button type="button" onClick={handleLogout} className="logout-button">
           Logout
-        </a>
+        </button>
       )}
     </header>
   );

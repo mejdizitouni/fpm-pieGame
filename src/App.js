@@ -57,25 +57,33 @@ function App() {
     <>
       <Header />
       <div className="login-container">
-        <h1 class="game-name">Trivial Chem</h1>
-        <form class="login" onSubmit={handleLogin}>
-          <input
-            type="text"
-            placeholder="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <button type="submit">Login</button>
-        </form>
-        {error && <p style={{ color: "red" }}>{error}</p>}
+        <div className="login-card">
+          <p className="eyebrow">Live Multiplayer Experience</p>
+          <h1 className="game-name">Trivial Chem</h1>
+          <p className="login-subtitle">
+            Connect your team, launch sessions, and control the game in real time.
+          </p>
+
+          <form className="login" onSubmit={handleLogin}>
+            <input
+              type="text"
+              placeholder="Username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <button type="submit">Login</button>
+          </form>
+
+          {error && <p className="login-error">{error}</p>}
+        </div>
       </div>
-      {/* <Footer /> */}
+      <Footer />
     </>
   );
 }

@@ -5,6 +5,11 @@ const path = require("path");
 const dbPath = path.resolve(__dirname, "users.db");
 const db = new sqlite3.Database(dbPath);
 
+db.serialize(() => {
+  db.run("PRAGMA foreign_keys = ON");
+  db.run("PRAGMA busy_timeout = 5000");
+});
+
 // Function to check if a table exists
 const checkTableExists = (tableName) => {
   return new Promise((resolve, reject) => {
@@ -163,6 +168,27 @@ const createTables = async () => {
       `);
     });
   }
+};
+
+const createIndexes = () => {
+  db.serialize(() => {
+    db.run(
+      `CREATE INDEX IF NOT EXISTS idx_session_questions_session_order ON session_questions(session_id, question_order)`
+    );
+    db.run(
+      `CREATE INDEX IF NOT EXISTS idx_session_questions_session_question ON session_questions(session_id, question_id)`
+    );
+    db.run(
+      `CREATE INDEX IF NOT EXISTS idx_question_options_question_id ON question_options(question_id)`
+    );
+    db.run(`CREATE INDEX IF NOT EXISTS idx_groups_session_id ON groups(session_id)`);
+    db.run(
+      `CREATE INDEX IF NOT EXISTS idx_camembert_progress_group_id ON camembert_progress(group_id)`
+    );
+    db.run(
+      `CREATE INDEX IF NOT EXISTS idx_answers_session_group_question ON answers(session_id, group_id, question_id)`
+    );
+  });
 };
 
 // Function to create the Test Session
@@ -690,6 +716,7 @@ Certaines réponses soumises comme correctes ne sont pas suffisantes pour être 
   try {
     console.log("Checking for existing tables...");
     await createTables(); // Create tables if they don't exist
+    createIndexes(); // Ensure indexes exist for current and future databases
 
     console.log("Deleting existing Test Session...");
     await deleteTestSession(); // Delete existing Test Session

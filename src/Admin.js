@@ -308,9 +308,9 @@ function Admin() {
     <>
       <Header />
       <div className="admin-container">
-        <div class="session-header-container"> 
-        <h2 class="title">Sessions de jeu</h2>
-        <button class="admin-button" onClick={() => setShowForm(!showForm)}>
+        <div className="session-header-container"> 
+        <h2 className="title">Sessions de jeu</h2>
+        <button className="admin-button" onClick={() => setShowForm(!showForm)}>
           {showForm ? "Annuler" : "Créer une nouvelle session"}
         </button>
           </div>
@@ -336,15 +336,15 @@ function Admin() {
                   <td>{session.date}</td>
                   <td>{session.status}</td>
                   <td className="actions">
-                    <button class="admin-button" onClick={() => handleEdit(session)}>Modifier</button>
+                    <button className="admin-button" onClick={() => handleEdit(session)}>Modifier</button>
                     {session.status === "Draft" && (
                       <>
-                        <button class="admin-button"
+                        <button className="admin-button"
                           onClick={() => navigate(`/session/${session.id}`)}
                         >
                           Contenu
                         </button>
-                        <button class="admin-button" onClick={() => activateSession(session.id)}>
+                        <button className="admin-button" onClick={() => activateSession(session.id)}>
                           Activer
                         </button>
                       </>
@@ -352,22 +352,22 @@ function Admin() {
                     {(session.status !== "Draft") && (
                       <>
                         <button
-                        class="admin-button"
+                        className="admin-button"
                           onClick={() => navigate(`/admin/game/${session.id}`)}
                         >
                           Contrôle 
                         </button>
 
-                        <button class="admin-button" onClick={() => fetchGroupURLs(session.id)}>
+                        <button className="admin-button" onClick={() => fetchGroupURLs(session.id)}>
                           Liens de jeu
                         </button>
                       </>
                     )}
-                    <button class="admin-button" onClick={() => cloneSession(session.id)}>
+                    <button className="admin-button" onClick={() => cloneSession(session.id)}>
                       Cloner
                     </button>
-                    <button class="admin-button" onClick={() => resetSession(session.id)}>Réinitialiser</button> {/* NEW DELETE BUTTON */}
-                    <button class="admin-button delete" onClick={() => deleteSession(session.id)}>Supprimer</button> {/* NEW DELETE BUTTON */}
+                    <button className="admin-button" onClick={() => resetSession(session.id)}>Réinitialiser</button> {/* NEW DELETE BUTTON */}
+                    <button className="admin-button delete" onClick={() => deleteSession(session.id)}>Supprimer</button> {/* NEW DELETE BUTTON */}
 
                   </td>
                 </tr>
@@ -429,7 +429,7 @@ function Admin() {
               rows={3} // Adjust number of visible lines
               required
             />
-              <button class="admin-button" type="submit">
+              <button className="admin-button" type="submit">
                 {editingSession ? "Mettre à jour" : "Créer"} la session
               </button>
             </form>
@@ -438,10 +438,10 @@ function Admin() {
 
         {activeSessionGroups.length > 0 && (
           <>
-            <h2 class="title">Liens joueurs</h2>
+            <h2 className="title">Liens joueurs</h2>
             <ul>
               {activeSessionGroups.map((group) => (
-                <li class="urls" key={group.id}>
+                <li className="urls" key={group.id}>
                   <strong>{group.name}:</strong>{" "}
                   <a href={group.join_url} target="_blank" rel="noreferrer">
                     {group.join_url}
@@ -454,9 +454,9 @@ function Admin() {
 
         {adminSessionLink && (
           <>
-            <h2 class="title">Lien administrateur</h2>
+            <h2 className="title">Lien administrateur</h2>
             <ul>
-              <li class="urls" >
+              <li className="urls" >
                 <a href={adminSessionLink} target="_blank" rel="noreferrer">
                   {adminSessionLink}
                 </a>
