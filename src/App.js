@@ -4,6 +4,8 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Header from "./Header";
 import Footer from "./Footer";
+import logoFpm from "./logo-fpm-v2.png";
+import logoUniversite from "./logo-universite-v2.png";
 
 function App() {
   const API_URL = process.env.REACT_APP_API_URL;
@@ -58,6 +60,14 @@ function App() {
       <Header />
       <div className="login-container">
         <div className="login-card">
+          <div className="login-brand-logos" aria-hidden="true">
+            <img src={logoFpm} alt="FPM" className="login-brand-logo" />
+            <img
+              src={logoUniversite}
+              alt="Université"
+              className="login-brand-logo login-brand-logo-university"
+            />
+          </div>
           <p className="eyebrow">Live Multiplayer Experience</p>
           <h1 className="game-name">Trivial Chem</h1>
           <p className="login-subtitle">

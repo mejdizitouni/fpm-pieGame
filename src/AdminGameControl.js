@@ -649,39 +649,41 @@ function AdminGameControl() {
                       className="group-avatar"
                     />
                     <div className="points-control">
-                      {/* Red Points */}
-                      <button
-                        className="minus-button"
-                        onClick={() => updatePoints(cam.group_id, "red", -1)}
-                      >
-                        -
-                      </button>
-                      <span className="points-display">
-                        Rouge: {cam.red_triangles}
-                      </span>
-                      <button
-                        className="plus-button"
-                        onClick={() => updatePoints(cam.group_id, "red", 1)}
-                      >
-                        +
-                      </button>
+                      <div className="score-row">
+                        <button
+                          className="minus-button"
+                          onClick={() => updatePoints(cam.group_id, "red", -1)}
+                        >
+                          -
+                        </button>
+                        <span className="points-display">
+                          Rouge: {cam.red_triangles}
+                        </span>
+                        <button
+                          className="plus-button"
+                          onClick={() => updatePoints(cam.group_id, "red", 1)}
+                        >
+                          +
+                        </button>
+                      </div>
 
-                      {/* Green Points */}
-                      <button
-                        className="minus-button"
-                        onClick={() => updatePoints(cam.group_id, "green", -1)}
-                      >
-                        -
-                      </button>
-                      <span className="points-display">
-                        Vert: {cam.green_triangles}
-                      </span>
-                      <button
-                        className="plus-button"
-                        onClick={() => updatePoints(cam.group_id, "green", 1)}
-                      >
-                        +
-                      </button>
+                      <div className="score-row">
+                        <button
+                          className="minus-button"
+                          onClick={() => updatePoints(cam.group_id, "green", -1)}
+                        >
+                          -
+                        </button>
+                        <span className="points-display">
+                          Vert: {cam.green_triangles}
+                        </span>
+                        <button
+                          className="plus-button"
+                          onClick={() => updatePoints(cam.group_id, "green", 1)}
+                        >
+                          +
+                        </button>
+                      </div>
                     </div>
                   </div>
                   {generateCamemberts(

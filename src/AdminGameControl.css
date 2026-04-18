@@ -220,11 +220,28 @@
 }
 
 .points-control {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  margin-top: 8px;
+}
+
+.score-row {
+  display: grid;
+  grid-template-columns: 36px minmax(86px, auto) 36px;
   align-items: center;
-  gap: 6px;
+  justify-items: center;
+  gap: 8px;
+}
+
+.points-control button {
+  margin: 0;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .minus-button,
@@ -233,6 +250,8 @@
   border-radius: 10px;
   border: 1px solid var(--line);
   color: #182113;
+  font-size: 18px;
+  line-height: 1;
 }
 
 .minus-button {
@@ -246,7 +265,8 @@
 .points-display {
   font-weight: 700;
   color: var(--ink-1);
-  margin: 0 4px;
+  margin: 0;
+  white-space: nowrap;
 }
 
 .group-avatar {
