@@ -718,11 +718,19 @@ Certaines réponses soumises comme correctes ne sont pas suffisantes pour être 
     await createTables(); // Create tables if they don't exist
     createIndexes(); // Ensure indexes exist for current and future databases
 
-    console.log("Deleting existing Test Session...");
-    await deleteTestSession(); // Delete existing Test Session
+    const shouldSeedTestSession =
+      process.env.SEED_TEST_SESSION === "true" ||
+      process.env.NODE_ENV !== "production";
 
-    console.log("Creating new Test Session...");
-    createTestSession(); // Insert new Test Session
+    if (shouldSeedTestSession) {
+      console.log("Deleting existing Test Session...");
+      await deleteTestSession(); // Delete existing Test Session
+
+      console.log("Creating new Test Session...");
+      createTestSession(); // Insert new Test Session
+    } else {
+      console.log("Skipping Test Session seed in production mode.");
+    }
   } catch (error) {
     console.error("Error in setup:", error);
   }
