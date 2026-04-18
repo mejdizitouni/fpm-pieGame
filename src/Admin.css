@@ -90,7 +90,10 @@ form {
 
 form input[type="text"],
 form input[type="date"],
-form textarea {
+form textarea,
+.session-form input[type="text"],
+.session-form input[type="date"],
+.session-form textarea {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
@@ -158,4 +161,137 @@ ul {
     padding: 8px 12px;
     font-size: 12px;
   }
+}
+
+/* ── Status badges ──────────────────────────────────── */
+.status-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.status-draft       { background: rgba(100,116,139,0.15); color: #64748b; }
+.status-activated   { background: rgba(59,130,246,0.15);  color: #3b82f6; }
+.status-in-progress { background: rgba(234,179,8,0.15);   color: #ca8a04; }
+.status-game-over   { background: rgba(239,68,68,0.15);   color: #ef4444; }
+
+/* ── Action dropdown menu ───────────────────────────── */
+.action-menu-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.action-menu-trigger {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 4px 12px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: var(--brand-strong, #0f766e);
+  transition: background 0.15s;
+  font-weight: 700;
+}
+
+.action-menu-trigger:hover {
+  background: rgba(15,118,110,0.1);
+}
+
+.action-menu-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 500;
+  min-width: 190px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.15);
+  overflow: hidden;
+  animation: menuFadeIn 0.15s ease;
+}
+
+@keyframes menuFadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.action-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 14px;
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: 0.875rem;
+  color: #1e293b;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.action-menu-item:hover {
+  background: rgba(15,118,110,0.07);
+}
+
+.action-menu-item:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.action-menu-danger {
+  color: #ef4444;
+}
+
+.action-menu-danger:hover {
+  background: rgba(239,68,68,0.07);
+}
+
+.action-menu-divider {
+  height: 1px;
+  background: var(--line, rgba(0,0,0,0.08));
+  margin: 4px 0;
+}
+
+/* ── Animated form wrapper ──────────────────────────── */
+.session-form-wrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.35s ease;
+  overflow: hidden;
+}
+
+.session-form-wrapper.form-open {
+  grid-template-rows: 1fr;
+}
+
+.session-form {
+  min-height: 0;
+  display: grid;
+  gap: 10px;
+  margin: 0 0 26px;
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.8);
+}
+
+/* ── Loading spinner ────────────────────────────────── */
+.btn-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }

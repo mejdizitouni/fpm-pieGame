@@ -3,6 +3,8 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Header from "./Header";
 import Footer from "./Footer";
+import ConfirmDialog from "./ConfirmDialog";
+import { toast } from "./toast";
 import "./Admin.css"; // Import the CSS file for styling
 
 function Admin() {
@@ -13,6 +15,9 @@ function Admin() {
   const [newSession, setNewSession] = useState({ title: "", date: "" });
   const [showForm, setShowForm] = useState(false); // State to toggle form visibility
   const [editingSession, setEditingSession] = useState(null); // Track which session is being edited
+  const [cloningId, setCloningId] = useState(null); // Track which session is being cloned
+  const [openMenuId, setOpenMenuId] = useState(null); // Track which action menu is open
+  const [pendingAction, setPendingAction] = useState(null); // Confirm dialog state
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -74,63 +79,64 @@ function Admin() {
   const resetSession = async (sessionId) => {
     const token = localStorage.getItem("token");
     if (!token) {
-      alert("Unauthorized! Please log in.");
+      toast.error("Non autorisé. Veuillez vous reconnecter.");
       return;
     }
-  
-    if (!window.confirm("Êtes-vous sûr de vouloir réinitialiser cette session ?")) {
-      return; // Stop if user cancels
-    }
-  
-    try {
-      const response = await axios.post(`${API_URL}/sessions/${sessionId}/reset`, {
-        headers: { Authorization: token },
-      });
-  
-      // Update session list and UI
-      setGameSessions((prevSessions) =>
-        prevSessions.map((session) =>
-          session.id === sessionId ? { ...session, status: "Draft" } : session
-        )
-      );
-  
-      alert("Session réinitialisée avec succès !");
-    } catch (err) {
-      console.error("Failed to reset session:", err);
-      alert("Erreur lors de la réinitialisation de la session.");
-    }
+
+    setPendingAction({
+      message: "Êtes-vous sûr de vouloir réinitialiser cette session ?",
+      danger: false,
+      onConfirm: async () => {
+        setPendingAction(null);
+        try {
+          await axios.post(`${API_URL}/sessions/${sessionId}/reset`, {
+            headers: { Authorization: token },
+          });
+          setGameSessions((prevSessions) =>
+            prevSessions.map((session) =>
+              session.id === sessionId ? { ...session, status: "Draft" } : session
+            )
+          );
+          toast.success("Session réinitialisée avec succès !");
+        } catch (err) {
+          console.error("Failed to reset session:", err);
+          toast.error("Erreur lors de la réinitialisation de la session.");
+        }
+      },
+    });
   };
   
   const deleteSession = async (sessionId) => {
     const token = localStorage.getItem("token");
     if (!token) {
-      alert("Unauthorized! Please log in.");
+      toast.error("Non autorisé. Veuillez vous reconnecter.");
       return;
     }
   
-    if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette session ?")) {
-      return; // Stop if user cancels
-    }
-  
-    try {
-      await axios.delete(`${API_URL}/sessions/${sessionId}`, {
-        headers: { Authorization: token },
-      });
-  
-      // Remove the session from the UI
-      setGameSessions((prevSessions) => prevSessions.filter(session => session.id !== sessionId));
-  
-      alert("Session supprimée avec succès !");
-    } catch (err) {
-      console.error("Failed to delete session:", err);
-      alert("Erreur lors de la suppression de la session.");
-    }
+    setPendingAction({
+      message: "Êtes-vous sûr de vouloir supprimer cette session ? Cette action est irréversible.",
+      danger: true,
+      confirmLabel: "Supprimer",
+      onConfirm: async () => {
+        setPendingAction(null);
+        try {
+          await axios.delete(`${API_URL}/sessions/${sessionId}`, {
+            headers: { Authorization: token },
+          });
+          setGameSessions((prevSessions) => prevSessions.filter((session) => session.id !== sessionId));
+          toast.success("Session supprimée avec succès !");
+        } catch (err) {
+          console.error("Failed to delete session:", err);
+          toast.error("Erreur lors de la suppression de la session.");
+        }
+      },
+    });
   };
   
 
   const cloneSession = async (sessionId) => {
     const token = localStorage.getItem("token");
-
+    setCloningId(sessionId);
     try {
       // Step 1: Get the original session data
       const sessionResponse = await axios.get(
@@ -216,8 +222,12 @@ function Admin() {
         headers: { Authorization: token },
       });
       setGameSessions(sessionsResponse.data); // Update the state with the latest sessions
+      toast.success("Session clonée avec succès !");
     } catch (err) {
       console.error("Failed to clone session", err);
+      toast.error("Erreur lors du clonage de la session.");
+    } finally {
+      setCloningId(null);
     }
   };
 
@@ -257,10 +267,10 @@ function Admin() {
       );
 
       setActiveSessionGroups(response.data);
-      alert("Group URLs fetched successfully!");
+      toast.success("Liens de jeu récupérés !");
     } catch (err) {
       console.error("Failed to fetch group URLs", err);
-      alert("Error fetching group URLs. Please try again.");
+      toast.error("Erreur lors de la récupération des liens.");
     }
   };
 
@@ -293,7 +303,7 @@ function Admin() {
       setEditingSession(null); // Clear editing session
       setNewSession({ title: "", date: "" }); // Clear form
       setShowForm(false); // Hide the form
-      alert("Session updated successfully!");
+      toast.success("Session mise à jour avec succès !");
       // Fetch the updated session list
       const sessionsResponse = await axios.get(`${API_URL}/game-sessions`, {
         headers: { Authorization: token },
@@ -307,13 +317,22 @@ function Admin() {
   return (
     <>
       <Header />
-      <div className="admin-container">
+      {pendingAction && (
+        <ConfirmDialog
+          message={pendingAction.message}
+          danger={pendingAction.danger}
+          confirmLabel={pendingAction.confirmLabel}
+          onConfirm={pendingAction.onConfirm}
+          onCancel={() => setPendingAction(null)}
+        />
+      )}
+      <div className="admin-container" onClick={() => setOpenMenuId(null)}>
         <div className="session-header-container"> 
-        <h2 className="title">Sessions de jeu</h2>
-        <button className="admin-button" onClick={() => setShowForm(!showForm)}>
-          {showForm ? "Annuler" : "Créer une nouvelle session"}
-        </button>
-          </div>
+          <h2 className="title">Sessions de jeu</h2>
+          <button className="admin-button" onClick={() => setShowForm(!showForm)}>
+            {showForm ? "Annuler" : "Créer une nouvelle session"}
+          </button>
+        </div>
          
         <table>
           <thead>
@@ -334,107 +353,129 @@ function Admin() {
                   <td>{session.green_questions_label}</td>
                   <td>{session.red_questions_label}</td>
                   <td>{session.date}</td>
-                  <td>{session.status}</td>
+                  <td>
+                    <span className={`status-badge status-${session.status?.toLowerCase().replace(/\s+/g, "-")}`}>
+                      {session.status}
+                    </span>
+                  </td>
                   <td className="actions">
-                    <button className="admin-button" onClick={() => handleEdit(session)}>Modifier</button>
-                    {session.status === "Draft" && (
-                      <>
-                        <button className="admin-button"
-                          onClick={() => navigate(`/session/${session.id}`)}
-                        >
-                          Contenu
-                        </button>
-                        <button className="admin-button" onClick={() => activateSession(session.id)}>
-                          Activer
-                        </button>
-                      </>
-                    )}
-                    {(session.status !== "Draft") && (
-                      <>
-                        <button
-                        className="admin-button"
-                          onClick={() => navigate(`/admin/game/${session.id}`)}
-                        >
-                          Contrôle 
-                        </button>
-
-                        <button className="admin-button" onClick={() => fetchGroupURLs(session.id)}>
-                          Liens de jeu
-                        </button>
-                      </>
-                    )}
-                    <button className="admin-button" onClick={() => cloneSession(session.id)}>
-                      Cloner
-                    </button>
-                    <button className="admin-button" onClick={() => resetSession(session.id)}>Réinitialiser</button> {/* NEW DELETE BUTTON */}
-                    <button className="admin-button delete" onClick={() => deleteSession(session.id)}>Supprimer</button> {/* NEW DELETE BUTTON */}
-
+                    <div className="action-menu-wrapper" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        className="action-menu-trigger"
+                        onClick={() => setOpenMenuId(openMenuId === session.id ? null : session.id)}
+                        aria-label="Actions"
+                      >
+                        ⋮
+                      </button>
+                      {openMenuId === session.id && (
+                        <div className="action-menu-dropdown">
+                          <button className="action-menu-item" onClick={() => { handleEdit(session); setOpenMenuId(null); }}>
+                            ✏️ Modifier
+                          </button>
+                          {session.status === "Draft" && (
+                            <>
+                              <button className="action-menu-item" onClick={() => { navigate(`/session/${session.id}`); setOpenMenuId(null); }}>
+                                📋 Contenu
+                              </button>
+                              <button className="action-menu-item" onClick={() => { activateSession(session.id); setOpenMenuId(null); }}>
+                                ▶️ Activer
+                              </button>
+                            </>
+                          )}
+                          {session.status !== "Draft" && (
+                            <>
+                              <button className="action-menu-item" onClick={() => { navigate(`/admin/game/${session.id}`); setOpenMenuId(null); }}>
+                                🎮 Contrôle
+                              </button>
+                              <button className="action-menu-item" onClick={() => { fetchGroupURLs(session.id); setOpenMenuId(null); }}>
+                                🔗 Liens de jeu
+                              </button>
+                            </>
+                          )}
+                          <button
+                            className="action-menu-item"
+                            onClick={() => { cloneSession(session.id); setOpenMenuId(null); }}
+                            disabled={cloningId === session.id}
+                          >
+                            {cloningId === session.id ? (
+                              <><span className="btn-spinner" /> Clonage…</>
+                            ) : "📑 Cloner"}
+                          </button>
+                          <button className="action-menu-item" onClick={() => { resetSession(session.id); setOpenMenuId(null); }}>
+                            🔄 Réinitialiser
+                          </button>
+                          <div className="action-menu-divider" />
+                          <button className="action-menu-item action-menu-danger" onClick={() => { deleteSession(session.id); setOpenMenuId(null); }}>
+                            🗑 Supprimer
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan="5">Aucune session de jeu trouvée.</td>
+                <td colSpan="6">Aucune session de jeu trouvée.</td>
               </tr>
             )}
           </tbody>
         </table>
 
-        {showForm && (
-          <div>
-            <form
-              onSubmit={editingSession ? handleUpdateSession : createSession}
-            >
-              <input
-                type="text"
-                placeholder="Nom"
-                value={newSession.title}
-                onChange={(e) =>
-                  setNewSession({ ...newSession, title: e.target.value })
-                }
-                required
-              />
-              <input
-                type="text"
-                placeholder="Catégorie 1"
-                value={newSession.green_questions_label}
-                onChange={(e) =>
-                  setNewSession({ ...newSession, green_questions_label: e.target.value })
-                }
-                required
-              />
-              <input
-                type="text"
-                placeholder="Catégorie 2"
-                value={newSession.red_questions_label}
-                onChange={(e) =>
-                  setNewSession({ ...newSession, red_questions_label: e.target.value })
-                }
-                required
-              />
-              <input
-                type="date"
-                value={newSession.date}
-                onChange={(e) =>
-                  setNewSession({ ...newSession, date: e.target.value })
-                }
-                required
-              />
-               <textarea
+        <div className={`session-form-wrapper${showForm ? " form-open" : ""}`}>
+          <form
+            className="session-form"
+            onSubmit={editingSession ? handleUpdateSession : createSession}
+          >
+            <input
+              type="text"
+              placeholder="Nom"
+              value={newSession.title}
+              onChange={(e) =>
+                setNewSession({ ...newSession, title: e.target.value })
+              }
+              required
+            />
+            <input
+              type="text"
+              placeholder="Catégorie 1"
+              value={newSession.green_questions_label}
+              onChange={(e) =>
+                setNewSession({ ...newSession, green_questions_label: e.target.value })
+              }
+              required
+            />
+            <input
+              type="text"
+              placeholder="Catégorie 2"
+              value={newSession.red_questions_label}
+              onChange={(e) =>
+                setNewSession({ ...newSession, red_questions_label: e.target.value })
+              }
+              required
+            />
+            <input
+              type="date"
+              value={newSession.date}
+              onChange={(e) =>
+                setNewSession({ ...newSession, date: e.target.value })
+              }
+              required
+            />
+            <textarea
               placeholder="Règles du jeu"
               value={newSession.session_rules}
               onChange={(e) =>
                 setNewSession({ ...newSession, session_rules: e.target.value })
               }
-              rows={3} // Adjust number of visible lines
+              rows={3}
               required
             />
-              <button className="admin-button" type="submit">
-                {editingSession ? "Mettre à jour" : "Créer"} la session
-              </button>
-            </form>
-          </div>
-        )}
+            <button className="admin-button" type="submit">
+              {editingSession ? "Mettre à jour" : "Créer"} la session
+            </button>
+          </form>
+        </div>
 
         {activeSessionGroups.length > 0 && (
           <>

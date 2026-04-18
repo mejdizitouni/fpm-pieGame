@@ -8,9 +8,11 @@ import Session from "./Session"; // Session Details
 import AdminGameControl from "./AdminGameControl"; // Admin Game Control
 import Game from "./Game"; // Group Game Page
 import SalesforceLogin from "./SalesforceLogin"; // Group Game Page
+import ToastContainer from "./ToastContainer";
 
 ReactDOM.render(
   <BrowserRouter>
+    <ToastContainer />
     <Routes>
       <Route path="/" element={<App />} />
       <Route path="/admin" element={<Admin />} />
