@@ -1,6 +1,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap");
 
 :root {
+  --app-font: "Manrope", "Segoe UI", Tahoma, sans-serif;
   --bg-0: #f7f8ef;
   --bg-1: #fffdf4;
   --bg-2: #f0f4df;
@@ -21,8 +22,11 @@
   --radius-md: 12px;
 }
 
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
+  font-family: var(--app-font);
 }
 
 html,
@@ -38,7 +42,7 @@ body {
     radial-gradient(1200px 500px at 0% 0%, rgba(217, 119, 6, 0.18), transparent 70%),
     radial-gradient(900px 400px at 100% 100%, rgba(15, 118, 110, 0.15), transparent 70%),
     linear-gradient(155deg, var(--bg-0), var(--bg-1) 45%, var(--bg-2));
-  font-family: "Manrope", "Segoe UI", Tahoma, sans-serif;
+  font-family: var(--app-font);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
@@ -63,7 +67,7 @@ h1,
 h2,
 h3,
 h4 {
-  font-family: "Manrope", "Segoe UI", Tahoma, sans-serif;
+  font-family: var(--app-font);
   letter-spacing: -0.01em;
 }
 

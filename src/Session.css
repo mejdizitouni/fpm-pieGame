@@ -69,6 +69,13 @@ table tr:last-child td {
   gap: 10px;
 }
 
+.session-container .row-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
 .session-container td.actions .admin-button {
   margin: 0;
   white-space: nowrap;
@@ -182,6 +189,10 @@ ul li {
   }
 
   .session-container td.actions {
+    gap: 8px;
+  }
+
+  .session-container .row-actions {
     gap: 8px;
   }
 
