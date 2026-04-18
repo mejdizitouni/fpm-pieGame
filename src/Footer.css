@@ -7,10 +7,31 @@ footer {
 }
 
 footer p {
-  margin: 0;
+  margin: 4px 0;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 13px;
   letter-spacing: 0.02em;
+}
+
+.footer-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+}
+
+.footer-elaborated {
+  font-weight: 600;
+  color: var(--brand-strong, #0f766e);
+}
+
+.footer-audience {
+  font-style: italic;
+}
+
+.footer-copy {
+  opacity: 0.6;
+  font-size: 12px !important;
 }
 
 @media (max-width: 480px) {
