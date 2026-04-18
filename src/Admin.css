@@ -52,9 +52,14 @@ table {
   margin: 12px 0 24px;
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
-  overflow: hidden;
   background: rgba(255, 255, 255, 0.9);
 }
+
+/* Keep rounded corners on first/last cells instead of overflow:hidden */
+table thead tr th:first-child { border-top-left-radius: var(--radius-lg); }
+table thead tr th:last-child  { border-top-right-radius: var(--radius-lg); }
+table tbody tr:last-child td:first-child { border-bottom-left-radius: var(--radius-lg); }
+table tbody tr:last-child td:last-child  { border-bottom-right-radius: var(--radius-lg); }
 
 table th,
 table td {
@@ -76,6 +81,7 @@ table tr:last-child td {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  overflow: visible;
 }
 
 form {
