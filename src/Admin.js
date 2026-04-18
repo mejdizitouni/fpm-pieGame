@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import ReactDOM from "react-dom";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Header from "./Header";
@@ -17,6 +18,7 @@ function Admin() {
   const [editingSession, setEditingSession] = useState(null); // Track which session is being edited
   const [cloningId, setCloningId] = useState(null); // Track which session is being cloned
   const [openMenuId, setOpenMenuId] = useState(null); // Track which action menu is open
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 }); // Portal menu position
   const [pendingAction, setPendingAction] = useState(null); // Confirm dialog state
   const navigate = useNavigate();
 
@@ -47,6 +49,17 @@ function Admin() {
 
     fetchAdminData();
   }, [navigate]);
+
+  // Close menu on scroll or resize so portal doesn't drift
+  useEffect(() => {
+    const close = () => setOpenMenuId(null);
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
+    return () => {
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close);
+    };
+  }, []);
 
   const createSession = async (e) => {
     e.preventDefault(); // Prevent page reload on form submission
@@ -362,55 +375,68 @@ function Admin() {
                     <div className="action-menu-wrapper" onClick={(e) => e.stopPropagation()}>
                       <button
                         className="action-menu-trigger"
-                        onClick={() => setOpenMenuId(openMenuId === session.id ? null : session.id)}
+                        onClick={(e) => {
+                          if (openMenuId === session.id) {
+                            setOpenMenuId(null);
+                          } else {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setMenuPos({ top: rect.bottom + window.scrollY + 4, left: rect.right + window.scrollX - 190 });
+                            setOpenMenuId(session.id);
+                          }
+                        }}
                         aria-label="Actions"
                       >
                         ⋮
                       </button>
-                      {openMenuId === session.id && (
-                        <div className="action-menu-dropdown">
-                          <button className="action-menu-item" onClick={() => { handleEdit(session); setOpenMenuId(null); }}>
-                            ✏️ Modifier
-                          </button>
-                          {session.status === "Draft" && (
-                            <>
-                              <button className="action-menu-item" onClick={() => { navigate(`/session/${session.id}`); setOpenMenuId(null); }}>
-                                📋 Contenu
-                              </button>
-                              <button className="action-menu-item" onClick={() => { activateSession(session.id); setOpenMenuId(null); }}>
-                                ▶️ Activer
-                              </button>
-                            </>
-                          )}
-                          {session.status !== "Draft" && (
-                            <>
-                              <button className="action-menu-item" onClick={() => { navigate(`/admin/game/${session.id}`); setOpenMenuId(null); }}>
-                                🎮 Contrôle
-                              </button>
-                              <button className="action-menu-item" onClick={() => { fetchGroupURLs(session.id); setOpenMenuId(null); }}>
-                                🔗 Liens de jeu
-                              </button>
-                            </>
-                          )}
-                          <button
-                            className="action-menu-item"
-                            onClick={() => { cloneSession(session.id); setOpenMenuId(null); }}
-                            disabled={cloningId === session.id}
-                          >
-                            {cloningId === session.id ? (
-                              <><span className="btn-spinner" /> Clonage…</>
-                            ) : "📑 Cloner"}
-                          </button>
-                          <button className="action-menu-item" onClick={() => { resetSession(session.id); setOpenMenuId(null); }}>
-                            🔄 Réinitialiser
-                          </button>
-                          <div className="action-menu-divider" />
-                          <button className="action-menu-item action-menu-danger" onClick={() => { deleteSession(session.id); setOpenMenuId(null); }}>
-                            🗑 Supprimer
-                          </button>
-                        </div>
-                      )}
                     </div>
+                    {openMenuId === session.id && ReactDOM.createPortal(
+                      <div
+                        className="action-menu-dropdown"
+                        style={{ position: "absolute", top: menuPos.top, left: menuPos.left }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <button className="action-menu-item" onClick={() => { handleEdit(session); setOpenMenuId(null); }}>
+                          ✏️ Modifier
+                        </button>
+                        {session.status === "Draft" && (
+                          <>
+                            <button className="action-menu-item" onClick={() => { navigate(`/session/${session.id}`); setOpenMenuId(null); }}>
+                              📋 Contenu
+                            </button>
+                            <button className="action-menu-item" onClick={() => { activateSession(session.id); setOpenMenuId(null); }}>
+                              ▶️ Activer
+                            </button>
+                          </>
+                        )}
+                        {session.status !== "Draft" && (
+                          <>
+                            <button className="action-menu-item" onClick={() => { navigate(`/admin/game/${session.id}`); setOpenMenuId(null); }}>
+                              🎮 Contrôle
+                            </button>
+                            <button className="action-menu-item" onClick={() => { fetchGroupURLs(session.id); setOpenMenuId(null); }}>
+                              🔗 Liens de jeu
+                            </button>
+                          </>
+                        )}
+                        <button
+                          className="action-menu-item"
+                          onClick={() => { cloneSession(session.id); setOpenMenuId(null); }}
+                          disabled={cloningId === session.id}
+                        >
+                          {cloningId === session.id ? (
+                            <><span className="btn-spinner" /> Clonage…</>
+                          ) : "📑 Cloner"}
+                        </button>
+                        <button className="action-menu-item" onClick={() => { resetSession(session.id); setOpenMenuId(null); }}>
+                          🔄 Réinitialiser
+                        </button>
+                        <div className="action-menu-divider" />
+                        <button className="action-menu-item action-menu-danger" onClick={() => { deleteSession(session.id); setOpenMenuId(null); }}>
+                          🗑 Supprimer
+                        </button>
+                      </div>,
+                      document.body
+                    )}
                   </td>
                 </tr>
               ))
