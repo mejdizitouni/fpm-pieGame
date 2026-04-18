@@ -400,19 +400,21 @@ function Session() {
                   <td>{question.allocated_time}</td>
                   <td>{question.question_order || "-"}</td>{" "}
                   {/* Display question_order */}
-                  <td>
-                    <button
-                      className="admin-button"
-                      onClick={() => editQuestion(question.id)}
-                    >
-                      Modifier
-                    </button>
-                    <button
-                      className="admin-button"
-                      onClick={() => removeQuestionFromSession(question.id)}
-                    >
-                      Supprimer
-                    </button>
+                  <td className="actions">
+                    <div className="row-actions">
+                      <button
+                        className="admin-button"
+                        onClick={() => editQuestion(question.id)}
+                      >
+                        Modifier
+                      </button>
+                      <button
+                        className="admin-button"
+                        onClick={() => removeQuestionFromSession(question.id)}
+                      >
+                        Supprimer
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -766,18 +768,20 @@ function Session() {
                     />
                   </td>
                   <td className="actions">
-                    <button
-                      className="admin-button"
-                      onClick={() => editGroup(group.id)}
-                    >
-                      Modifier
-                    </button>
-                    <button
-                      className="admin-button"
-                      onClick={() => deleteGroup(group.id)}
-                    >
-                      Supprimer
-                    </button>
+                    <div className="row-actions">
+                      <button
+                        className="admin-button"
+                        onClick={() => editGroup(group.id)}
+                      >
+                        Modifier
+                      </button>
+                      <button
+                        className="admin-button"
+                        onClick={() => deleteGroup(group.id)}
+                      >
+                        Supprimer
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
