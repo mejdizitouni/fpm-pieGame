@@ -1,53 +1,77 @@
-/* General header styles */
 header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: cadetblue; /* Green background */
-    color: white;
-    padding: 10px 20px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.78));
+  backdrop-filter: blur(8px);
+}
+
+header img {
+  height: 52px;
+  cursor: pointer;
+  border-radius: 10px;
+  transition: transform 0.2s ease;
+}
+
+header img:hover {
+  transform: translateY(-1px);
+}
+
+.logout-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  border: 1px solid rgba(214, 40, 40, 0.35);
+  border-radius: 999px;
+  color: #7f1d1d;
+  background: rgba(255, 242, 242, 0.9);
+  cursor: pointer;
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.logout-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(127, 29, 29, 0.14);
+  background: rgba(255, 228, 228, 0.96);
+}
+
+@media (max-width: 768px) {
+  header {
+    padding: 10px 14px;
   }
-  
-  /* Logo styling */
+
   header img {
-    height: 50px; /* Adjust logo size */
-    cursor: pointer;
+    height: 44px;
   }
-  
-  /* Logout button */
+
   .logout-button {
-    font-size: 16px;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    padding: 10px 15px;
-    cursor: pointer;
-    transition: background-color 0.3s, transform 0.2s;
+    padding: 8px 12px;
+    font-size: 14px;
   }
-  
-  .logout-button:hover {
-    transform: scale(1.05);
+}
+
+@media (max-width: 480px) {
+  header {
+    gap: 10px;
+    padding: 8px 10px;
   }
-  
-  .logout-button:active {
-    transform: scale(0.95); /* Click feedback */
+
+  header img {
+    height: 38px;
   }
-  
-  /* Mobile responsiveness */
-  @media (max-width: 768px) {
-    header {
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-  
-    header img {
-      margin-bottom: 10px;
-    }
-  
-    .logout-button {
-      width: 100%; /* Full width button on smaller screens */
-      text-align: center;
-    }
+
+  .logout-button {
+    padding: 7px 10px;
+    font-size: 12px;
   }
+}
   

@@ -1,30 +1,84 @@
 const express = require("express");
 const path = require("path");
 const cors = require("cors");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 const db = require("./database");
 
 const app = express();
 const port = process.env.PORT || 3001;
-const SECRET_KEY = "your-secret-key";
+const SECRET_KEY =
+  process.env.JWT_SECRET || crypto.randomBytes(32).toString("hex");
+
+if (!process.env.JWT_SECRET) {
+  console.warn(
+    "JWT_SECRET is not set. Using an ephemeral key; tokens will reset on server restart."
+  );
+}
 
 const http = require("http");
 const { Server } = require("socket.io");
 
+const allowedOrigins = (process.env.CORS_ORIGINS || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error("Not allowed by CORS"));
+  },
+  methods: ["GET", "POST", "PUT", "DELETE"],
+};
+
 const server = http.createServer(app); // Create an HTTP server
-const io = new Server(server); // Attach Socket.IO to the server
+const io = new Server(server, { cors: corsOptions }); // Attach Socket.IO to the server
 
 // State tracking for sessions
 const sessionState = {}; // { sessionId: { currentIndex, totalQuestions, askedQuestions: Set }}
 
+const SESSION_TTL_MS = 2 * 60 * 60 * 1000;
+
+const markSessionTouched = (sessionId) => {
+  if (!sessionState[sessionId]) {
+    return;
+  }
+
+  sessionState[sessionId].lastTouchedAt = Date.now();
+};
+
+setInterval(() => {
+  const now = Date.now();
+  Object.keys(sessionState).forEach((sessionId) => {
+    const lastTouchedAt = sessionState[sessionId]?.lastTouchedAt || now;
+    if (now - lastTouchedAt > SESSION_TTL_MS) {
+      delete sessionState[sessionId];
+    }
+  });
+}, 15 * 60 * 1000);
+
+const isValidPositiveInt = (value) => Number.isInteger(Number(value)) && Number(value) > 0;
+
 io.on("connection", (socket) => {
   socket.on("startGame", (sessionId) => {
+    if (!isValidPositiveInt(sessionId)) {
+      return;
+    }
+
     if (!sessionState[sessionId]) {
       sessionState[sessionId] = {
         currentIndex: 0,
         askedQuestions: new Set(),
         totalQuestions: 0,
+        lastTouchedAt: Date.now(),
       };
 
       // Fetch total number of questions for the session and initialize game state
@@ -48,6 +102,11 @@ io.on("connection", (socket) => {
 
   const fetchNextQuestion = (sessionId) => {
     const state = sessionState[sessionId];
+    if (!state) {
+      return;
+    }
+
+    markSessionTouched(sessionId);
 
     if (state.currentIndex >= state.totalQuestions) {
       handleGameOver(sessionId);
@@ -112,6 +171,15 @@ io.on("connection", (socket) => {
   socket.on(
     "submitAnswer",
     ({ sessionId, groupId, questionId, answer, stoppedTimer }) => {
+      if (
+        !isValidPositiveInt(sessionId) ||
+        !isValidPositiveInt(groupId) ||
+        !isValidPositiveInt(questionId)
+      ) {
+        return;
+      }
+
+      markSessionTouched(sessionId);
       const timeSubmitted = new Date().toISOString();
 
       db.get(
@@ -150,6 +218,16 @@ io.on("connection", (socket) => {
   socket.on(
     "validateAnswer",
     ({ sessionId, groupId, questionId, isCorrect, stoppedTimer }) => {
+      if (
+        !isValidPositiveInt(sessionId) ||
+        !isValidPositiveInt(groupId) ||
+        !isValidPositiveInt(questionId)
+      ) {
+        return;
+      }
+
+      markSessionTouched(sessionId);
+
       db.get(
         `SELECT type, expected_answer FROM questions WHERE id = ?`,
         [questionId],
@@ -173,113 +251,100 @@ io.on("connection", (socket) => {
               }
   
               const groupName = group.name;
-              const updates = [];
-  
-              if (isCorrect) {
-                const points = stoppedTimer ? 2 : 1;
-                updates.push(
-                  new Promise((resolve, reject) => {
+              const onTransactionError = (label, err) => {
+                console.error(label, err);
+                db.run("ROLLBACK", () => {});
+              };
+
+              db.serialize(() => {
+                db.run("BEGIN IMMEDIATE TRANSACTION", (err) => {
+                  if (err) {
+                    onTransactionError("Failed to start transaction:", err);
+                    return;
+                  }
+
+                  const commitAndBroadcast = () => {
+                    db.run("COMMIT", (commitErr) => {
+                      if (commitErr) {
+                        onTransactionError("Failed to commit transaction:", commitErr);
+                        return;
+                      }
+
+                      db.all(
+                        `SELECT g.id AS group_id, g.avatar_url AS avatar_url, g.name, cp.red_triangles, cp.green_triangles
+                         FROM groups g
+                         LEFT JOIN camembert_progress cp ON g.id = cp.group_id
+                         WHERE g.session_id = ?`,
+                        [sessionId],
+                        (err, updatedCamemberts) => {
+                          if (err) {
+                            console.error(
+                              "Error fetching updated camembert scores:",
+                              err
+                            );
+                            return;
+                          }
+
+                          io.to(sessionId).emit("camembertUpdated", {
+                            updatedCamemberts,
+                          });
+                        }
+                      );
+
+                      io.to(sessionId).emit("answerValidated", {
+                        groupId,
+                        groupName,
+                        isCorrect,
+                        correctAnswer,
+                        message: isCorrect
+                          ? `Le groupe ${groupName} a répondu correctement à la question dont la réponse est "${correctAnswer}". Il reçoit ${
+                              stoppedTimer ? 2 : 1
+                            } point(s).`
+                          : `Le groupe ${groupName} a répondu incorrectement. Les autres groupes gagnent 1 point.`,
+                      });
+                    });
+                  };
+
+                  if (isCorrect) {
+                    const points = stoppedTimer ? 2 : 1;
                     db.run(
                       `UPDATE camembert_progress SET ${triangleType} = ${triangleType} + ? WHERE group_id = ?`,
                       [points, groupId],
-                      (err) => {
-                        if (err) {
-                          console.error(
+                      (updateErr) => {
+                        if (updateErr) {
+                          onTransactionError(
                             "Error updating scores for the correct answer:",
-                            err
+                            updateErr
                           );
-                          reject(err);
-                        } else {
-                          resolve();
-                        }
-                      }
-                    );
-                  })
-                );
-              } else {
-                // Incorrect answer - award points to other groups
-                updates.push(
-                  new Promise((resolve, reject) => {
-                    db.all(
-                      `SELECT id FROM groups WHERE session_id = ?`,
-                      [sessionId],
-                      (err, allGroups) => {
-                        if (err) {
-                          console.error("Error fetching groups:", err);
-                          reject(err);
                           return;
                         }
-  
-                        const groupUpdates = allGroups.map((group) => {
-                          if (String(group.id) !== String(groupId)) {
-                            return new Promise((resolve, reject) => {
-                              db.run(
-                                `UPDATE camembert_progress SET ${triangleType} = ${triangleType} + 1 WHERE group_id = ?`,
-                                [group.id],
-                                (err) => {
-                                  if (err) {
-                                    console.error(
-                                      `Error updating scores for group ${group.id}:`,
-                                      err
-                                    );
-                                    reject(err);
-                                  } else {
-                                    resolve();
-                                  }
-                                }
-                              );
-                            });
-                          }
-                          return Promise.resolve();
-                        });
-  
-                        Promise.all(groupUpdates).then(resolve).catch(reject);
+
+                        commitAndBroadcast();
                       }
                     );
-                  })
-                );
-              }
-  
-              // Execute all updates
-              Promise.all(updates)
-                .then(() => {
-                  db.all(
-                    `SELECT g.id AS group_id, g.avatar_url AS avatar_url, g.name, cp.red_triangles, cp.green_triangles
-                     FROM groups g
-                     LEFT JOIN camembert_progress cp ON g.id = cp.group_id
-                     WHERE g.session_id = ?`,
-                    [sessionId],
-                    (err, updatedCamemberts) => {
-                      if (err) {
-                        console.error(
-                          "Error fetching updated camembert scores:",
-                          err
-                        );
-                        return;
+                  } else {
+                    db.run(
+                      `UPDATE camembert_progress
+                       SET ${triangleType} = ${triangleType} + 1
+                       WHERE group_id IN (
+                         SELECT id FROM groups WHERE session_id = ? AND id != ?
+                       )`,
+                      [sessionId, groupId],
+                      (updateErr) => {
+                        if (updateErr) {
+                          onTransactionError(
+                            "Error updating scores for other groups:",
+                            updateErr
+                          );
+                          return;
+                        }
+
+                        commitAndBroadcast();
                       }
-  
-                      io.to(sessionId).emit("camembertUpdated", {
-                        updatedCamemberts,
-                      });
-                    }
-                  );
-  
-                  // Send correct validation result to all players
-                  io.to(sessionId).emit("answerValidated", {
-                    groupId,
-                    groupName,
-                    isCorrect,
-                    correctAnswer,
-                    message: isCorrect
-                      ? `Le groupe ${groupName} a répondu correctement à la question dont la réponse est "${correctAnswer}". Il reçoit ${
-                          stoppedTimer ? 2 : 1
-                        } point(s).`
-                      : `Le groupe ${groupName} a répondu incorrectement. Les autres groupes gagnent 1 point.`,
-                  });
-                })
-                .catch((err) => {
-                  console.error("Error during camembert updates:", err);
+                    );
+                  }
                 });
+              });
             }
           );
         }
@@ -290,6 +355,16 @@ io.on("connection", (socket) => {
   socket.on(
     "validateAnswerNoPoints",
     ({ sessionId, groupId, questionId, isCorrect }) => {
+      if (
+        !isValidPositiveInt(sessionId) ||
+        !isValidPositiveInt(groupId) ||
+        !isValidPositiveInt(questionId)
+      ) {
+        return;
+      }
+
+      markSessionTouched(sessionId);
+
       db.get(
         `SELECT expected_answer FROM questions WHERE id = ?`,
         [questionId],
@@ -328,30 +403,69 @@ io.on("connection", (socket) => {
     }
   );
   
-  socket.on("revealAnswer", (correctAnswer) => {
-    io.emit("revealAnswer", correctAnswer);
+  socket.on("revealAnswer", ({ sessionId, correctAnswer }) => {
+    if (!isValidPositiveInt(sessionId)) {
+      return;
+    }
+
+    markSessionTouched(sessionId);
+    io.to(sessionId).emit("revealAnswer", correctAnswer);
   });
 
   socket.on("nextQuestion", (sessionId) => {
+    if (!isValidPositiveInt(sessionId)) {
+      return;
+    }
+
     fetchNextQuestion(sessionId);
   });
 
   socket.on("joinSession", ({ sessionId, groupId, role }) => {
+    if (!isValidPositiveInt(sessionId)) {
+      return;
+    }
+
     const roomName = sessionId;
     socket.join(roomName);
+    markSessionTouched(sessionId);
   });
 
   socket.on("disconnect", () => {});
 });
 
-app.use(express.json());
-app.use(cors());
+app.use(helmet({ contentSecurityPolicy: false }));
+app.use(express.json({ limit: "1mb" }));
+app.use(cors(corsOptions));
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many authentication attempts. Please try again later." },
+});
+
+const mutationLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use(
+  [
+    "/game-sessions",
+    "/sessions",
+    "/questions",
+  ],
+  mutationLimiter
+);
 
 // Serve the React build folder
 app.use(express.static(path.join(__dirname, "build")));
 
 // Login endpoint
-app.post("/login", (req, res) => {
+app.post("/login", authLimiter, (req, res) => {
   const { username, password } = req.body;
 
   db.get(`SELECT * FROM users WHERE username = ?`, [username], (err, user) => {

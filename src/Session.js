@@ -344,13 +344,13 @@ function Session() {
 
  {/* New Question Button */}
  <button
-          class="admin-button"
+          className="admin-button"
           onClick={() => setShowNewQuestionForm(!showNewQuestionForm)}
         >
           {showNewQuestionForm ? "Annuler" : "Nouvelle question"}
         </button>
         
-        <h2 class="title">Questions</h2>
+        <h2 className="title">Questions</h2>
         {questions.length === 0 ? (
           <p>Aucune question crée pour cette session.</p>
         ) : (
@@ -402,13 +402,13 @@ function Session() {
                   {/* Display question_order */}
                   <td>
                     <button
-                      class="admin-button"
+                      className="admin-button"
                       onClick={() => editQuestion(question.id)}
                     >
                       Modifier
                     </button>
                     <button
-                      class="admin-button"
+                      className="admin-button"
                       onClick={() => removeQuestionFromSession(question.id)}
                     >
                       Supprimer
@@ -422,7 +422,7 @@ function Session() {
 
         {/* New Question Button */}
         <button
-          class="admin-button"
+          className="admin-button"
           onClick={() => setShowNewQuestionForm(!showNewQuestionForm)}
         >
           {showNewQuestionForm ? "Annuler" : "Nouvelle question"}
@@ -516,7 +516,7 @@ function Session() {
                         <li key={index}>
                           {option}
                           <button
-                            class="admin-button"
+                            className="admin-button"
                             type="button"
                             onClick={() => removeOption(index)}
                           >
@@ -532,7 +532,7 @@ function Session() {
                       onChange={(e) => setOptionInput(e.target.value)}
                     />
                     <button
-                      class="admin-button"
+                      className="admin-button"
                       type="button"
                       onClick={addOption}
                     >
@@ -540,12 +540,12 @@ function Session() {
                     </button>
                   </div>
                 )}
-                <div class="flex-buttons-container">
-                <button class="admin-button" type="submit">
+                <div className="flex-buttons-container">
+                <button className="admin-button" type="submit">
                   Créer
                 </button>
                 <button
-                  class="admin-button"
+                  className="admin-button"
                   onClick={() => setShowNewQuestionForm(!showNewQuestionForm)}
                 >
                   {showNewQuestionForm ? "Annuler" : "Nouvelle question"}
@@ -640,10 +640,10 @@ function Session() {
                     <h4>Modifier les Propositions</h4>
                     <ul>
                       {editingQuestion.options.map((option, index) => (
-                        <li  class="options-list-session" key={index}>
+                        <li  className="options-list-session" key={index}>
                           {option}
                           <button
-                            class="admin-button"
+                            className="admin-button"
                             type="button"
                             onClick={() =>
                               setEditingQuestion((prev) => ({
@@ -666,7 +666,7 @@ function Session() {
                       onChange={(e) => setOptionInput(e.target.value)}
                     />
                     <button
-                      class="admin-button"
+                      className="admin-button"
                       type="button"
                       onClick={() => {
                         if (optionInput.trim()) {
@@ -682,12 +682,12 @@ function Session() {
                     </button>
                   </div>
                 )}
-                <div class="flex-buttons-container">
-                <button class="admin-button" type="submit">
+                <div className="flex-buttons-container">
+                <button className="admin-button" type="submit">
                   Mettre à jour
                 </button>
                 <button
-                  class="admin-button"
+                  className="admin-button"
                   type="button"
                   onClick={cancelQuestionEdit}
                 >
@@ -699,7 +699,7 @@ function Session() {
           </div>
         )}
 
-        <h2 class="title">Lier une question existance</h2>
+        <h2 className="title">Lier une question existance</h2>
         <form onSubmit={linkExistingQuestion}>
           <select
             value={selectedQuestionId}
@@ -734,7 +734,7 @@ function Session() {
             required
           />
           <button
-            class="admin-button"
+            className="admin-button"
             type="submit"
             disabled={allQuestions.length === 0}
           >
@@ -742,7 +742,7 @@ function Session() {
           </button>
         </form>
 
-        <h2 class="title">Groupes</h2>
+        <h2 className="title">Groupes</h2>
         {groups.length === 0 ? (
           <p>Aucun groupe trouvé pour cette session.</p>
         ) : (
@@ -765,15 +765,15 @@ function Session() {
                       style={{ width: "50px", height: "50px" }}
                     />
                   </td>
-                  <td class="actions">
+                  <td className="actions">
                     <button
-                      class="admin-button"
+                      className="admin-button"
                       onClick={() => editGroup(group.id)}
                     >
                       Modifier
                     </button>
                     <button
-                      class="admin-button"
+                      className="admin-button"
                       onClick={() => deleteGroup(group.id)}
                     >
                       Supprimer
@@ -787,7 +787,7 @@ function Session() {
 
         {/* New Group Button */}
         <button
-          class="admin-button"
+          className="admin-button"
           onClick={() => setShowNewGroupForm(!showNewGroupForm)}
         >
           {showNewGroupForm ? "Annuler" : "Nouveau groupe"}
@@ -828,12 +828,12 @@ function Session() {
                   <option value="Chaplin">Chaplin</option>
                   <option value="Helmet">Helmet</option>
                 </select>
-                <div class="flex-buttons-container">
-                <button class="admin-button" type="submit">
+                <div className="flex-buttons-container">
+                <button className="admin-button" type="submit">
                   Créer
                 </button>
                 <button
-                  class="admin-button"
+                  className="admin-button"
                   onClick={() => setShowNewGroupForm(!showNewGroupForm)}
                 >
                   {showNewGroupForm ? "Annuler" : "Nouveau groupe"}
@@ -883,12 +883,12 @@ function Session() {
                   <option value="Helmet">Helmet</option>
                 </select>
                
-                <div class="flex-buttons-container">
-                   <button class="admin-button" type="submit">
+                <div className="flex-buttons-container">
+                   <button className="admin-button" type="submit">
                   Mettre à jour
                 </button>
                 <button
-                  class="admin-button"
+                  className="admin-button"
                   type="button"
                   onClick={cancelGroupEdit}
                 >

@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import "./index.css";
 import App from "./App"; // Login Page
 import Admin from "./Admin"; // Admin Dashboard
 import Session from "./Session"; // Session Details

@@ -275,7 +275,10 @@ function AdminGameControl() {
 
   const revealAnswer = () => {
     if (currentQuestion) {
-      socketRef.current.emit("revealAnswer", currentQuestion.expected_answer);
+      socketRef.current.emit("revealAnswer", {
+        sessionId,
+        correctAnswer: currentQuestion.expected_answer,
+      });
     }
   };
 
@@ -359,6 +362,29 @@ function AdminGameControl() {
       console.error("Error updating points:", err);
     }
   };
+
+  const getTimerVisualState = () => {
+    if (!currentQuestion || !currentQuestion.allocated_time) {
+      return "normal";
+    }
+
+    if (timer <= 0) {
+      return "expired";
+    }
+
+    const ratio = timer / currentQuestion.allocated_time;
+    if (ratio <= 0.2) {
+      return "critical";
+    }
+
+    if (ratio <= 0.5) {
+      return "warning";
+    }
+
+    return "normal";
+  };
+
+  const timerVisualState = getTimerVisualState();
 
   if (sessionStatus === null) {
     return <h1>Chargement de la session...</h1>;
@@ -463,26 +489,36 @@ function AdminGameControl() {
                 {currentQuestion.title}
               </h3>{" "}
               <p>Réponse attendue: {currentQuestion.expected_answer}</p>
-              <div className="timer-circle">
-                <svg className="progress-ring" width="100" height="100">
+              <div className={`timer-circle ${timerVisualState}`}>
+                <svg className="progress-ring" width="112" height="112">
                   <circle
-                    className="progress-ring__circle"
-                    stroke="#007bff"
+                    className={`progress-ring__circle ${timerVisualState}`}
+                    stroke="currentColor"
                     strokeWidth="6"
                     fill="transparent"
-                    r="45"
-                    cx="50"
-                    cy="50"
+                    r="50"
+                    cx="56"
+                    cy="56"
                     style={{
-                      strokeDasharray: 283, // Circumference of the circle (2 * π * r)
+                      strokeDasharray: 314,
                       strokeDashoffset:
-                        (283 * timer) / currentQuestion.allocated_time, // Progress
+                        (314 * Math.max(timer, 0)) /
+                        currentQuestion.allocated_time,
                     }}
                   />
                 </svg>
-                <div className="timer-text">
+                <div className={`timer-text ${timerVisualState}`}>
                   {timer > 0 ? `${timer}s` : "Time's Up!"}
                 </div>
+              </div>
+              <div className={`timer-status ${timerVisualState}`}>
+                {timerVisualState === "critical"
+                  ? "Critical - validate quickly"
+                  : timerVisualState === "warning"
+                  ? "Warning - time is running out"
+                  : timerVisualState === "expired"
+                  ? "Timer expired"
+                  : "Timer running"}
               </div>
               {isTimeUp && <h3>Time's Up!</h3>}
               {stoppedTimerGroup && (
