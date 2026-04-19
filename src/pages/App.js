@@ -47,7 +47,7 @@ function App() {
     };
 
     checkTokenValidity();
-  }, [navigate]);
+  }, [API_URL, navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -79,10 +79,10 @@ function App() {
 
       const message = response.data?.resetLink
         ? `${response.data.message} ${response.data.resetLink}`
-        : response.data?.message || "Reset link generated.";
+        : response.data?.message || t("loginForgotSuccessFallback");
       setForgotMessage(message);
     } catch (err) {
-      setForgotError(err?.response?.data?.message || "Failed to generate reset link");
+      setForgotError(err?.response?.data?.message || t("loginForgotErrorFallback"));
     }
   };
 
@@ -108,7 +108,7 @@ function App() {
           <div className="login-hero-row">
             <div className="login-hero-copy">
               <p className="eyebrow">{t("loginEyebrow")}</p>
-              <h1 className="game-name">Trivial Chem</h1>
+              <h1 className="game-name">{t("loginTitle")}</h1>
               <p className="login-subtitle">{t("loginSubtitle")}</p>
             </div>
             <img
@@ -142,22 +142,22 @@ function App() {
               type="button"
               onClick={() => setShowForgotPassword((prev) => !prev)}
             >
-              Forgot password?
+              {t("loginForgotPassword")}
             </button>
           </form>
 
           {showForgotPassword && (
             <form className="login forgot-password-form" onSubmit={handleForgotPassword}>
-              <label htmlFor="forgot-password-email">Account email</label>
+              <label htmlFor="forgot-password-email">{t("loginForgotEmailLabel")}</label>
               <input
                 id="forgot-password-email"
                 type="email"
-                placeholder="email@example.com"
+                placeholder={t("loginForgotEmailPlaceholder")}
                 value={forgotEmail}
                 onChange={(e) => setForgotEmail(e.target.value)}
                 required
               />
-              <button type="submit">Send reset link</button>
+              <button type="submit">{t("loginForgotSubmit")}</button>
             </form>
           )}
 
