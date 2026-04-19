@@ -45,6 +45,33 @@ const io = new Server(server, { cors: corsOptions }); // Attach Socket.IO to the
 // State tracking for sessions
 const sessionState = {}; // { sessionId: { currentIndex, totalQuestions, askedQuestions: Set }}
 
+const createSessionRuntimeState = () => ({
+  currentIndex: 0,
+  askedQuestions: new Set(),
+  totalQuestions: 0,
+  currentQuestion: null,
+  currentQuestionStartedAt: null,
+  currentQuestionDuration: 0,
+  submittedAnswers: [],
+  stoppedTimerGroup: null,
+  revealedAnswer: null,
+  winners: [],
+  lastTouchedAt: Date.now(),
+});
+
+const AVATAR_OPTIONS = new Set([
+  "Pill",
+  "Capsule",
+  "Syringe",
+  "Stethoscope",
+  "Microscope",
+  "Mortar",
+  "Caduceus",
+  "FirstAid",
+  "DNA",
+  "Heartbeat",
+]);
+
 const SESSION_TTL_MS = 2 * 60 * 60 * 1000;
 
 const markSessionTouched = (sessionId) => {
@@ -67,6 +94,48 @@ setInterval(() => {
 
 const isValidPositiveInt = (value) => Number.isInteger(Number(value)) && Number(value) > 0;
 
+const getRemainingTimer = (state) => {
+  if (!state?.currentQuestion || !state.currentQuestionStartedAt) {
+    return 0;
+  }
+
+  const elapsedSeconds = Math.floor(
+    (Date.now() - state.currentQuestionStartedAt) / 1000
+  );
+
+  return Math.max((state.currentQuestionDuration || 0) - elapsedSeconds, 0);
+};
+
+const buildRuntimeStateResponse = (sessionStatus, state) => ({
+  status: sessionStatus,
+  currentQuestion: state?.currentQuestion || null,
+  questionIndex: state?.currentIndex || 0,
+  totalQuestions: state?.totalQuestions || 0,
+  timer: getRemainingTimer(state),
+  answers: state?.submittedAnswers || [],
+  stoppedTimerGroup: state?.stoppedTimerGroup || null,
+  correctAnswer: state?.revealedAnswer || null,
+  winners: state?.winners || [],
+});
+
+const buildPlayerRuntimeStateResponse = (sessionStatus, state, groupId) => {
+  const playerAnswer = (state?.submittedAnswers || []).find(
+    (entry) => Number(entry.groupId) === Number(groupId)
+  );
+
+  return {
+    status: sessionStatus,
+    currentQuestion: state?.currentQuestion || null,
+    questionIndex: state?.currentIndex || 0,
+    totalQuestions: state?.totalQuestions || 0,
+    timer: getRemainingTimer(state),
+    stoppedTimerGroup: state?.stoppedTimerGroup?.groupName || null,
+    correctAnswer: state?.revealedAnswer || null,
+    winners: state?.winners || [],
+    submittedAnswer: playerAnswer?.answer || null,
+  };
+};
+
 io.on("connection", (socket) => {
   socket.on("startGame", (sessionId) => {
     if (!isValidPositiveInt(sessionId)) {
@@ -74,12 +143,7 @@ io.on("connection", (socket) => {
     }
 
     if (!sessionState[sessionId]) {
-      sessionState[sessionId] = {
-        currentIndex: 0,
-        askedQuestions: new Set(),
-        totalQuestions: 0,
-        lastTouchedAt: Date.now(),
-      };
+      sessionState[sessionId] = createSessionRuntimeState();
 
       // Fetch total number of questions for the session and initialize game state
       db.get(
@@ -135,6 +199,13 @@ io.on("connection", (socket) => {
 
       state.askedQuestions.add(question.id);
       state.currentIndex += 1;
+      state.currentQuestion = question;
+      state.currentQuestionStartedAt = Date.now();
+      state.currentQuestionDuration = question.allocated_time || 30;
+      state.submittedAnswers = [];
+      state.stoppedTimerGroup = null;
+      state.revealedAnswer = null;
+      state.winners = [];
 
       if (questionType === "red") {
         db.all(
@@ -146,6 +217,8 @@ io.on("connection", (socket) => {
               handleGameOver(sessionId);
     return;
             }
+
+            state.currentQuestion = { ...question, options };
 
             io.to(sessionId).emit("newQuestion", {
               question: { ...question, options },
@@ -202,6 +275,13 @@ io.on("connection", (socket) => {
             groupName,
             timeSubmitted,
           };
+
+          if (sessionState[sessionId]) {
+            sessionState[sessionId].submittedAnswers.push(submittedAnswer);
+            if (stoppedTimer) {
+              sessionState[sessionId].stoppedTimerGroup = { groupId, groupName };
+            }
+          }
 
           // Emit to all participants in the session
           io.to(sessionId).emit("answerSubmitted", submittedAnswer);
@@ -409,6 +489,9 @@ io.on("connection", (socket) => {
     }
 
     markSessionTouched(sessionId);
+    if (sessionState[sessionId]) {
+      sessionState[sessionId].revealedAnswer = correctAnswer;
+    }
     io.to(sessionId).emit("revealAnswer", correctAnswer);
   });
 
@@ -743,6 +826,10 @@ app.post("/sessions/:id/groups", (req, res) => {
     return res.status(400).json({ message: "Avatar name is required" });
   }
 
+  if (!AVATAR_OPTIONS.has(avatar_name)) {
+    return res.status(400).json({ message: "Invalid avatar name" });
+  }
+
   const avatar_url = `/avatars/${avatar_name}.svg`;
 
   db.run(
@@ -886,7 +973,11 @@ app.put("/sessions/:sessionId/groups/:groupId", (req, res) => {
       return res.status(400).json({ message: "Avatar name is required" });
     }
 
-    const avatar_url = `/assets/avatars/${avatar_name}.svg`;
+    if (!AVATAR_OPTIONS.has(avatar_name)) {
+      return res.status(400).json({ message: "Invalid avatar name" });
+    }
+
+    const avatar_url = `/avatars/${avatar_name}.svg`;
 
     db.run(
       `UPDATE groups
@@ -931,6 +1022,64 @@ app.get("/sessions/:id", (req, res) => {
         return res.status(404).json({ message: "Session not found" });
       }
       res.json(row); // Send the session details as response
+    }
+  );
+});
+
+app.get("/sessions/:id/runtime-state", (req, res) => {
+  const token = req.headers["authorization"];
+  if (!token) {
+    return res.status(401).json({ message: "Access denied" });
+  }
+
+  jwt.verify(token, SECRET_KEY, (err) => {
+    if (err) {
+      return res.status(403).json({ message: "Invalid token" });
+    }
+
+    const sessionId = req.params.id;
+    db.get(
+      `SELECT status FROM game_sessions WHERE id = ?`,
+      [sessionId],
+      (dbErr, row) => {
+        if (dbErr) {
+          console.error("Database Error:", dbErr);
+          return res.status(500).json({ message: "Database error" });
+        }
+
+        if (!row) {
+          return res.status(404).json({ message: "Session not found" });
+        }
+
+        res.json(buildRuntimeStateResponse(row.status, sessionState[sessionId]));
+      }
+    );
+  });
+});
+
+app.get("/sessions/:id/player-runtime-state/:groupId", (req, res) => {
+  const sessionId = req.params.id;
+  const groupId = req.params.groupId;
+
+  db.get(
+    `SELECT gs.status
+     FROM game_sessions gs
+     JOIN groups g ON g.session_id = gs.id
+     WHERE gs.id = ? AND g.id = ?`,
+    [sessionId, groupId],
+    (dbErr, row) => {
+      if (dbErr) {
+        console.error("Database Error:", dbErr);
+        return res.status(500).json({ message: "Database error" });
+      }
+
+      if (!row) {
+        return res.status(404).json({ message: "Session or group not found" });
+      }
+
+      res.json(
+        buildPlayerRuntimeStateResponse(row.status, sessionState[sessionId], groupId)
+      );
     }
   );
 });
@@ -1847,6 +1996,17 @@ const determineGameWinner = (sessionId, callback) => {
 
 const handleGameOver = (sessionId) => {
   determineGameWinner(sessionId, (winners) => {
+    if (sessionState[sessionId]) {
+      sessionState[sessionId].currentQuestion = null;
+      sessionState[sessionId].currentQuestionStartedAt = null;
+      sessionState[sessionId].currentQuestionDuration = 0;
+      sessionState[sessionId].submittedAnswers = [];
+      sessionState[sessionId].stoppedTimerGroup = null;
+      sessionState[sessionId].revealedAnswer = null;
+      sessionState[sessionId].winners = winners;
+      markSessionTouched(sessionId);
+    }
+
     io.to(sessionId).emit("gameOver", {
       winners: winners.length > 1 ? winners : winners[0] || null,
       isTie: winners.length > 1,
