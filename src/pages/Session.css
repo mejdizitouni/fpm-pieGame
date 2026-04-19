@@ -223,6 +223,21 @@ ul li {
   background: #fff;
 }
 
+.mobile-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.mobile-table-scroll table {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+}
+
 @media (max-width: 768px) {
   .session-container {
     width: calc(100vw - 20px);
@@ -230,9 +245,13 @@ ul li {
     padding: 12px;
   }
 
-  table {
-    display: block;
-    overflow-x: auto;
+  .mobile-table-scroll table {
+    min-width: 760px;
+  }
+
+  .mobile-table-scroll table th,
+  .mobile-table-scroll table td {
+    white-space: nowrap;
   }
 
   .admin-button {

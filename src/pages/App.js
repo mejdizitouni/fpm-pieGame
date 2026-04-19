@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import { useLanguage } from "../i18n/LanguageProvider";
+import PasswordInput from "../components/forms/PasswordInput";
 
 function App() {
   const API_URL = process.env.REACT_APP_API_URL;
@@ -129,12 +130,13 @@ function App() {
               onChange={(e) => setUsername(e.target.value)}
             />
             <label htmlFor="login-password">{t("loginPasswordLabel")}</label>
-            <input
+            <PasswordInput
               id="login-password"
-              type="password"
               placeholder={t("loginPasswordPlaceholder")}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              required
+              autoComplete="current-password"
             />
             <button type="submit">{t("loginSubmit")}</button>
             <button

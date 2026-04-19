@@ -88,6 +88,55 @@ const deleteTestSession = () => {
     const titles = ["Test Session", "Protométrie en milieux aqueux"];
     db.serialize(() => {
       db.run(
+        `CREATE TEMP TABLE IF NOT EXISTS seeded_question_ids (
+          question_id INTEGER PRIMARY KEY
+        )`,
+        (err) => {
+          if (err) return reject(err);
+        }
+      );
+
+      db.run(`DELETE FROM seeded_question_ids`, (err) => {
+        if (err) return reject(err);
+      });
+
+      db.run(
+        `INSERT OR IGNORE INTO seeded_question_ids (question_id)
+         SELECT DISTINCT sq.question_id
+         FROM session_questions sq
+         JOIN game_sessions gs ON gs.id = sq.session_id
+         WHERE gs.title IN (?, ?)`,
+        titles,
+        (err) => {
+          if (err) return reject(err);
+        }
+      );
+
+      db.run(
+        `DELETE FROM question_options
+         WHERE question_id IN (SELECT question_id FROM seeded_question_ids)`,
+        (err) => {
+          if (err) return reject(err);
+        }
+      );
+
+      db.run(
+        `DELETE FROM session_questions
+         WHERE question_id IN (SELECT question_id FROM seeded_question_ids)`,
+        (err) => {
+          if (err) return reject(err);
+        }
+      );
+
+      db.run(
+        `DELETE FROM questions
+         WHERE id IN (SELECT question_id FROM seeded_question_ids)`,
+        (err) => {
+          if (err) return reject(err);
+        }
+      );
+
+      db.run(
         `DELETE FROM session_questions WHERE session_id IN (SELECT id FROM game_sessions WHERE title IN (?, ?))`,
         titles
       );

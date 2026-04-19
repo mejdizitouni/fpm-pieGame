@@ -630,7 +630,7 @@ app.put("/sessions/:id", (req, res) => {
   });
 });
 
-// Fetch all questions not linked to the current session
+// Fetch questions from other sessions that are not linked to the current session
 app.get("/sessions/:id/available-questions", (req, res) => {
   const token = req.headers["authorization"];
   if (!token) {
@@ -645,12 +645,15 @@ app.get("/sessions/:id/available-questions", (req, res) => {
     const sessionId = req.params.id;
     db.all(
       `
-      SELECT * FROM questions
-      WHERE id NOT IN (
-        SELECT question_id FROM session_questions WHERE session_id = ?
-      )
+      SELECT DISTINCT q.*
+      FROM questions q
+      JOIN session_questions sq_other ON q.id = sq_other.question_id
+      WHERE sq_other.session_id != ?
+        AND q.id NOT IN (
+          SELECT question_id FROM session_questions WHERE session_id = ?
+        )
       `,
-      [sessionId],
+      [sessionId, sessionId],
       (err, rows) => {
         if (err) {
           console.error("Database Error:", err);

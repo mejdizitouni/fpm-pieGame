@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import Header from "../components/layout/Header";
@@ -38,6 +38,10 @@ function Session() {
   const [optionInput, setOptionInput] = useState(""); // Input for new options
   const [allQuestions, setAllQuestions] = useState([]); // To store available questions
   const [selectedQuestionId, setSelectedQuestionId] = useState(""); // To store selected question ID
+  const [questionSourceMode, setQuestionSourceMode] = useState("all");
+  const [sourceSessionId, setSourceSessionId] = useState("");
+  const [sourceSessionQuestions, setSourceSessionQuestions] = useState([]);
+  const [availableSourceSessions, setAvailableSourceSessions] = useState([]);
   const [groups, setGroups] = useState([]);
   const [newGroup, setNewGroup] = useState({
     name: "",
@@ -49,6 +53,14 @@ function Session() {
   const [editingGroup, setEditingGroup] = useState(null); // To handle group editing
   const navigate = useNavigate();
   const { t } = useLanguage();
+  const currentSessionQuestionIds = useMemo(
+    () => new Set(questions.map((question) => Number(question.id))),
+    [questions]
+  );
+  const availableQuestionsToLink = useMemo(() => {
+    const sourceList = questionSourceMode === "session" ? sourceSessionQuestions : allQuestions;
+    return sourceList.filter((question) => !currentSessionQuestionIds.has(Number(question.id)));
+  }, [allQuestions, sourceSessionQuestions, questionSourceMode, currentSessionQuestionIds]);
 
   const fetchData = async () => {
     const token = localStorage.getItem("token");
@@ -82,6 +94,17 @@ function Session() {
       );
       setAllQuestions(availableQuestionsResponse.data);
 
+      const sessionsResponse = await axios
+        .get(`${API_URL}/sessions`, {
+          headers: { Authorization: token },
+        })
+        .catch(() => ({ data: [] }));
+      setAvailableSourceSessions(
+        Array.isArray(sessionsResponse.data)
+          ? sessionsResponse.data.filter((session) => String(session.id) !== String(id))
+          : []
+      );
+
       // Fetch groups
       const groupsResponse = await axios.get(
         `${API_URL}/sessions/${id}/groups`,
@@ -98,6 +121,32 @@ function Session() {
   useEffect(() => {
     fetchData();
   }, [id, navigate]);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      return;
+    }
+
+    if (questionSourceMode !== "session" || !sourceSessionId) {
+      setSourceSessionQuestions([]);
+      return;
+    }
+
+    const fetchSourceSessionQuestions = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/sessions/${sourceSessionId}/questions`, {
+          headers: { Authorization: token },
+        });
+        setSourceSessionQuestions(Array.isArray(response.data) ? response.data : []);
+      } catch (err) {
+        console.error("Failed to fetch source session questions:", err);
+        setSourceSessionQuestions([]);
+      }
+    };
+
+    fetchSourceSessionQuestions();
+  }, [API_URL, questionSourceMode, sourceSessionId]);
 
   const createQuestion = async (e) => {
     e.preventDefault();
@@ -174,15 +223,10 @@ function Session() {
         }
       );
 
-      // Fetch the full details of the newly linked question
-      const response = await axios.get(
-        `${API_URL}/questions/${selectedQuestionId}`,
-        {
-          headers: { Authorization: token },
-        }
-      );
-
       setSelectedQuestionId(""); // Reset the dropdown
+      setSourceSessionQuestions((prev) =>
+        prev.filter((question) => Number(question.id) !== Number(selectedQuestionId))
+      );
       fetchData();
     } catch (err) {
       console.error("Failed to link existing question:", err);
@@ -376,6 +420,7 @@ function Session() {
         {questions.length === 0 ? (
           <p>{t("sessionNoQuestions")}</p>
         ) : (
+          <div className="mobile-table-scroll" role="region" aria-label={t("ariaQuestionsTable")} tabIndex={0}>
           <table>
             <thead>
               <tr>
@@ -442,6 +487,7 @@ function Session() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
 
         {/* New Question Button */}
@@ -753,16 +799,55 @@ function Session() {
 
         <h2 className="title">{t("sessionLinkExistingQuestion")}</h2>
         <form onSubmit={linkExistingQuestion}>
+          <label htmlFor="link-question-source-mode">{t("sessionQuestionSourceLabel")}</label>
+          <select
+            id="link-question-source-mode"
+            value={questionSourceMode}
+            onChange={(e) => {
+              setQuestionSourceMode(e.target.value);
+              setSelectedQuestionId("");
+              if (e.target.value !== "session") {
+                setSourceSessionId("");
+              }
+            }}
+          >
+            <option value="all">{t("sessionQuestionSourceAll")}</option>
+            <option value="session">{t("sessionQuestionSourceSession")}</option>
+          </select>
+
+          {questionSourceMode === "session" && (
+            <>
+              <label htmlFor="link-question-source-session">{t("sessionQuestionSourceSessionLabel")}</label>
+              <select
+                id="link-question-source-session"
+                value={sourceSessionId}
+                onChange={(e) => {
+                  setSourceSessionId(e.target.value);
+                  setSelectedQuestionId("");
+                }}
+                required
+              >
+                <option value="">{t("sessionSelectSourceSession")}</option>
+                {availableSourceSessions.map((session) => (
+                  <option key={session.id} value={session.id}>
+                    {session.title || `${t("adminSessionWord")} #${session.id}`}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
+
           <label htmlFor="link-question-id">{t("sessionQuestionToLink")}</label>
           <select
             id="link-question-id"
             value={selectedQuestionId}
             onChange={(e) => setSelectedQuestionId(e.target.value)}
             required
+            disabled={questionSourceMode === "session" && !sourceSessionId}
           >
             <option value="">{t("sessionSelectQuestion")}</option>
-            {Array.isArray(allQuestions) && allQuestions.length > 0 ? (
-              allQuestions.map((question) => (
+            {availableQuestionsToLink.length > 0 ? (
+              availableQuestionsToLink.map((question) => (
                 <option key={question.id} value={question.id}>
                   {question.type == "green"
                     ? t("sessionFastQuestion")
@@ -792,7 +877,7 @@ function Session() {
           <button
             className="admin-button"
             type="submit"
-            disabled={allQuestions.length === 0}
+            disabled={availableQuestionsToLink.length === 0 || (questionSourceMode === "session" && !sourceSessionId)}
           >
             {t("sessionLinkQuestion")}
           </button>
@@ -807,6 +892,7 @@ function Session() {
         {groups.length === 0 ? (
           <p>{t("sessionNoGroups")}</p>
         ) : (
+          <div className="mobile-table-scroll" role="region" aria-label={t("ariaGroupsTable")} tabIndex={0}>
           <table>
             <thead>
               <tr>
@@ -855,6 +941,7 @@ function Session() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
 
         {/* New Group Button */}
