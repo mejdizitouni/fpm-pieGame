@@ -141,7 +141,7 @@
   word-break: break-word;
 }
 
-.login button {
+.login > button {
   margin-top: 6px;
   border: none;
   border-radius: 999px;
@@ -154,13 +154,13 @@
   transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
 }
 
-.login button:hover {
+.login > button:hover {
   transform: translateY(-1px);
   box-shadow: 0 10px 24px rgba(11, 79, 74, 0.3);
   filter: saturate(1.1);
 }
 
-.login button:active {
+.login > button:active {
   transform: translateY(0);
 }
 
@@ -174,8 +174,7 @@
   margin-top: 14px;
   padding-top: 12px;
   border-top: 1px dashed var(--line);
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
 }
 
 .login-meta p {
@@ -187,9 +186,8 @@
 
 .login-meta-names {
   font-weight: 600;
-  white-space: nowrap;
-  display: inline-block;
-  min-width: max-content;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .login-meta-audience {

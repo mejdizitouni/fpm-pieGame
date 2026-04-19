@@ -5,6 +5,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import ConfirmDialog from "../components/dialogs/ConfirmDialog";
+import PasswordInput from "../components/forms/PasswordInput";
 import { toast } from "../components/toast/toast";
 import { useLanguage } from "../i18n/LanguageProvider";
 import "./Admin.css"; // Import the CSS file for styling
@@ -502,6 +503,7 @@ function Admin() {
          
         {showSessionsManagement && (
           <>
+        <div className="mobile-table-scroll" role="region" aria-label={t("ariaSessionsTable")} tabIndex={0}>
         <table>
           <thead>
             <tr>
@@ -606,6 +608,7 @@ function Admin() {
             )}
           </tbody>
         </table>
+        </div>
           </>
         )}
 
@@ -702,6 +705,7 @@ function Admin() {
               </button>
             </div>
 
+            <div className="mobile-table-scroll" role="region" aria-label={t("ariaUsersTable")} tabIndex={0}>
             <table>
               <thead>
                 <tr>
@@ -748,6 +752,7 @@ function Admin() {
                 )}
               </tbody>
             </table>
+            </div>
 
             {showUserForm && (
               <form className="user-form" onSubmit={handleSaveUser}>
@@ -792,15 +797,15 @@ function Admin() {
                   required
                 />
                 <label htmlFor="new-user-password">{t("adminUserPassword")}</label>
-                <input
+                  <PasswordInput
                   id="new-user-password"
-                  type="password"
                   minLength={8}
                   value={newUser.password}
                   onChange={(e) =>
                     setNewUser({ ...newUser, password: e.target.value })
                   }
                   required={!editingUserId}
+                    autoComplete={editingUserId ? "new-password" : "current-password"}
                 />
                 <label htmlFor="new-user-role">{t("adminUserRole")}</label>
                 <select

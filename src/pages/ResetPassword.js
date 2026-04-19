@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import { useLanguage } from "../i18n/LanguageProvider";
+import PasswordInput from "../components/forms/PasswordInput";
 import "./App.css";
 
 function ResetPassword() {
@@ -60,23 +61,23 @@ function ResetPassword() {
 
           <form className="login" onSubmit={handleSubmit}>
             <label htmlFor="new-password">{t("resetNewPasswordLabel")}</label>
-            <input
+            <PasswordInput
               id="new-password"
-              type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               required
               minLength={8}
+              autoComplete="new-password"
             />
 
             <label htmlFor="confirm-password">{t("resetConfirmPasswordLabel")}</label>
-            <input
+            <PasswordInput
               id="confirm-password"
-              type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
               minLength={8}
+              autoComplete="new-password"
             />
 
             <button type="submit">{t("resetSubmit")}</button>

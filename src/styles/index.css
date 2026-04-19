@@ -106,6 +106,58 @@ video {
   max-width: 100%;
 }
 
+.password-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.password-input-wrapper input {
+  padding-right: 44px !important;
+}
+
+.password-toggle-button {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--brand-strong);
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.password-toggle-button svg {
+  width: 18px;
+  height: 18px;
+}
+
+html[data-accessibility-mode="monochrome"] body {
+  filter: grayscale(1);
+}
+
+html[data-accessibility-mode="high-contrast"] {
+  --bg-0: #ffffff;
+  --bg-1: #ffffff;
+  --bg-2: #ffffff;
+  --ink-0: #000000;
+  --ink-1: #0f0f0f;
+  --line: rgba(0, 0, 0, 0.42);
+  --brand: #000000;
+  --brand-strong: #000000;
+  --surface: #ffffff;
+}
+
+html[data-accessibility-mode="high-contrast"] body {
+  background: #ffffff;
+}
+
 /* Global page rhythm: keep comfortable spacing between major blocks */
 .admin-container > * + *,
 .session-container > * + *,
