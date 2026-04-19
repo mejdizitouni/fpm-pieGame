@@ -385,6 +385,32 @@
   background: linear-gradient(135deg, #bf2a2a, #8f1d1d);
 }
 
+.game-over-modal-content {
+  text-align: center;
+}
+
+.game-over-modal-content p {
+  margin-top: 8px;
+  font-weight: 700;
+  color: var(--ink-1);
+}
+
+.game-over-winners-list {
+  list-style: none;
+  margin: 14px 0 4px;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.game-over-winners-list li {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.88);
+  padding: 8px 10px;
+  font-weight: 700;
+}
+
 @media (min-width: 961px) {
   .player-live-layout {
     display: grid;

@@ -4,13 +4,19 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
+import { useLanguage } from "../i18n/LanguageProvider";
 
 function App() {
   const API_URL = process.env.REACT_APP_API_URL;
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotMessage, setForgotMessage] = useState("");
+  const [forgotError, setForgotError] = useState("");
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   // Check token validity on component mount
   useEffect(() => {
@@ -25,13 +31,18 @@ function App() {
           token,
         });
         if (response.data.valid) {
+          if (response.data.user) {
+            localStorage.setItem("user", JSON.stringify(response.data.user));
+          }
           navigate("/admin"); // Token is valid, redirect to admin
         } else {
           localStorage.removeItem("token"); // Remove invalid token
+          localStorage.removeItem("user");
         }
       } catch (err) {
         console.error("Token validation failed:", err.message);
         localStorage.removeItem("token"); // Remove invalid or expired token
+        localStorage.removeItem("user");
       }
     };
 
@@ -47,9 +58,31 @@ function App() {
         password,
       });
       localStorage.setItem("token", response.data.token); // Save JWT in local storage
+      if (response.data.user) {
+        localStorage.setItem("user", JSON.stringify(response.data.user));
+      }
       navigate("/admin"); // Redirect to /admin after successful login
     } catch (err) {
-      setError("Identifiants invalides");
+      setError(t("loginInvalidCredentials"));
+    }
+  };
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setForgotError("");
+    setForgotMessage("");
+
+    try {
+      const response = await axios.post(`${API_URL}/forgot-password`, {
+        email: forgotEmail,
+      });
+
+      const message = response.data?.resetLink
+        ? `${response.data.message} ${response.data.resetLink}`
+        : response.data?.message || "Reset link generated.";
+      setForgotMessage(message);
+    } catch (err) {
+      setForgotError(err?.response?.data?.message || "Failed to generate reset link");
     }
   };
 
@@ -72,37 +105,64 @@ function App() {
               onClick={() => navigate("/admin")}
             />
           </div>
-          <p className="eyebrow">Experience multijoueur en direct</p>
+          <p className="eyebrow">{t("loginEyebrow")}</p>
           <h1 className="game-name">Trivial Chem</h1>
-          <p className="login-subtitle">
-            Connectez votre equipe, lancez les sessions et controlez le jeu en temps reel.
-          </p>
+          <p className="login-subtitle">{t("loginSubtitle")}</p>
 
           <form className="login" onSubmit={handleLogin}>
+            <label htmlFor="login-username">{t("loginUsernameLabel")}</label>
             <input
+              id="login-username"
               type="text"
-              placeholder="Nom d'utilisateur"
+              placeholder={t("loginUsernamePlaceholder")}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
             />
+            <label htmlFor="login-password">{t("loginPasswordLabel")}</label>
             <input
+              id="login-password"
               type="password"
-              placeholder="Mot de passe"
+              placeholder={t("loginPasswordPlaceholder")}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
-            <button type="submit">Se connecter</button>
+            <button type="submit">{t("loginSubmit")}</button>
+            <button
+              className="forgot-password-link"
+              type="button"
+              onClick={() => setShowForgotPassword((prev) => !prev)}
+            >
+              Forgot password?
+            </button>
           </form>
+
+          {showForgotPassword && (
+            <form className="login forgot-password-form" onSubmit={handleForgotPassword}>
+              <label htmlFor="forgot-password-email">Account email</label>
+              <input
+                id="forgot-password-email"
+                type="email"
+                placeholder="email@example.com"
+                value={forgotEmail}
+                onChange={(e) => setForgotEmail(e.target.value)}
+                required
+              />
+              <button type="submit">Send reset link</button>
+            </form>
+          )}
+
+          {forgotMessage && <p className="login-success">{forgotMessage}</p>}
+          {forgotError && <p className="login-error">{forgotError}</p>}
 
           <div className="login-meta">
             <p className="login-meta-names">
-              Élaboré par : Nesrine Zitouni, Kaouthar Zribi, Sarra Mahfoudhi, Yessin Mokni, Mejdi Zitouni
+              {t("loginBuiltBy")}
             </p>
             <p className="login-meta-audience">
-              Publique cible : Étudiants en 2ème année du premier cycle des études pharmaceutiques
+              {t("loginTargetAudience")}
             </p>
             <p className="login-meta-tech">
-              Outils: React, Node.js, Express, Socket.IO, SQLite, ChatGPT et Copilot. Déployé sur Render.
+              {t("loginTools")}
             </p>
           </div>
 

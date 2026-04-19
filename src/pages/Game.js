@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import { io } from "socket.io-client";
 import confetti from "canvas-confetti";
 import PieChart from "../components/charts/PieChart";
+import Header from "../components/layout/Header";
+import { toast } from "../components/toast/toast";
+import { useLanguage } from "../i18n/LanguageProvider";
 import "./Game.css"; // Import the CSS file for styling
 
 const socket = io(process.env.REACT_APP_API_URL);
@@ -10,6 +13,8 @@ const API_URL = process.env.REACT_APP_API_URL;
 
 function Game() {
   const { sessionId, groupId } = useParams();
+  const location = useLocation();
+  const { t, setLanguage } = useLanguage();
 
   const [group, setGroup] = useState(null);
   const [sessionDetails, setSessionDetails] = useState(null); // To store session details
@@ -29,6 +34,11 @@ function Game() {
   const [totalQuestions, setTotalQuestions] = useState(null); // Total questions in the session
   const [stoppedTimerGroup, setStoppedTimerGroup] = useState(null); // Group that stopped the timer
   const [winningGroups, setWinningGroups] = useState([]); // Store winning group IDs
+  const [gameOverModal, setGameOverModal] = useState({
+    open: false,
+    message: "",
+    winners: [],
+  });
   const [showRules, setShowRules] = useState(false); // Manage rules popup visibility
   const [liveNotice, setLiveNotice] = useState(null);
   const [playerFeed, setPlayerFeed] = useState([]);
@@ -51,6 +61,14 @@ function Game() {
   const pushPlayerFeed = (text, type = "info") => {
     const nextItem = { id: Date.now() + Math.random(), text, type };
     setPlayerFeed((prev) => [nextItem, ...prev].slice(0, 5));
+  };
+
+  const renderTemplate = (key, params = {}) => {
+    let text = t(key);
+    Object.entries(params).forEach(([paramKey, value]) => {
+      text = text.replaceAll(`{${paramKey}}`, String(value));
+    });
+    return text;
   };
 
   const applyQuestionState = async (nextQuestion) => {
@@ -228,8 +246,8 @@ function Game() {
       if (isCurrentGroup) {
         pushPlayerFeed(
           stoppedTimer
-            ? "✅ Votre réponse est enregistrée et le timer est stoppé"
-            : "✅ Votre réponse est bien enregistrée",
+            ? t("gameNoticeAnswerSavedStopped")
+            : t("gameNoticeAnswerSaved"),
           "success"
         );
         return;
@@ -237,8 +255,8 @@ function Game() {
 
       pushPlayerFeed(
         stoppedTimer
-          ? `⚠️ ${groupName} a répondu et stoppé le timer`
-          : `📣 ${groupName} a soumis une réponse`,
+          ? renderTemplate("gameFeedAnsweredStopped", { groupName })
+          : renderTemplate("gameFeedAnsweredSubmitted", { groupName }),
         "info"
       );
     };
@@ -250,9 +268,9 @@ function Game() {
       if (remainingTime === 0) {
         if (!stoppedTimerGroupRef.current) {
           if (submittedAnswerRef.current) {
-            pushPlayerFeed("⏳ Temps écoulé, votre réponse est en cours de validation", "warning");
+            pushPlayerFeed(t("gameNoticeTimeUpPendingValidation"), "warning");
           } else {
-            pushPlayerFeed("⌛ Temps écoulé, vous n'avez pas répondu", "danger");
+            pushPlayerFeed(t("gameNoticeTimeUpNoAnswer"), "danger");
           }
         }
       }
@@ -267,14 +285,14 @@ function Game() {
         const isMyGroup = Number(stoppedByGroupId) === Number(groupId);
         showNotice(
           isMyGroup
-            ? "⏱️ Vous avez stoppé le timer !"
-            : `⏱️ ${groupName} a stoppé le timer`,
+            ? t("gameNoticeYouStoppedTimer")
+            : renderTemplate("gameNoticeGroupStoppedTimer", { groupName }),
           isMyGroup ? "success" : "warning"
         );
         pushPlayerFeed(
           isMyGroup
-            ? "⚡ Votre groupe a arrêté le timer en premier"
-            : `${groupName} a arrêté le timer avant vous`,
+            ? t("gameFeedGroupStoppedFirstSelf")
+            : renderTemplate("gameFeedGroupStoppedFirstOther", { groupName }),
           isMyGroup ? "success" : "warning"
         );
       }
@@ -288,7 +306,7 @@ function Game() {
 
     socket.on("camembertUpdated", handleCamembertUpdated);
 
-    const handleAnswerValidated = ({ groupId: validatedGroupId, message, isCorrect }) => {
+    const handleAnswerValidated = ({ groupId: validatedGroupId, message, messageKey, messageParams, isCorrect }) => {
       setWaitingValidation(null)
       const isCurrentGroup = Number(validatedGroupId) === Number(groupId);
 
@@ -297,43 +315,43 @@ function Game() {
         setWaitingValidation(false);
         if (isCorrect) {
           fireWinConfetti();
-          showNotice("🎉 Bonne réponse !", "success");
-          pushPlayerFeed("🏅 Bravo! votre groupe marque des points", "success");
+          showNotice(t("gameNoticeGoodAnswer"), "success");
+          pushPlayerFeed(t("gameFeedGroupPoints"), "success");
         } else {
-          showNotice("😞 Réponse incorrecte", "danger");
-          pushPlayerFeed("💔 Réponse refusée, pas de point pour votre groupe", "danger");
+          showNotice(t("gameNoticeWrongAnswer"), "danger");
+          pushPlayerFeed(t("gameFeedGroupNoPoint"), "danger");
         }
       } else if (!isCorrect) {
         fireWinConfetti();
-        showNotice("😄 Un autre groupe a raté: vous gagnez un point", "success");
-        pushPlayerFeed("🎁 Bonne nouvelle: un autre groupe a raté, vous gagnez un point", "success");
+        showNotice(t("gameNoticeOtherWrongYouGain"), "success");
+        pushPlayerFeed(t("gameFeedOtherWrongYouGain"), "success");
       } else {
-        pushPlayerFeed("📈 Un autre groupe vient de marquer des points", "info");
+        pushPlayerFeed(t("gameFeedOtherScored"), "info");
       }
-      setValidationResult(message);
+      setValidationResult(messageKey ? renderTemplate(messageKey, messageParams) : message);
       setCorrectAnswer(null);
 
     };
 
     socket.on("answerValidated", handleAnswerValidated);
     
-    const handleAnswerValidatedNoPoints = ({ groupId: validatedGroupId, message, isCorrect }) => {
+    const handleAnswerValidatedNoPoints = ({ groupId: validatedGroupId, message, messageKey, messageParams, isCorrect }) => {
       setWaitingValidation(null)
       if (Number(validatedGroupId) === Number(groupId)) {
         setValidationResultNoPoints(isCorrect ? "correct" : "wrong");
         setWaitingValidation(false);
         if (isCorrect) {
           fireWinConfetti();
-          showNotice("✨ Validation manuelle réussie", "success");
-          pushPlayerFeed("🧪 Réponse validée manuellement pour votre groupe", "success");
+          showNotice(t("gameNoticeManualValidationSuccess"), "success");
+          pushPlayerFeed(t("gameFeedManualValidationSelf"), "success");
         } else {
-          showNotice("🙁 Validation manuelle: incorrect", "danger");
-          pushPlayerFeed("🚫 Validation manuelle négative pour votre réponse", "danger");
+          showNotice(t("gameNoticeManualValidationWrong"), "danger");
+          pushPlayerFeed(t("gameFeedManualValidationWrong"), "danger");
         }
       } else if (isCorrect) {
-        pushPlayerFeed("📢 Un autre groupe vient d'être validé manuellement", "info");
+        pushPlayerFeed(t("gameFeedOtherManualValidated"), "info");
       }
-      setValidationResultNoPoints(message);
+      setValidationResultNoPoints(messageKey ? renderTemplate(messageKey, messageParams) : message);
       setCorrectAnswer(null);
 
     };
@@ -344,7 +362,7 @@ function Game() {
     const handleRevealAnswer = (correctAnswer) => {
       setWaitingValidation(false);
       setCorrectAnswer(correctAnswer);
-      showNotice("📘 Réponse révélée par l'administrateur", "info");
+      showNotice(t("gameNoticeRevealByAdmin"), "info");
     };
 
     socket.on("revealAnswer", handleRevealAnswer);
@@ -355,6 +373,8 @@ function Game() {
       setSubmittedAnswer(null);
       setQuestionOptions([]);
       setLiveNotice(null);
+      setWaitingValidation(false);
+      setCorrectAnswer(null);
       let winnersArray = [];
   
       if (Array.isArray(data.winners)) {
@@ -366,11 +386,35 @@ function Game() {
     setWinningGroups(winnersArray.map((w) => w.group_id)); // Store winning group IDs
 
     if (winnersArray.length > 1) {
-      alert(`🏆 Il y a un ex-aequo entre : ${winnersArray.map(w => w.name).join(", ")}`);
+      const tieMessage = renderTemplate("gameAlertTie", {
+        names: winnersArray.map((w) => w.name).join(", "),
+      });
+      toast.info(tieMessage);
+      fireWinConfetti();
+      setGameOverModal({
+        open: true,
+        message: tieMessage,
+        winners: winnersArray,
+      });
     } else if (winnersArray.length === 1) {
-      alert(`🎉 Le gagnant est "${winnersArray[0].name}" ! 🏆`);
+      const winnerMessage = renderTemplate("gameAlertWinner", {
+        name: winnersArray[0].name,
+      });
+      toast.success(winnerMessage);
+      fireWinConfetti();
+      setGameOverModal({
+        open: true,
+        message: winnerMessage,
+        winners: winnersArray,
+      });
     } else {
-      alert("Aucun gagnant. La partie est terminée !");
+      const noWinnerMessage = t("gameAlertNoWinner");
+      toast.info(noWinnerMessage);
+      setGameOverModal({
+        open: true,
+        message: noWinnerMessage,
+        winners: [],
+      });
     }
     };
 
@@ -404,7 +448,7 @@ function Game() {
     if (answer.trim() && !submittedAnswer) {
       setSubmittedAnswer(answer);
       setWaitingValidation(true);
-      showNotice("📨 Réponse envoyée, en attente de validation", "info");
+      showNotice(t("gameNoticeAnswerSent"), "info");
       socket.emit("submitAnswer", {
         sessionId,
         groupId,
@@ -465,49 +509,111 @@ function Game() {
 
   const timerVisualState = getTimerVisualState();
 
+  useEffect(() => {
+    const urlLanguage = new URLSearchParams(location.search).get("lang");
+    if (urlLanguage) {
+      setLanguage(urlLanguage);
+    }
+  }, [location.search, setLanguage]);
+
   if (sessionStatus === null) {
-    return <h1>Chargement de la session...</h1>;
+    return (
+      <>
+        <Header
+          showHomeButton={false}
+          showAdminButton={false}
+          showLogoutButton={false}
+          logoTargetPath={null}
+        />
+        <h1>{t("gameLoadingSession")}</h1>
+      </>
+    );
   }
 
   if (sessionStatus === "Draft") {
-    return <h1>Cette session n'est pas encore Active.</h1>;
+    return (
+      <>
+        <Header
+          showHomeButton={false}
+          showAdminButton={false}
+          showLogoutButton={false}
+          logoTargetPath={null}
+        />
+        <h1>{t("gameSessionNotActive")}</h1>
+      </>
+    );
   }
 
   return (
-    <div className="game-container">
+    <>
+      <Header
+        showHomeButton={false}
+        showAdminButton={false}
+        showLogoutButton={false}
+        logoTargetPath={null}
+      />
+      <div className="game-container">
       {/* Top right button for rules */}
       <button className="rules-button" onClick={() => setShowRules(true)}>
-        Règle du jeu
+        {t("gameRules")}
       </button>
 
       {/* Rules Modal */}
       {showRules && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <h2>Règle du jeu</h2>
+            <h2>{t("gameRules")}</h2>
             <br></br>
             <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-            {sessionDetails?.session_rules || "Aucune règle définie."}
+            {sessionDetails?.session_rules || t("gameNoRules")}
   </pre>
-            <button className="close-button" onClick={() => setShowRules(false)}>Fermer</button>
+            <button className="close-button" onClick={() => setShowRules(false)}>{t("commonClose")}</button>
           </div>
         </div>
       )}
+
+      {gameOverModal.open && (
+        <div className="modal-overlay" role="dialog" aria-modal="true">
+          <div className="modal-content game-over-modal-content">
+            <h2>{t("gameOverTitle")}</h2>
+            <p>{gameOverModal.message}</p>
+            {gameOverModal.winners.length > 0 && (
+              <ul className="game-over-winners-list">
+                {gameOverModal.winners.map((winner) => (
+                  <li key={winner.group_id || winner.name}>🏆 {winner.name}</li>
+                ))}
+              </ul>
+            )}
+            <button
+              className="close-button"
+              onClick={() =>
+                setGameOverModal((prev) => ({
+                  ...prev,
+                  open: false,
+                }))
+              }
+            >
+              {t("commonClose")}
+            </button>
+          </div>
+        </div>
+      )}
+
       {sessionStatus === "Game Over" && (
         <>
-          <h1>Game Over!</h1>
-          <h2>Score Final</h2>
+          <h1>{t("gameOverTitle")}</h1>
+          <h2>{t("gameFinalScore")}</h2>
           <ul className="pie-chart-list">
             {camemberts.map((cam) => (
               <li key={cam.group_id}>
               <img
                 src={cam.avatar_url}
-                alt={`${cam.name} Avatar`}
+                alt={renderTemplate("gameGroupAvatarAlt", { name: cam.name })}
                 className="group-avatar"
               />
               
               {winningGroups.includes(cam.group_id) && (
-                    <span className="winner-badge">🏆 Winner</span>
+                    <span className="winner-badge">🏆 {t("gameWinner")}</span>
                   )}
                 <h3>{cam.name}</h3>
                 {generateCamemberts(cam.red_triangles, cam.green_triangles).map(
@@ -531,7 +637,7 @@ function Game() {
               {group && group.avatar_url && (
                 <img
                   src={group.avatar_url}
-                  alt={`${group.name} Avatar`}
+                  alt={renderTemplate("gameGroupAvatarAlt", { name: group.name })}
                   className="group-avatar"
                 />
               )}
@@ -546,15 +652,15 @@ function Game() {
 
             {sessionStatus === "Activated" && (
               <div className="game-status-card">
-                <h2>En attente du démarrage</h2>
-                <p>L'administrateur n'a pas encore lancé la session.</p>
+                <h2>{t("gameWaitingStart")}</h2>
+                <p>{t("gameWaitingStartDesc")}</p>
               </div>
             )}
 
             {sessionStatus === "In Progress" && !question && (
               <div className="game-status-card">
-                <h2>En attente de la question suivante</h2>
-                <p>Restez prêts, la prochaine question arrive.</p>
+                <h2>{t("gameWaitingNextQuestion")}</h2>
+                <p>{t("gameWaitingNextQuestionDesc")}</p>
               </div>
             )}
 
@@ -564,11 +670,14 @@ function Game() {
                   className={`question ${question.type === "red" ? "red" : "green"}`}
                 >
                   <div className="question-header">
-                    Question {questionIndex}/{totalQuestions}:
+                    {renderTemplate("gameQuestionCounter", {
+                      current: questionIndex,
+                      total: totalQuestions,
+                    })}
                     <img
                       className="question-type-avatar"
                       src={`/avatars/${question.type}.svg`}
-                      alt={`${question.type} Avatar`}
+                      alt={renderTemplate("gameQuestionTypeAvatarAlt", { type: question.type })}
                     />
                     <div className={`question-label`}>
                       {question && question.type === "green"
@@ -598,24 +707,24 @@ function Game() {
                       />
                     </svg>
                     <div className={`timer-text ${timerVisualState}`}>
-                      {timer > 0 ? `${timer}s` : "Time's Up!"}
+                      {timer > 0 ? `${timer}s` : t("gameTimerExpired")}
                     </div>
                   </div>
                   <div className={`timer-status ${timerVisualState}`}>
                     {timerVisualState === "critical"
-                      ? "Vite! plus que quelques secondes"
+                        ? t("gameTimerCritical")
                       : timerVisualState === "warning"
-                      ? "Dépêchez-vous"
+                        ? t("gameTimerWarning")
                       : timerVisualState === "expired"
-                      ? "Temps écoulé"
-                      : "Temps restant"}
+                        ? t("gameTimerExpired")
+                        : t("gameTimerRemaining")}
                   </div>
 
                   {!stoppedTimerGroup && !submittedAnswer && timer > 0 && (
                     <div>
                       {question.response_type === "Question à choix unique" ? (
                         <div>
-                          <h4>Choisir une option:</h4>
+                          <h4>{t("gameChooseOption")}</h4>
                           <form>
                             {questionOptions.map((option) => (
                               <div key={option.id}>
@@ -638,7 +747,7 @@ function Game() {
                               }}
                               disabled={!answer}
                             >
-                              Soumettre la réponse
+                              {t("gameSubmitAnswer")}
                             </button>
                             <button
                               onClick={(e) => {
@@ -647,24 +756,26 @@ function Game() {
                               }}
                               disabled={!answer}
                             >
-                              Soumettre la réponse et arrêter le timer
+                              {t("gameSubmitAndStop")}
                             </button>
                           </form>
                         </div>
                       ) : (
                         <div>
+                          <label htmlFor="player-free-answer">{t("gameYourAnswer")}</label>
                           <input
+                            id="player-free-answer"
                             type="text"
-                            placeholder="Enter your answer"
+                            placeholder={t("gameEnterAnswer")}
                             value={answer}
                             onChange={(e) => setAnswer(e.target.value)}
                           />
                           <div className="submit-buttons-container">
                             <button onClick={() => submitAnswer(false)}>
-                              Soumettre la réponse
+                              {t("gameSubmitAnswer")}
                             </button>
                             <button onClick={() => submitAnswer(true)}>
-                              Soumettre la réponse et arrêter le timer
+                              {t("gameSubmitAndStop")}
                             </button>
                           </div>
                         </div>
@@ -673,7 +784,7 @@ function Game() {
                   )}
                 </div>
 
-                {stoppedTimerGroup && <h3>Le timer a été arrêté par: {stoppedTimerGroup}</h3>}
+                {stoppedTimerGroup && <h3>{t("gameTimerStoppedBy")} {stoppedTimerGroup}</h3>}
 
                 {playerFeed.length > 0 && (
                   <div className="player-feed-board">
@@ -687,30 +798,32 @@ function Game() {
 
                 {submittedAnswer && (
                   <div className="player-answer-feedback">
-                    <h3>Votre réponse:</h3>
+                    <h3>{t("gameYourAnswer")}: </h3>
                     <span>{submittedAnswer}</span>
-                    {waitingValidation && <h3>En attente de validation de la réponse...</h3>}
+                    {waitingValidation && <h3>{t("gameWaitingValidation")}</h3>}
 
                     {validationResult === "correct" && (
                       <h3>
-                        🎉 Votre réponse est correcte! Vous avez gagné {stoppedTimerGroup ? 2 : 1}{" "}
-                        point{stoppedTimerGroup ? "s" : ""}!
+                        {renderTemplate("gameValidationCorrectPoints", {
+                          points: stoppedTimerGroup ? 2 : 1,
+                        })}
                       </h3>
                     )}
                     {validationResult === "wrong" && (
                       <h3>
-                        ❌ Votre réponse est incorrecte!{" "}
-                        {stoppedTimerGroup && "Les autres groupes ont gagné 1 point chacun."}
+                        {stoppedTimerGroup
+                          ? t("gameValidationWrongWithOthersGain")
+                          : t("gameValidationWrong")}
                       </h3>
                     )}
 
                     {validationResultNoPoints === "correct" && (
                       <h3>
-                        ✅ Votre réponse est correcte ! Choisissez la répartition de vos points.
+                        {t("gameValidationNoPointsCorrect")}
                       </h3>
                     )}
                     {validationResultNoPoints === "wrong" && (
-                      <h3>❌ Votre réponse est incorrecte!</h3>
+                      <h3>{t("gameValidationWrong")}</h3>
                     )}
                   </div>
                 )}
@@ -729,7 +842,7 @@ function Game() {
 
                 {correctAnswer && (
                   <div className="player-answer-feedback">
-                    <h3>Aucun groupe n'a correctement répondu à la question, La bonne réponse était: {correctAnswer}</h3>
+                    <h3>{t("gameNoCorrectAnswer")} {correctAnswer}</h3>
                   </div>
                 )}
               </>
@@ -738,14 +851,14 @@ function Game() {
 
           <aside className="player-score-sidebar">
             <div className="player-score-sidebar-inner">
-              <h2 className="game-panel-title">Scores</h2>
+              <h2 className="game-panel-title">{t("gameScores")}</h2>
               <ul className="pie-chart-list player-score-list">
                 {camemberts.map((cam) => (
                   <li key={cam.group_id}>
                     <h3>{cam.name}</h3>
                     <img
                       src={cam.avatar_url}
-                      alt={`${cam.name} Avatar`}
+                      alt={renderTemplate("gameGroupAvatarAlt", { name: cam.name })}
                       className="group-avatar"
                     />
                     {generateCamemberts(cam.red_triangles, cam.green_triangles).map(
@@ -763,7 +876,8 @@ function Game() {
           </aside>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }
 

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
+import { useLanguage } from "../i18n/LanguageProvider";
 import "./Session.css"; // Import the CSS file for styling
 
 const AVATAR_OPTIONS = [
@@ -47,6 +48,7 @@ function Session() {
   const [editingQuestion, setEditingQuestion] = useState(null); // To handle question editing
   const [editingGroup, setEditingGroup] = useState(null); // To handle group editing
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   const fetchData = async () => {
     const token = localStorage.getItem("token");
@@ -359,7 +361,7 @@ function Session() {
         <h1>Contenu de la session {sessionDetails.title}</h1>
 
         <details className="session-accordion" open>
-          <summary className="session-accordion-summary">Questions</summary>
+          <summary className="session-accordion-summary">{t("sessionQuestions")}</summary>
           <div className="session-accordion-content">
 
  {/* New Question Button */}
@@ -367,24 +369,24 @@ function Session() {
           className="admin-button"
           onClick={() => setShowNewQuestionForm(!showNewQuestionForm)}
         >
-          {showNewQuestionForm ? "Annuler" : "Nouvelle question"}
+          {showNewQuestionForm ? t("commonCancel") : t("sessionNewQuestion")}
         </button>
         
-        <h2 className="title">Questions</h2>
+        <h2 className="title">{t("sessionQuestions")}</h2>
         {questions.length === 0 ? (
-          <p>Aucune question crée pour cette session.</p>
+          <p>{t("sessionNoQuestions")}</p>
         ) : (
           <table>
             <thead>
               <tr>
-                <th>Catégorie</th>
-                <th>Type de réponse</th>
-                <th>Intitulé</th>
-                <th>Réponse attendue</th>
-                <th>Temps alloué</th>
-                <th>Order d'apparition</th>{" "}
+                <th>{t("sessionCategory")}</th>
+                <th>{t("sessionResponseType")}</th>
+                <th>{t("sessionQuestionTitle")}</th>
+                <th>{t("sessionExpectedAnswer")}</th>
+                <th>{t("sessionAllocatedTime")}</th>
+                <th>{t("sessionOrder")}</th>{" "}
                 {/* New column for question_order */}
-                <th>Actions</th>
+                <th>{t("adminActions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -392,8 +394,8 @@ function Session() {
                 <tr key={question.id}>
                   <td>
                     {question.type == "green"
-                      ? "Question de réponse rapide"
-                      : "Question de calcul"}
+                      ? t("sessionFastQuestion")
+                      : t("sessionCalcQuestion")}
                   </td>
                   <td>{question.response_type}</td>
                   <td>
@@ -426,13 +428,13 @@ function Session() {
                         className="admin-button"
                         onClick={() => editQuestion(question.id)}
                       >
-                        Modifier
+                        {t("commonEdit")}
                       </button>
                       <button
                         className="admin-button"
                         onClick={() => removeQuestionFromSession(question.id)}
                       >
-                        Supprimer
+                        {t("adminDelete")}
                       </button>
                     </div>
                   </td>
@@ -447,7 +449,7 @@ function Session() {
           className="admin-button"
           onClick={() => setShowNewQuestionForm(!showNewQuestionForm)}
         >
-          {showNewQuestionForm ? "Annuler" : "Nouvelle question"}
+          {showNewQuestionForm ? t("commonCancel") : t("sessionNewQuestion")}
         </button>
 
         {/* New Question Form */}
@@ -455,18 +457,22 @@ function Session() {
           <div className="modal-overlay">
             <div className="modal-content">
               <form onSubmit={createQuestion}>
+                <label htmlFor="new-question-type">{t("sessionQuestionCategory")}</label>
                 <select
+                  id="new-question-type"
                   value={newQuestion.type}
                   onChange={(e) =>
                     setNewQuestion({ ...newQuestion, type: e.target.value })
                   }
                   required
                 >
-                  <option value="">Séléctionner la catégorie Type</option>
-                  <option value="red">Question de calcul</option>
-                  <option value="green">Question réponse rapide</option>
+                  <option value="">{t("sessionSelectCategory")}</option>
+                  <option value="red">{t("sessionCalcQuestion")}</option>
+                  <option value="green">{t("sessionFastQuestion")}</option>
                 </select>
+                <label htmlFor="new-question-response-type">{t("sessionResponseType")}</label>
                 <select
+                  id="new-question-response-type"
                   value={newQuestion.response_type}
                   onChange={(e) =>
                     setNewQuestion({
@@ -476,14 +482,16 @@ function Session() {
                   }
                   required
                 >
-                  <option value="">Type de réponse</option>
+                  <option value="">{t("sessionResponseType")}</option>
                   <option value="Question à choix unique">
                     Question à choix unique
                   </option>
                   <option value="Réponse libre">Réponse libre</option>
                 </select>
+                <label htmlFor="new-question-title">{t("sessionQuestionTitle")}</label>
                 <textarea
-                  placeholder="Intitulé de la question"
+                  id="new-question-title"
+                  placeholder={t("sessionQuestionTitle")}
                   value={newQuestion.title}
                   onChange={(e) =>
                     setNewQuestion({ ...newQuestion, title: e.target.value })
@@ -492,8 +500,10 @@ function Session() {
                   required
                 />
 
+                <label htmlFor="new-question-expected-answer">{t("sessionExpectedAnswer")}</label>
                 <textarea
-                  placeholder="Réponse attendue"
+                  id="new-question-expected-answer"
+                  placeholder={t("sessionExpectedAnswer")}
                   value={newQuestion.expected_answer}
                   onChange={(e) =>
                     setNewQuestion({
@@ -505,9 +515,11 @@ function Session() {
                   required
                 />
 
+                <label htmlFor="new-question-time">{t("sessionAllocatedTimeSeconds")}</label>
                 <input
+                  id="new-question-time"
                   type="number"
-                  placeholder="Temps alloué"
+                  placeholder={t("sessionAllocatedTime")}
                   value={newQuestion.allocated_time}
                   onChange={(e) =>
                     setNewQuestion({
@@ -517,9 +529,11 @@ function Session() {
                   }
                   required
                 />
+                <label htmlFor="new-question-order">{t("sessionOrder")}</label>
                 <input
+                  id="new-question-order"
                   type="number"
-                  placeholder="Order d'apparition"
+                  placeholder={t("sessionOrder")}
                   value={newQuestion.question_order || ""}
                   onChange={(e) =>
                     setNewQuestion({
@@ -532,7 +546,7 @@ function Session() {
                 {/* Options for Red Questions */}
                 {newQuestion.response_type === "Question à choix unique" && (
                   <div>
-                    <h4>Propositions</h4>
+                    <h4>{t("sessionOptions")}</h4>
                     <ul>
                       {newQuestion.options.map((option, index) => (
                         <li key={index}>
@@ -542,14 +556,16 @@ function Session() {
                             type="button"
                             onClick={() => removeOption(index)}
                           >
-                            Supprimer
+                            {t("adminDelete")}
                           </button>
                         </li>
                       ))}
                     </ul>
+                    <label htmlFor="new-question-option">{t("sessionNewOption")}</label>
                     <input
+                      id="new-question-option"
                       type="text"
-                      placeholder="Ajouter une proposition"
+                      placeholder={t("sessionAddOption")}
                       value={optionInput}
                       onChange={(e) => setOptionInput(e.target.value)}
                     />
@@ -558,19 +574,19 @@ function Session() {
                       type="button"
                       onClick={addOption}
                     >
-                      Ajouter la proposition
+                      {t("sessionAddOption")}
                     </button>
                   </div>
                 )}
                 <div className="flex-buttons-container">
                 <button className="admin-button" type="submit">
-                  Créer
+                  {t("commonCreate")}
                 </button>
                 <button
                   className="admin-button"
                   onClick={() => setShowNewQuestionForm(!showNewQuestionForm)}
                 >
-                  {showNewQuestionForm ? "Annuler" : "Nouvelle question"}
+                  {showNewQuestionForm ? t("commonCancel") : t("sessionNewQuestion")}
                 </button>
                 </div>
                
@@ -584,7 +600,9 @@ function Session() {
           <div className="modal-overlay">
             <div className="modal-content">
               <form onSubmit={updateQuestion}>
+                <label htmlFor="edit-question-type">{t("sessionQuestionCategory")}</label>
                 <select
+                  id="edit-question-type"
                   value={editingQuestion.type}
                   onChange={(e) =>
                     setEditingQuestion({
@@ -593,10 +611,12 @@ function Session() {
                     })
                   }
                 >
-                  <option value="red">Question de calcul</option>
-                  <option value="green">Question de réponse rapide</option>
+                  <option value="red">{t("sessionCalcQuestion")}</option>
+                  <option value="green">{t("sessionFastQuestion")}</option>
                 </select>
+                <label htmlFor="edit-question-response-type">{t("sessionResponseType")}</label>
                 <select
+                  id="edit-question-response-type"
                   value={editingQuestion.response_type}
                   onChange={(e) =>
                     setEditingQuestion({
@@ -606,13 +626,15 @@ function Session() {
                   }
                   required
                 >
-                  <option value="">Type de réponse</option>
+                  <option value="">{t("sessionResponseType")}</option>
                   <option value="Question à choix unique">
                     Question à choix unique
                   </option>
                   <option value="Réponse libre">Réponse libre</option>
                 </select>
+                <label htmlFor="edit-question-title">{t("sessionQuestionTitle")}</label>
                 <textarea
+                  id="edit-question-title"
                   value={editingQuestion.title}
                   onChange={(e) =>
                     setEditingQuestion({
@@ -623,7 +645,9 @@ function Session() {
                   rows={3}
                   required
                 />
+                <label htmlFor="edit-question-expected-answer">{t("sessionExpectedAnswer")}</label>
                 <textarea
+                  id="edit-question-expected-answer"
                   value={editingQuestion.expected_answer}
                   onChange={(e) =>
                     setEditingQuestion({
@@ -634,7 +658,9 @@ function Session() {
                   rows={3}
                   required
                 />
+                <label htmlFor="edit-question-time">{t("sessionAllocatedTimeSeconds")}</label>
                 <input
+                  id="edit-question-time"
                   type="number"
                   value={editingQuestion.allocated_time}
                   onChange={(e) =>
@@ -644,7 +670,9 @@ function Session() {
                     })
                   }
                 />
+                <label htmlFor="edit-question-order">{t("sessionOrder")}</label>
                 <input
+                  id="edit-question-order"
                   type="number"
                   value={editingQuestion.question_order || ""}
                   onChange={(e) =>
@@ -659,7 +687,7 @@ function Session() {
                 {editingQuestion.response_type ===
                   "Question à choix unique" && (
                   <div>
-                    <h4>Modifier les Propositions</h4>
+                    <h4>{t("sessionEditOptions")}</h4>
                     <ul>
                       {editingQuestion.options.map((option, index) => (
                         <li  className="options-list-session" key={index}>
@@ -676,14 +704,16 @@ function Session() {
                               }))
                             }
                           >
-                            Supprimer
+                            {t("adminDelete")}
                           </button>
                         </li>
                       ))}
                     </ul>
+                    <label htmlFor="edit-question-option">{t("sessionNewOption")}</label>
                     <input
+                      id="edit-question-option"
                       type="text"
-                      placeholder="Add option"
+                      placeholder={t("sessionAddOption")}
                       value={optionInput}
                       onChange={(e) => setOptionInput(e.target.value)}
                     />
@@ -700,20 +730,20 @@ function Session() {
                         }
                       }}
                     >
-                      Ajouter une proposition
+                      {t("sessionAddOption")}
                     </button>
                   </div>
                 )}
                 <div className="flex-buttons-container">
                 <button className="admin-button" type="submit">
-                  Mettre à jour
+                  {t("commonUpdate")}
                 </button>
                 <button
                   className="admin-button"
                   type="button"
                   onClick={cancelQuestionEdit}
                 >
-                  Annuler
+                  {t("commonCancel")}
                 </button>
                   </div>
               </form>
@@ -721,31 +751,35 @@ function Session() {
           </div>
         )}
 
-        <h2 className="title">Lier une question existance</h2>
+        <h2 className="title">{t("sessionLinkExistingQuestion")}</h2>
         <form onSubmit={linkExistingQuestion}>
+          <label htmlFor="link-question-id">{t("sessionQuestionToLink")}</label>
           <select
+            id="link-question-id"
             value={selectedQuestionId}
             onChange={(e) => setSelectedQuestionId(e.target.value)}
             required
           >
-            <option value="">Séléctionner la question</option>
+            <option value="">{t("sessionSelectQuestion")}</option>
             {Array.isArray(allQuestions) && allQuestions.length > 0 ? (
               allQuestions.map((question) => (
                 <option key={question.id} value={question.id}>
                   {question.type == "green"
-                    ? "Question de réponse rapide"
-                    : "Question à calcul " + question.title}
+                    ? t("sessionFastQuestion")
+                    : `${t("sessionCalcQuestion")} ${question.title}`}
                 </option>
               ))
             ) : (
               <option value="" disabled>
-                Aucune question disponible
+                {t("sessionNoAvailableQuestion")}
               </option>
             )}
           </select>
+          <label htmlFor="link-question-order">{t("sessionOrder")}</label>
           <input
+            id="link-question-order"
             type="number"
-            placeholder="Order d'apparition"
+            placeholder={t("sessionOrder")}
             value={newQuestion.question_order || ""}
             onChange={(e) =>
               setNewQuestion({
@@ -760,25 +794,25 @@ function Session() {
             type="submit"
             disabled={allQuestions.length === 0}
           >
-            Lier la question
+            {t("sessionLinkQuestion")}
           </button>
         </form>
           </div>
         </details>
 
         <details className="session-accordion">
-          <summary className="session-accordion-summary">Groupes</summary>
+          <summary className="session-accordion-summary">{t("sessionGroups")}</summary>
           <div className="session-accordion-content">
-        <h2 className="title">Groupes</h2>
+        <h2 className="title">{t("sessionGroups")}</h2>
         {groups.length === 0 ? (
-          <p>Aucun groupe trouvé pour cette session.</p>
+          <p>{t("sessionNoGroups")}</p>
         ) : (
           <table>
             <thead>
               <tr>
-                <th>Nom du groupe</th>
-                <th>Avatar</th>
-                <th>Actions</th>
+                <th>{t("sessionGroupName")}</th>
+                <th>{t("sessionAvatar")}</th>
+                <th>{t("adminActions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -807,13 +841,13 @@ function Session() {
                         className="admin-button"
                         onClick={() => editGroup(group.id)}
                       >
-                        Modifier
+                        {t("commonEdit")}
                       </button>
                       <button
                         className="admin-button"
                         onClick={() => deleteGroup(group.id)}
                       >
-                        Supprimer
+                        {t("adminDelete")}
                       </button>
                     </div>
                   </td>
@@ -828,7 +862,7 @@ function Session() {
           className="admin-button"
           onClick={() => setShowNewGroupForm(!showNewGroupForm)}
         >
-          {showNewGroupForm ? "Annuler" : "Nouveau groupe"}
+          {showNewGroupForm ? t("commonCancel") : t("sessionNewGroup")}
         </button>
           </div>
         </details>
@@ -838,18 +872,22 @@ function Session() {
           <div className="modal-overlay">
             <div className="modal-content">
               <form onSubmit={createGroup}>
+                <label htmlFor="new-group-name">{t("sessionGroupName")}</label>
                 <input
+                  id="new-group-name"
                   type="text"
-                  placeholder="Nom du groupe"
+                  placeholder={t("sessionGroupName")}
                   value={newGroup.name}
                   onChange={(e) =>
                     setNewGroup({ ...newGroup, name: e.target.value })
                   }
                   required
                 />
+                <label htmlFor="new-group-description">{t("sessionGroupDescription")}</label>
                 <input
+                  id="new-group-description"
                   type="text"
-                  placeholder="Description du groupe"
+                  placeholder={t("sessionGroupDescription")}
                   value={newGroup.description}
                   onChange={(e) =>
                     setNewGroup({ ...newGroup, description: e.target.value })
@@ -862,17 +900,19 @@ function Session() {
                     className="avatar-preview-image"
                   />
                   <span>
-                    Avatar sélectionné: {newGroup.avatar_name || "Pill"}
+                    {t("sessionSelectedAvatar")}: {newGroup.avatar_name || "Pill"}
                   </span>
                 </div>
+                <label htmlFor="new-group-avatar">{t("sessionAvatar")}</label>
                 <select
+                  id="new-group-avatar"
                   value={newGroup.avatar_name || ""}
                   onChange={(e) =>
                     setNewGroup({ ...newGroup, avatar_name: e.target.value })
                   }
                   required
                 >
-                  <option value="">Selectionner un avatar</option>
+                  <option value="">{t("sessionSelectAvatar")}</option>
                   {AVATAR_OPTIONS.map((avatar) => (
                     <option key={avatar} value={avatar}>
                       {avatar}
@@ -881,13 +921,13 @@ function Session() {
                 </select>
                 <div className="flex-buttons-container">
                 <button className="admin-button" type="submit">
-                  Créer
+                  {t("commonCreate")}
                 </button>
                 <button
                   className="admin-button"
                   onClick={() => setShowNewGroupForm(!showNewGroupForm)}
                 >
-                  {showNewGroupForm ? "Annuler" : "Nouveau groupe"}
+                  {showNewGroupForm ? t("commonCancel") : t("sessionNewGroup")}
                 </button>
                 </div>
                 
@@ -900,14 +940,18 @@ function Session() {
           <div className="modal-overlay">
             <div className="modal-content">
               <form onSubmit={updateGroup}>
+                <label htmlFor="edit-group-name">{t("sessionGroupName")}</label>
                 <input
+                  id="edit-group-name"
                   type="text"
                   value={editingGroup.name}
                   onChange={(e) =>
                     setEditingGroup({ ...editingGroup, name: e.target.value })
                   }
                 />
+                <label htmlFor="edit-group-description">{t("sessionGroupDescription")}</label>
                 <input
+                  id="edit-group-description"
                   type="text"
                   value={editingGroup.description}
                   onChange={(e) =>
@@ -924,10 +968,12 @@ function Session() {
                     className="avatar-preview-image"
                   />
                   <span>
-                    Avatar sélectionné: {editingGroup.avatar_name || "Pill"}
+                    {t("sessionSelectedAvatar")}: {editingGroup.avatar_name || "Pill"}
                   </span>
                 </div>
+                <label htmlFor="edit-group-avatar">{t("sessionAvatar")}</label>
                 <select
+                  id="edit-group-avatar"
                   value={editingGroup.avatar_name || ""}
                   onChange={(e) =>
                     setEditingGroup({
@@ -937,7 +983,7 @@ function Session() {
                   }
                   required
                 >
-                  <option value="">Selectionner un avatar</option>
+                  <option value="">{t("sessionSelectAvatar")}</option>
                   {AVATAR_OPTIONS.map((avatar) => (
                     <option key={avatar} value={avatar}>
                       {avatar}
@@ -947,14 +993,14 @@ function Session() {
                
                 <div className="flex-buttons-container">
                    <button className="admin-button" type="submit">
-                  Mettre à jour
+                  {t("commonUpdate")}
                 </button>
                 <button
                   className="admin-button"
                   type="button"
                   onClick={cancelGroupEdit}
                 >
-                  Annuler
+                  {t("commonCancel")}
                 </button>
                 </div>
               </form>

@@ -1,615 +1,101 @@
-const express = require("express");
 const path = require("path");
-const cors = require("cors");
-const helmet = require("helmet");
-const rateLimit = require("express-rate-limit");
 const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs");
-const crypto = require("crypto");
-const db = require("./database");
+const db = require("./server/db");
+const { createApp } = require("./server/app");
+const { createHttpServer } = require("./server/httpServer");
+const { AVATAR_OPTIONS } = require("./server/constants");
+const { getEnv } = require("./server/config/env");
+const { buildCorsOptions, createLimiters } = require("./server/config/security");
+const {
+  sessionState,
+  createSessionRuntimeState,
+  markSessionTouched,
+  startSessionCleanup,
+  isValidPositiveInt,
+  buildRuntimeStateResponse,
+  buildPlayerRuntimeStateResponse,
+} = require("./server/services/sessionRuntime.service");
+const { createScoringService } = require("./server/services/scoring.service");
+const { registerSockets } = require("./server/sockets");
+const { registerAuthRoutes } = require("./server/routes/auth.routes");
 
-const app = express();
-const port = process.env.PORT || 3001;
-const SECRET_KEY =
-  process.env.JWT_SECRET || crypto.randomBytes(32).toString("hex");
+const { port, jwtSecret, allowedOrigins } = getEnv();
 
-if (!process.env.JWT_SECRET) {
-  console.warn(
-    "JWT_SECRET is not set. Using an ephemeral key; tokens will reset on server restart."
-  );
-}
+const normalizeAuthHeader = (headerValue = "") =>
+  headerValue.startsWith("Bearer ") ? headerValue.slice(7) : headerValue;
 
-const http = require("http");
-const { Server } = require("socket.io");
-
-const allowedOrigins = (process.env.CORS_ORIGINS || "")
-  .split(",")
-  .map((origin) => origin.trim())
-  .filter(Boolean);
-
-const corsOptions = {
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
-      callback(null, true);
-      return;
-    }
-
-    callback(new Error("Not allowed by CORS"));
-  },
-  methods: ["GET", "POST", "PUT", "DELETE"],
-};
-
-const server = http.createServer(app); // Create an HTTP server
-const io = new Server(server, { cors: corsOptions }); // Attach Socket.IO to the server
-
-// State tracking for sessions
-const sessionState = {}; // { sessionId: { currentIndex, totalQuestions, askedQuestions: Set }}
-
-const createSessionRuntimeState = () => ({
-  currentIndex: 0,
-  askedQuestions: new Set(),
-  totalQuestions: 0,
-  currentQuestion: null,
-  currentQuestionStartedAt: null,
-  currentQuestionDuration: 0,
-  submittedAnswers: [],
-  stoppedTimerGroup: null,
-  revealedAnswer: null,
-  winners: [],
-  lastTouchedAt: Date.now(),
+const corsOptions = buildCorsOptions(allowedOrigins);
+const { authLimiter, mutationLimiter } = createLimiters();
+const app = createApp({
+  corsOptions,
+  mutationLimiter,
+  rootDir: __dirname,
 });
 
-const AVATAR_OPTIONS = new Set([
-  "Pill",
-  "Capsule",
-  "Syringe",
-  "Stethoscope",
-  "Microscope",
-  "Mortar",
-  "Caduceus",
-  "FirstAid",
-  "DNA",
-  "Heartbeat",
-]);
+const { server, io } = createHttpServer({ app, corsOptions });
 
-const SESSION_TTL_MS = 2 * 60 * 60 * 1000;
+startSessionCleanup();
 
-const markSessionTouched = (sessionId) => {
-  if (!sessionState[sessionId]) {
-    return;
-  }
-
-  sessionState[sessionId].lastTouchedAt = Date.now();
-};
-
-setInterval(() => {
-  const now = Date.now();
-  Object.keys(sessionState).forEach((sessionId) => {
-    const lastTouchedAt = sessionState[sessionId]?.lastTouchedAt || now;
-    if (now - lastTouchedAt > SESSION_TTL_MS) {
-      delete sessionState[sessionId];
-    }
-  });
-}, 15 * 60 * 1000);
-
-const isValidPositiveInt = (value) => Number.isInteger(Number(value)) && Number(value) > 0;
-
-const getRemainingTimer = (state) => {
-  if (!state?.currentQuestion || !state.currentQuestionStartedAt) {
-    return 0;
-  }
-
-  const elapsedSeconds = Math.floor(
-    (Date.now() - state.currentQuestionStartedAt) / 1000
-  );
-
-  return Math.max((state.currentQuestionDuration || 0) - elapsedSeconds, 0);
-};
-
-const buildRuntimeStateResponse = (sessionStatus, state) => ({
-  status: sessionStatus,
-  currentQuestion: state?.currentQuestion || null,
-  questionIndex: state?.currentIndex || 0,
-  totalQuestions: state?.totalQuestions || 0,
-  timer: getRemainingTimer(state),
-  answers: state?.submittedAnswers || [],
-  stoppedTimerGroup: state?.stoppedTimerGroup || null,
-  correctAnswer: state?.revealedAnswer || null,
-  winners: state?.winners || [],
+const { handleGameOver } = createScoringService({
+  db,
+  io,
+  sessionState,
+  markSessionTouched,
 });
 
-const buildPlayerRuntimeStateResponse = (sessionStatus, state, groupId) => {
-  const playerAnswer = (state?.submittedAnswers || []).find(
-    (entry) => Number(entry.groupId) === Number(groupId)
-  );
-
-  return {
-    status: sessionStatus,
-    currentQuestion: state?.currentQuestion || null,
-    questionIndex: state?.currentIndex || 0,
-    totalQuestions: state?.totalQuestions || 0,
-    timer: getRemainingTimer(state),
-    stoppedTimerGroup: state?.stoppedTimerGroup?.groupName || null,
-    correctAnswer: state?.revealedAnswer || null,
-    winners: state?.winners || [],
-    submittedAnswer: playerAnswer?.answer || null,
-  };
-};
-
-io.on("connection", (socket) => {
-  socket.on("startGame", (sessionId) => {
-    if (!isValidPositiveInt(sessionId)) {
-      return;
-    }
-
-    if (!sessionState[sessionId]) {
-      sessionState[sessionId] = createSessionRuntimeState();
-
-      // Fetch total number of questions for the session and initialize game state
-      db.get(
-        `SELECT COUNT(*) as total FROM session_questions WHERE session_id = ?`,
-        [sessionId],
-        (err, result) => {
-          if (err || !result) {
-            console.error("Error fetching total questions:", err);
-            return;
-          }
-
-          sessionState[sessionId].totalQuestions = result.total;
-          fetchNextQuestion(sessionId); // Start the game after initialization
-        }
-      );
-    } else {
-      fetchNextQuestion(sessionId); // Resume game if already initialized
-    }
-  });
-
-  const fetchNextQuestion = (sessionId) => {
-    const state = sessionState[sessionId];
-    if (!state) {
-      return;
-    }
-
-    markSessionTouched(sessionId);
-
-    if (state.currentIndex >= state.totalQuestions) {
-      handleGameOver(sessionId);
-      return;
-    }
-
-    const questionType = state.currentIndex % 2 === 0 ? "green" : "red";
-    const notInClause = state.askedQuestions.size
-      ? `AND q.id NOT IN (${[...state.askedQuestions].join(",")})`
-      : "";
-
-    const sql = `
-      SELECT q.*
-      FROM questions q
-      JOIN session_questions sq ON q.id = sq.question_id
-      WHERE sq.session_id = ? AND q.type = ? ${notInClause}
-      ORDER BY sq.question_order ASC
-      LIMIT 1
-    `;
-
-    db.get(sql, [sessionId, questionType], (err, question) => {
-      if (err || !question) {
-        handleGameOver(sessionId);
-        return;
-      }
-
-      state.askedQuestions.add(question.id);
-      state.currentIndex += 1;
-      state.currentQuestion = question;
-      state.currentQuestionStartedAt = Date.now();
-      state.currentQuestionDuration = question.allocated_time || 30;
-      state.submittedAnswers = [];
-      state.stoppedTimerGroup = null;
-      state.revealedAnswer = null;
-      state.winners = [];
-
-      if (questionType === "red") {
-        db.all(
-          `SELECT id, option_text FROM question_options WHERE question_id = ?`,
-          [question.id],
-          (err, options) => {
-            if (err) {
-              console.error("Error fetching options:", err);
-              handleGameOver(sessionId);
-    return;
-            }
-
-            state.currentQuestion = { ...question, options };
-
-            io.to(sessionId).emit("newQuestion", {
-              question: { ...question, options },
-              timer: question.allocated_time || 30,
-              questionIndex: state.currentIndex,
-              totalQuestions: state.totalQuestions,
-              response_type: question.response_type,
-            });
-          }
-        );
-      } else {
-        io.to(sessionId).emit("newQuestion", {
-          question,
-          timer: question.allocated_time || 30,
-          questionIndex: state.currentIndex,
-          totalQuestions: state.totalQuestions,
-          response_type: state.response_type,
-        });
-      }
-    });
-  };
-
-  socket.on(
-    "submitAnswer",
-    ({ sessionId, groupId, questionId, answer, stoppedTimer }) => {
-      if (
-        !isValidPositiveInt(sessionId) ||
-        !isValidPositiveInt(groupId) ||
-        !isValidPositiveInt(questionId)
-      ) {
-        return;
-      }
-
-      markSessionTouched(sessionId);
-      const timeSubmitted = new Date().toISOString();
-
-      db.get(
-        `SELECT name FROM groups WHERE id = ?`,
-        [groupId],
-        (err, group) => {
-          if (err || !group) {
-            console.error("Error fetching group name:", err);
-            return;
-          }
-
-          const groupName = group.name;
-
-          const submittedAnswer = {
-            sessionId,
-            groupId,
-            questionId,
-            answer,
-            stoppedTimer,
-            groupName,
-            timeSubmitted,
-          };
-
-          if (sessionState[sessionId]) {
-            sessionState[sessionId].submittedAnswers.push(submittedAnswer);
-            if (stoppedTimer) {
-              sessionState[sessionId].stoppedTimerGroup = { groupId, groupName };
-            }
-          }
-
-          // Emit to all participants in the session
-          io.to(sessionId).emit("answerSubmitted", submittedAnswer);
-
-          // If the timer is stopped, emit an event to notify everyone
-          if (stoppedTimer) {
-            io.to(sessionId).emit("timerStopped", { groupId, groupName });
-          }
-        }
-      );
-    }
-  );
-
-  socket.on(
-    "validateAnswer",
-    ({ sessionId, groupId, questionId, isCorrect, stoppedTimer }) => {
-      if (
-        !isValidPositiveInt(sessionId) ||
-        !isValidPositiveInt(groupId) ||
-        !isValidPositiveInt(questionId)
-      ) {
-        return;
-      }
-
-      markSessionTouched(sessionId);
-
-      db.get(
-        `SELECT type, expected_answer FROM questions WHERE id = ?`,
-        [questionId],
-        (err, question) => {
-          if (err || !question) {
-            console.error("Error fetching question details:", err);
-            return;
-          }
-  
-          const correctAnswer = question.expected_answer;
-          const triangleType =
-            question.type === "red" ? "red_triangles" : "green_triangles";
-  
-          db.get(
-            `SELECT name FROM groups WHERE id = ?`,
-            [groupId],
-            (err, group) => {
-              if (err || !group) {
-                console.error("Error fetching group name:", err);
-                return;
-              }
-  
-              const groupName = group.name;
-              const onTransactionError = (label, err) => {
-                console.error(label, err);
-                db.run("ROLLBACK", () => {});
-              };
-
-              db.serialize(() => {
-                db.run("BEGIN IMMEDIATE TRANSACTION", (err) => {
-                  if (err) {
-                    onTransactionError("Failed to start transaction:", err);
-                    return;
-                  }
-
-                  const commitAndBroadcast = () => {
-                    db.run("COMMIT", (commitErr) => {
-                      if (commitErr) {
-                        onTransactionError("Failed to commit transaction:", commitErr);
-                        return;
-                      }
-
-                      db.all(
-                        `SELECT g.id AS group_id, g.avatar_url AS avatar_url, g.name, cp.red_triangles, cp.green_triangles
-                         FROM groups g
-                         LEFT JOIN camembert_progress cp ON g.id = cp.group_id
-                         WHERE g.session_id = ?`,
-                        [sessionId],
-                        (err, updatedCamemberts) => {
-                          if (err) {
-                            console.error(
-                              "Error fetching updated camembert scores:",
-                              err
-                            );
-                            return;
-                          }
-
-                          io.to(sessionId).emit("camembertUpdated", {
-                            updatedCamemberts,
-                          });
-                        }
-                      );
-
-                      io.to(sessionId).emit("answerValidated", {
-                        groupId,
-                        groupName,
-                        isCorrect,
-                        correctAnswer,
-                        message: isCorrect
-                          ? `Le groupe ${groupName} a répondu correctement à la question dont la réponse est "${correctAnswer}". Il reçoit ${
-                              stoppedTimer ? 2 : 1
-                            } point(s).`
-                          : `Le groupe ${groupName} a répondu incorrectement. Les autres groupes gagnent 1 point.`,
-                      });
-                    });
-                  };
-
-                  if (isCorrect) {
-                    const points = stoppedTimer ? 2 : 1;
-                    db.run(
-                      `UPDATE camembert_progress SET ${triangleType} = ${triangleType} + ? WHERE group_id = ?`,
-                      [points, groupId],
-                      (updateErr) => {
-                        if (updateErr) {
-                          onTransactionError(
-                            "Error updating scores for the correct answer:",
-                            updateErr
-                          );
-                          return;
-                        }
-
-                        commitAndBroadcast();
-                      }
-                    );
-                  } else {
-                    db.run(
-                      `UPDATE camembert_progress
-                       SET ${triangleType} = ${triangleType} + 1
-                       WHERE group_id IN (
-                         SELECT id FROM groups WHERE session_id = ? AND id != ?
-                       )`,
-                      [sessionId, groupId],
-                      (updateErr) => {
-                        if (updateErr) {
-                          onTransactionError(
-                            "Error updating scores for other groups:",
-                            updateErr
-                          );
-                          return;
-                        }
-
-                        commitAndBroadcast();
-                      }
-                    );
-                  }
-                });
-              });
-            }
-          );
-        }
-      );
-    }
-  );
-  
-  socket.on(
-    "validateAnswerNoPoints",
-    ({ sessionId, groupId, questionId, isCorrect }) => {
-      if (
-        !isValidPositiveInt(sessionId) ||
-        !isValidPositiveInt(groupId) ||
-        !isValidPositiveInt(questionId)
-      ) {
-        return;
-      }
-
-      markSessionTouched(sessionId);
-
-      db.get(
-        `SELECT expected_answer FROM questions WHERE id = ?`,
-        [questionId],
-        (err, question) => {
-          if (err || !question) {
-            console.error("Error fetching question details:", err);
-            return;
-          }
-  
-          const correctAnswer = question.expected_answer;
-  
-          db.get(
-            `SELECT name FROM groups WHERE id = ?`,
-            [groupId],
-            (err, group) => {
-              if (err || !group) {
-                console.error("Error fetching group name:", err);
-                return;
-              }
-  
-              const groupName = group.name;
-  
-              io.to(sessionId).emit("answerValidatedNoPoints", {
-                groupId,
-                groupName,
-                isCorrect,
-                correctAnswer,
-                message: isCorrect
-                  ? `Le groupe ${groupName} a répondu correctement à la question dont la réponse est "${correctAnswer}". Il va choisir comment distribuer leurs points.`
-                  : `Le groupe ${groupName} a répondu incorrectement à la question dont la réponse est "${correctAnswer}".`,
-              });
-            }
-          );
-        }
-      );
-    }
-  );
-  
-  socket.on("revealAnswer", ({ sessionId, correctAnswer }) => {
-    if (!isValidPositiveInt(sessionId)) {
-      return;
-    }
-
-    markSessionTouched(sessionId);
-    if (sessionState[sessionId]) {
-      sessionState[sessionId].revealedAnswer = correctAnswer;
-    }
-    io.to(sessionId).emit("revealAnswer", correctAnswer);
-  });
-
-  socket.on("nextQuestion", (sessionId) => {
-    if (!isValidPositiveInt(sessionId)) {
-      return;
-    }
-
-    fetchNextQuestion(sessionId);
-  });
-
-  socket.on("joinSession", ({ sessionId, groupId, role }) => {
-    if (!isValidPositiveInt(sessionId)) {
-      return;
-    }
-
-    const roomName = sessionId;
-    socket.join(roomName);
-    markSessionTouched(sessionId);
-  });
-
-  socket.on("disconnect", () => {});
+registerSockets({
+  io,
+  db,
+  sessionState,
+  createSessionRuntimeState,
+  markSessionTouched,
+  isValidPositiveInt,
+  handleGameOver,
 });
 
-app.use(helmet({ contentSecurityPolicy: false }));
-app.use(express.json({ limit: "1mb" }));
-app.use(cors(corsOptions));
-
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 30,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { message: "Too many authentication attempts. Please try again later." },
-});
-
-const mutationLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 120,
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-app.use(
-  [
-    "/game-sessions",
-    "/sessions",
-    "/questions",
-  ],
-  mutationLimiter
-);
-
-// Serve the React build folder
-app.use(express.static(path.join(__dirname, "build")));
-
-// Login endpoint
-app.post("/login", authLimiter, (req, res) => {
-  const { username, password } = req.body;
-
-  db.get(`SELECT * FROM users WHERE username = ?`, [username], (err, user) => {
-    if (err) {
-      return res.status(500).json({ message: "Database error" });
-    }
-    if (!user || !bcrypt.compareSync(password, user.password)) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
-
-    // Generate JWT
-    const token = jwt.sign({ username: user.username }, SECRET_KEY, {
-      expiresIn: "1h",
-    });
-    res.json({ token });
-  });
-});
-
-app.post("/verify-token", (req, res) => {
-  const token = req.body.token;
-
-  if (!token) {
-    return res.status(400).json({ message: "Token is required" });
-  }
-
-  jwt.verify(token, SECRET_KEY, (err, decoded) => {
-    if (err) {
-      return res.status(401).json({ message: "Token is invalid or expired" });
-    }
-    res.json({ valid: true });
-  });
-});
-
-// Protected admin route
-app.get("/admin-check", (req, res) => {
-  const token = req.headers["authorization"];
-  if (!token) {
-    return res.status(401).json({ message: "Access denied" });
-  }
-
-  jwt.verify(token, SECRET_KEY, (err, decoded) => {
-    if (err) {
-      return res.status(403).json({ message: "Invalid token" });
-    }
-    res.json({ message: `Hello, ${decoded.username}` });
-  });
+registerAuthRoutes({
+  app,
+  db,
+  authLimiter,
+  jwtSecret,
 });
 
 // Fetch all game sessions
 app.get("/game-sessions", (req, res) => {
-  const token = req.headers["authorization"];
+  const token = normalizeAuthHeader(req.headers["authorization"]);
   if (!token) {
     return res.status(401).json({ message: "Access denied" });
   }
 
-  jwt.verify(token, SECRET_KEY, (err) => {
+  jwt.verify(token, jwtSecret, (err, decoded) => {
     if (err) {
       return res.status(403).json({ message: "Invalid token" });
     }
 
-    db.all(`SELECT * FROM game_sessions`, (err, rows) => {
+    const isAdmin = decoded.role === "Admin";
+    const query = isAdmin
+      ? `SELECT gs.*, 
+           cu.username AS created_by_username,
+           (COALESCE(cu.first_name, '') || CASE WHEN cu.last_name IS NOT NULL AND TRIM(cu.last_name) != '' THEN ' ' || cu.last_name ELSE '' END) AS created_by_full_name,
+           mu.username AS last_modified_by_username,
+           (COALESCE(mu.first_name, '') || CASE WHEN mu.last_name IS NOT NULL AND TRIM(mu.last_name) != '' THEN ' ' || mu.last_name ELSE '' END) AS last_modified_by_full_name
+         FROM game_sessions gs
+         LEFT JOIN users cu ON cu.id = gs.created_by
+         LEFT JOIN users mu ON mu.id = gs.last_modified_by
+         ORDER BY gs.id DESC`
+      : `SELECT gs.*, 
+           cu.username AS created_by_username,
+           (COALESCE(cu.first_name, '') || CASE WHEN cu.last_name IS NOT NULL AND TRIM(cu.last_name) != '' THEN ' ' || cu.last_name ELSE '' END) AS created_by_full_name,
+           mu.username AS last_modified_by_username,
+           (COALESCE(mu.first_name, '') || CASE WHEN mu.last_name IS NOT NULL AND TRIM(mu.last_name) != '' THEN ' ' || mu.last_name ELSE '' END) AS last_modified_by_full_name
+         FROM game_sessions gs
+         LEFT JOIN users cu ON cu.id = gs.created_by
+         LEFT JOIN users mu ON mu.id = gs.last_modified_by
+         WHERE gs.created_by = ?
+         ORDER BY gs.id DESC`;
+    const params = isAdmin ? [] : [decoded.userId];
+
+    db.all(query, params, (err, rows) => {
       if (err) {
         console.error("Database Error:", err); // Log database errors
         return res.status(500).json({ message: "Database error" });
@@ -622,12 +108,12 @@ app.get("/game-sessions", (req, res) => {
 
 // Add a new game session
 app.post("/game-sessions", (req, res) => {
-  const token = req.headers["authorization"];
+  const token = normalizeAuthHeader(req.headers["authorization"]);
   if (!token) {
     return res.status(401).json({ message: "Access denied" });
   }
 
-  jwt.verify(token, SECRET_KEY, (err) => {
+  jwt.verify(token, jwtSecret, (err, decoded) => {
     if (err) {
       return res.status(403).json({ message: "Invalid token" });
     }
@@ -635,14 +121,22 @@ app.post("/game-sessions", (req, res) => {
     const { title, green_questions_label, red_questions_label, date, session_rules } =
       req.body;
     db.run(
-      `INSERT INTO game_sessions (title, green_questions_label, red_questions_label, date, session_rules) VALUES (?, ?, ?, ?, ?)`,
-      [title, green_questions_label, red_questions_label, date, session_rules],
+      `INSERT INTO game_sessions (title, green_questions_label, red_questions_label, date, session_rules, created_by, last_modified_by) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        title,
+        green_questions_label,
+        red_questions_label,
+        date,
+        session_rules,
+        decoded.userId || null,
+        decoded.userId || null,
+      ],
       function (err) {
         if (err) {
           console.error("Insert Error:", err); // Log insert errors
           return res.status(500).json({ message: "Database error" });
         }
-        res.json({ id: this.lastID, title, date });
+        res.json({ id: this.lastID, title, date, created_by: decoded.userId || null, last_modified_by: decoded.userId || null });
       }
     );
   });
@@ -655,7 +149,7 @@ app.get("/questions/:id", (req, res) => {
     return res.status(401).json({ message: "Access denied" });
   }
 
-  jwt.verify(token, SECRET_KEY, (err) => {
+  jwt.verify(token, jwtSecret, (err) => {
     if (err) {
       return res.status(403).json({ message: "Invalid token" });
     }
@@ -690,7 +184,7 @@ app.post("/questions", (req, res) => {
     return res.status(401).json({ message: "Access denied" });
   }
 
-  jwt.verify(token, SECRET_KEY, (err) => {
+  jwt.verify(token, jwtSecret, (err) => {
     if (err) {
       return res.status(403).json({ message: "Invalid token" });
     }
@@ -728,7 +222,7 @@ app.put("/questions/:id", (req, res) => {
   }
 
   // Verify the token
-  jwt.verify(token, SECRET_KEY, (err) => {
+  jwt.verify(token, jwtSecret, (err) => {
     if (err) {
       return res.status(403).json({ message: "Invalid token" });
     }
@@ -777,7 +271,7 @@ app.get("/sessions/:id/groups", (req, res) => {
     return res.status(401).json({ message: "Access denied" });
   }
 
-  jwt.verify(token, SECRET_KEY, (err) => {
+  jwt.verify(token, jwtSecret, (err) => {
     if (err) {
       return res.status(403).json({ message: "Invalid token" });
     }
@@ -874,7 +368,7 @@ app.delete("/sessions/:sessionId/groups/:groupId", (req, res) => {
     return res.status(401).json({ message: "Access denied" });
   }
 
-  jwt.verify(token, SECRET_KEY, (err) => {
+  jwt.verify(token, jwtSecret, (err) => {
     if (err) {
       return res.status(403).json({ message: "Invalid token" });
     }
@@ -923,7 +417,7 @@ app.delete("/sessions/:sessionId/questions/:questionId", (req, res) => {
     return res.status(401).json({ message: "Access denied" });
   }
 
-  jwt.verify(token, SECRET_KEY, (err) => {
+  jwt.verify(token, jwtSecret, (err) => {
     if (err) {
       return res.status(403).json({ message: "Invalid token" });
     }
@@ -960,7 +454,7 @@ app.put("/sessions/:sessionId/groups/:groupId", (req, res) => {
     return res.status(401).json({ message: "Access denied" });
   }
 
-  jwt.verify(token, SECRET_KEY, (err) => {
+  jwt.verify(token, jwtSecret, (err) => {
     if (err) {
       return res.status(403).json({ message: "Invalid token" });
     }
@@ -1011,7 +505,15 @@ app.get("/sessions/:id", (req, res) => {
   const sessionId = req.params.id;
 
   db.get(
-    `SELECT * FROM game_sessions WHERE id = ?`,
+    `SELECT gs.*, 
+       cu.username AS created_by_username,
+       (COALESCE(cu.first_name, '') || CASE WHEN cu.last_name IS NOT NULL AND TRIM(cu.last_name) != '' THEN ' ' || cu.last_name ELSE '' END) AS created_by_full_name,
+       mu.username AS last_modified_by_username,
+       (COALESCE(mu.first_name, '') || CASE WHEN mu.last_name IS NOT NULL AND TRIM(mu.last_name) != '' THEN ' ' || mu.last_name ELSE '' END) AS last_modified_by_full_name
+     FROM game_sessions gs
+     LEFT JOIN users cu ON cu.id = gs.created_by
+     LEFT JOIN users mu ON mu.id = gs.last_modified_by
+     WHERE gs.id = ?`,
     [sessionId],
     (err, row) => {
       if (err) {
@@ -1032,7 +534,7 @@ app.get("/sessions/:id/runtime-state", (req, res) => {
     return res.status(401).json({ message: "Access denied" });
   }
 
-  jwt.verify(token, SECRET_KEY, (err) => {
+  jwt.verify(token, jwtSecret, (err, decoded) => {
     if (err) {
       return res.status(403).json({ message: "Invalid token" });
     }
@@ -1092,7 +594,7 @@ app.put("/sessions/:id", (req, res) => {
   }
 
   // Verify the token
-  jwt.verify(token, SECRET_KEY, (err) => {
+  jwt.verify(token, jwtSecret, (err) => {
     if (err) {
       return res.status(403).json({ message: "Invalid token" });
     }
@@ -1109,8 +611,8 @@ app.put("/sessions/:id", (req, res) => {
 
     // Update the session in the database
     db.run(
-      `UPDATE game_sessions SET title = ?, green_questions_label = ?, red_questions_label = ?, date = ?, session_rules = ? WHERE id = ?`,
-      [title, green_questions_label, red_questions_label, date, session_rules, sessionId],
+      `UPDATE game_sessions SET title = ?, green_questions_label = ?, red_questions_label = ?, date = ?, session_rules = ?, last_modified_by = ? WHERE id = ?`,
+      [title, green_questions_label, red_questions_label, date, session_rules, decoded.userId || null, sessionId],
       function (err) {
         if (err) {
           console.error("Database Error:", err);
@@ -1135,7 +637,7 @@ app.get("/sessions/:id/available-questions", (req, res) => {
     return res.status(401).json({ message: "Access denied" });
   }
 
-  jwt.verify(token, SECRET_KEY, (err) => {
+  jwt.verify(token, jwtSecret, (err) => {
     if (err) {
       return res.status(403).json({ message: "Invalid token" });
     }
@@ -1167,7 +669,7 @@ app.get("/sessions/:id/questions", (req, res) => {
     return res.status(401).json({ message: "Access denied" });
   }
 
-  jwt.verify(token, SECRET_KEY, (err) => {
+  jwt.verify(token, jwtSecret, (err) => {
     if (err) {
       return res.status(403).json({ message: "Invalid token" });
     }
@@ -1200,7 +702,7 @@ app.post("/sessions/:id/questions", (req, res) => {
     return res.status(401).json({ message: "Access denied" });
   }
 
-  jwt.verify(token, SECRET_KEY, (err) => {
+  jwt.verify(token, jwtSecret, (err) => {
     if (err) {
       return res.status(403).json({ message: "Invalid token" });
     }
@@ -1237,7 +739,7 @@ app.post("/sessions/:id/activate", (req, res) => {
     return res.status(401).json({ message: "Access denied" });
   }
 
-  jwt.verify(token, SECRET_KEY, (err) => {
+  jwt.verify(token, jwtSecret, (err) => {
     if (err) {
       return res.status(403).json({ message: "Invalid token" });
     }
@@ -1312,7 +814,7 @@ app.post("/sessions/:id/validate", (req, res) => {
     return res.status(401).json({ message: "Access denied" });
   }
 
-  jwt.verify(token, SECRET_KEY, (err) => {
+  jwt.verify(token, jwtSecret, (err) => {
     if (err) {
       return res.status(403).json({ message: "Invalid token" });
     }
@@ -1369,7 +871,7 @@ app.get("/sessions/:id/answers", (req, res) => {
     return res.status(401).json({ message: "Access denied" });
   }
 
-  jwt.verify(token, SECRET_KEY, (err) => {
+  jwt.verify(token, jwtSecret, (err) => {
     if (err) {
       return res.status(403).json({ message: "Invalid token" });
     }
@@ -1424,7 +926,7 @@ app.post("/questions", (req, res) => {
     return res.status(401).json({ message: "Access denied" });
   }
 
-  jwt.verify(token, SECRET_KEY, (err) => {
+  jwt.verify(token, jwtSecret, (err) => {
     if (err) {
       return res.status(403).json({ message: "Invalid token" });
     }
@@ -1525,7 +1027,7 @@ app.put("/sessions/:sessionId/questions/:questionId", (req, res) => {
     return res.status(401).json({ message: "Access denied" });
   }
 
-  jwt.verify(token, SECRET_KEY, (err) => {
+  jwt.verify(token, jwtSecret, (err) => {
     if (err) {
       return res.status(403).json({ message: "Invalid token" });
     }
@@ -1615,7 +1117,7 @@ app.post("/questions/:id/options", (req, res) => {
     return res.status(401).json({ message: "Access denied" });
   }
 
-  jwt.verify(token, SECRET_KEY, (err) => {
+  jwt.verify(token, jwtSecret, (err) => {
     if (err) {
       return res.status(403).json({ message: "Invalid token" });
     }
@@ -1678,7 +1180,7 @@ app.post("/sessions/:id/end", (req, res) => {
     return res.status(401).json({ message: "Access denied" });
   }
 
-  jwt.verify(token, SECRET_KEY, (err) => {
+  jwt.verify(token, jwtSecret, (err) => {
     if (err) {
       return res.status(403).json({ message: "Invalid token" });
     }
@@ -1697,7 +1199,7 @@ app.post("/sessions/:id/start", (req, res) => {
     return res.status(401).json({ message: "Access denied" });
   }
 
-  jwt.verify(token, SECRET_KEY, (err) => {
+  jwt.verify(token, jwtSecret, (err) => {
     if (err) {
       return res.status(403).json({ message: "Invalid token" });
     }
@@ -1731,7 +1233,7 @@ app.post("/sessions/:id/update-points", (req, res) => {
     return res.status(401).json({ message: "Access denied" });
   }
 
-  jwt.verify(token, SECRET_KEY, (err) => {
+  jwt.verify(token, jwtSecret, (err) => {
     if (err) {
       return res.status(403).json({ message: "Invalid token" });
     }
@@ -1845,7 +1347,7 @@ app.delete("/sessions/:id", (req, res) => {
     return res.status(401).json({ message: "Access denied" });
   }
 
-  jwt.verify(token, SECRET_KEY, (err) => {
+  jwt.verify(token, jwtSecret, (err) => {
     if (err) {
       return res.status(403).json({ message: "Invalid token" });
     }
@@ -1944,91 +1446,15 @@ app.post("/sessions/:id/reset", (req, res) => {
   // });
 });
 
-const determineGameWinner = (sessionId, callback) => {
-  db.all(
-    `SELECT g.id AS group_id, g.name, g.avatar_url, cp.red_triangles, cp.green_triangles
-     FROM groups g
-     LEFT JOIN camembert_progress cp ON g.id = cp.group_id
-     WHERE g.session_id = ?`,
-    [sessionId],
-    (err, groups) => {
-      if (err) {
-        console.error("Error fetching groups for game over:", err);
-        return callback(null);
-      }
-
-      if (!groups.length) {
-        return callback(null); // No groups in session
-      }
-
-      let winners = [];
-      let maxCamemberts = 0;
-      let maxPoints = 0;
-
-      groups.forEach((group) => {
-        // Calculate the number of complete camemberts (4 red + 4 green each)
-        const completeCamemberts = Math.min(
-          Math.floor(group.green_triangles / 4),
-          Math.floor(group.red_triangles / 4)
-        );
-
-        const totalPoints = group.green_triangles + group.red_triangles;
-
-        if (completeCamemberts > maxCamemberts) {
-          maxCamemberts = completeCamemberts;
-          maxPoints = totalPoints;
-          winners = [group]; // Reset winners list
-        } else if (completeCamemberts === maxCamemberts) {
-          if (totalPoints > maxPoints) {
-            maxPoints = totalPoints;
-            winners = [group]; // Reset winners list
-          } else if (totalPoints === maxPoints) {
-            winners.push(group); // Add to the tie list
-          }
-        }
-      });
-
-      callback(winners);
-    }
-  );
-};
-
-
-const handleGameOver = (sessionId) => {
-  determineGameWinner(sessionId, (winners) => {
-    if (sessionState[sessionId]) {
-      sessionState[sessionId].currentQuestion = null;
-      sessionState[sessionId].currentQuestionStartedAt = null;
-      sessionState[sessionId].currentQuestionDuration = 0;
-      sessionState[sessionId].submittedAnswers = [];
-      sessionState[sessionId].stoppedTimerGroup = null;
-      sessionState[sessionId].revealedAnswer = null;
-      sessionState[sessionId].winners = winners;
-      markSessionTouched(sessionId);
-    }
-
-    io.to(sessionId).emit("gameOver", {
-      winners: winners.length > 1 ? winners : winners[0] || null,
-      isTie: winners.length > 1,
-    });
-
-    db.run(
-      `UPDATE game_sessions SET status = 'Game Over' WHERE id = ?`,
-      [sessionId],
-      function (err) {
-        if (err) {
-          console.error("Error updating session status:", err);
-        }
-      }
-    );
-  });
-};
-
 // Catch-all route to serve React app
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "build", "index.html"));
 });
 
-server.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-});
+if (require.main === module) {
+  server.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
+  });
+}
+
+module.exports = { app, server };

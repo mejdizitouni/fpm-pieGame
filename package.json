@@ -4,7 +4,7 @@
   "proxy": "http://localhost:3001",
   "engines": {
     "npm": ">=8.18.0 <11",
-    "node": "18.x"
+    "node": ">=18 <21"
   },
   "private": true,
   "dependencies": {
@@ -19,6 +19,7 @@
     "express-rate-limit": "^8.3.2",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
+    "nodemailer": "^6.9.15",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^7.1.1",
@@ -26,7 +27,7 @@
     "sass": "^1.56.1",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
-    "sqlite3": "^5.1.7",
+    "sqlite3": "^6.0.1",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
@@ -35,6 +36,9 @@
     "start:local": "concurrently \"npm run build\" \"node server.js\"",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "test:frontend": "react-scripts test --watchAll=false",
+    "test:backend": "node --test tests/backend",
+    "test:all": "npm run test:backend && npm run test:frontend",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
@@ -57,5 +61,6 @@
   },
   "devDependencies": {
     "concurrently": "^9.1.0"
-  }
+  },
+  "overrides": {}
 }

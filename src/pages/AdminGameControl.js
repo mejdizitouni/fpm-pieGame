@@ -6,12 +6,22 @@ import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import PieChart from "../components/charts/PieChart";
 import { toast } from "../components/toast/toast";
+import { useLanguage } from "../i18n/LanguageProvider";
 import "./AdminGameControl.css"; // Import the CSS file for styling
 
 function AdminGameControl() {
   const API_URL = process.env.REACT_APP_API_URL;
   const { sessionId } = useParams();
   const navigate = useNavigate();
+  const { t } = useLanguage();
+
+  const renderTemplate = (key, params = {}) => {
+    let text = t(key);
+    Object.entries(params).forEach(([paramKey, value]) => {
+      text = text.replaceAll(`{${paramKey}}`, String(value));
+    });
+    return text;
+  };
 
   const [sessionDetails, setSessionDetails] = useState(null); // To store session details
   const [sessionStatus, setSessionStatus] = useState(null); // To store session status
@@ -27,6 +37,11 @@ function AdminGameControl() {
   const [totalQuestions, setTotalQuestions] = useState(null);
   const [stoppedTimerGroup, setStoppedTimerGroup] = useState(null);
   const [winningGroups, setWinningGroups] = useState([]); // Store winning group IDs
+  const [gameOverModal, setGameOverModal] = useState({
+    open: false,
+    message: "",
+    winners: [],
+  });
   const [socketConnected, setSocketConnected] = useState(false); // Connection status
   const [validatedAnswers, setValidatedAnswers] = useState({}); // Track validated answer state
   const [latestAnswerId, setLatestAnswerId] = useState(null);
@@ -172,9 +187,9 @@ function AdminGameControl() {
         setLatestAnswerId(answerId);
         setAnswers((prev) => [...prev, { ...answer, _answerId: answerId }]);
         if (answer.stoppedTimer) {
-          pushAdminFeed(`⏱️ ${answer.groupName} a répondu et stoppé le timer`, "warning");
+          pushAdminFeed(renderTemplate("adminFeedAnsweredStopped", { groupName: answer.groupName }), "warning");
         } else {
-          pushAdminFeed(`📝 ${answer.groupName} vient de soumettre une réponse`, "info");
+          pushAdminFeed(renderTemplate("adminFeedAnswerSubmitted", { groupName: answer.groupName }), "info");
         }
       });
 
@@ -182,7 +197,7 @@ function AdminGameControl() {
         setStoppedTimerGroup({ groupId, groupName });
         setTimer(0);
         setIsTimeUp(true);
-        pushAdminFeed(`⚡ Timer arrêté par ${groupName}`, "warning");
+        pushAdminFeed(renderTemplate("adminFeedTimerStopped", { groupName }), "warning");
       });
 
       socketRef.current.on("camembertUpdated", ({ updatedCamemberts }) => {
@@ -194,6 +209,9 @@ function AdminGameControl() {
         setTimer(0);
         setIsTimeUp(false);
         setSessionStatus("Game Over");
+        setAnswers([]);
+        setCorrectAnswer(null);
+        setStoppedTimerGroup(null);
 
         let winnersArray = [];
         if (Array.isArray(data.winners)) {
@@ -205,11 +223,35 @@ function AdminGameControl() {
         setWinningGroups(winnersArray.map((w) => w.group_id));
 
         if (winnersArray.length > 1) {
-          toast.info(`🏆 Ex-aequo entre : ${winnersArray.map((w) => w.name).join(", ")}`);
+          const tieMessage = renderTemplate("gameAlertTie", {
+            names: winnersArray.map((w) => w.name).join(", "),
+          });
+          toast.info(tieMessage);
+          popConfetti();
+          setGameOverModal({
+            open: true,
+            message: tieMessage,
+            winners: winnersArray,
+          });
         } else if (winnersArray.length === 1) {
-          toast.success(`🎉 Gagnant : "${winnersArray[0].name}" ! 🏆`);
+          const winnerMessage = renderTemplate("adminToastWinner", {
+            name: winnersArray[0].name,
+          });
+          toast.success(winnerMessage);
+          popConfetti();
+          setGameOverModal({
+            open: true,
+            message: winnerMessage,
+            winners: winnersArray,
+          });
         } else {
-          toast.info("Aucun gagnant. La partie est terminée !");
+          const noWinnerMessage = t("gameAlertNoWinner");
+          toast.info(noWinnerMessage);
+          setGameOverModal({
+            open: true,
+            message: noWinnerMessage,
+            winners: [],
+          });
         }
       });
     };
@@ -290,7 +332,7 @@ function AdminGameControl() {
           if (newTimer <= 0) {
             setIsTimeUp(true);
             if (currentQuestion && !stoppedTimerGroup) {
-              pushAdminFeed("⏰ Temps écoulé: en attente des validations", "warning");
+              pushAdminFeed(t("adminFeedTimeUpWaitingValidation"), "warning");
             }
             clearInterval(interval);
           }
@@ -356,9 +398,9 @@ function AdminGameControl() {
     setValidatedAnswers((prev) => ({ ...prev, [groupId]: isCorrect ? "correct" : "incorrect" }));
     if (isCorrect) {
       popConfetti();
-      showAdminReaction(`🎉 ${answer.groupName} gagne des points !`, "success");
+      showAdminReaction(renderTemplate("adminReactionGainPoints", { groupName: answer.groupName }), "success");
     } else {
-      showAdminReaction(`😞 ${answer.groupName} rate la question`, "danger");
+      showAdminReaction(renderTemplate("adminReactionMiss", { groupName: answer.groupName }), "danger");
     }
   };
 
@@ -373,9 +415,9 @@ function AdminGameControl() {
     setValidatedAnswers((prev) => ({ ...prev, [groupId]: isCorrect ? "correct" : "incorrect" }));
     if (isCorrect) {
       popConfetti();
-      showAdminReaction(`🥳 ${answer.groupName} validé (manuel)`, "success");
+      showAdminReaction(renderTemplate("adminReactionManualValidated", { groupName: answer.groupName }), "success");
     } else {
-      showAdminReaction(`🙁 ${answer.groupName} incorrect (manuel)`, "danger");
+      showAdminReaction(renderTemplate("adminReactionManualWrong", { groupName: answer.groupName }), "danger");
     }
   };
 
@@ -501,37 +543,64 @@ function AdminGameControl() {
   const timerVisualState = getTimerVisualState();
 
   if (sessionStatus === null) {
-    return <h1>Chargement de la session...</h1>;
+    return <h1>{t("gameLoadingSession")}</h1>;
   }
 
   if (sessionStatus === "Draft") {
-    return <h1>Cette session n'est pas encore Active.</h1>;
+    return <h1>{t("gameSessionNotActive")}</h1>;
   }
 
   return (
     <>
       <Header />
       <div className="admin-game-control-container">
+        {gameOverModal.open && (
+          <div className="modal-overlay" role="dialog" aria-modal="true">
+            <div className="modal-content game-over-modal-content">
+              <h2>{t("gameOverTitle")}</h2>
+              <p>{gameOverModal.message}</p>
+              {gameOverModal.winners.length > 0 && (
+                <ul className="game-over-winners-list">
+                  {gameOverModal.winners.map((winner) => (
+                    <li key={winner.group_id || winner.name}>🏆 {winner.name}</li>
+                  ))}
+                </ul>
+              )}
+              <button
+                className="close-button"
+                onClick={() =>
+                  setGameOverModal((prev) => ({
+                    ...prev,
+                    open: false,
+                  }))
+                }
+              >
+                {t("commonClose")}
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className={`connection-status ${socketConnected ? "connected" : "disconnected"}`}>
           <span className="connection-dot" />
-          {socketConnected ? "Connecté en temps réel" : "Reconnexion…"}
+          {socketConnected ? t("adminLiveConnected") : t("adminLiveReconnecting")}
         </div>
 
         {sessionStatus === "Game Over" && (
           <>
-            <h1>Game Over!</h1>
-            <h2>Score Final</h2>
+            <h1>{t("gameOverTitle")}</h1>
+            <h2>{t("gameFinalScore")}</h2>
             <ul className="pie-chart-list">
               {camemberts.map((cam) => (
                 <li key={cam.group_id}>
                   <h3>{cam.name}</h3>
                   <img
                     src={cam.avatar_url}
-                    alt={`${cam.name} Avatar`}
+                    alt={renderTemplate("gameGroupAvatarAlt", { name: cam.name })}
                     className="group-avatar"
                   />
                   {winningGroups.includes(cam.group_id) && (
-                    <span className="winner-badge">🏆 Winner</span>
+                    <span className="winner-badge">🏆 {t("gameWinner")}</span>
                   )}
                   {generateCamemberts(
                     cam.red_triangles,
@@ -570,13 +639,13 @@ function AdminGameControl() {
               <div className="admin-session-toolbar">
                 {sessionStatus === "Activated" && (
                   <button className="start-game-button" onClick={startGame}>
-                    Démarrer la session
+                    {t("adminStartSession")}
                   </button>
                 )}
 
                 {sessionStatus === "In Progress" && (
                   <button className="end-game-button" onClick={endGame}>
-                    Arrêter la session
+                    {t("adminStopSession")}
                   </button>
                 )}
 
@@ -585,7 +654,7 @@ function AdminGameControl() {
                     className="next-question-button"
                     onClick={nextQuestion}
                   >
-                    Question suivante
+                    {t("adminNextQuestion")}
                   </button>
                 )}
 
@@ -595,22 +664,22 @@ function AdminGameControl() {
                     onClick={revealAnswer}
                     disabled={correctAnswer}
                   >
-                    Révéler la bonne réponse
+                    {t("adminRevealAnswer")}
                   </button>
                 )}
               </div>
 
               {sessionStatus === "Activated" && (
                 <div className="session-status-card">
-                  <h2>Session prête</h2>
-                  <p>Démarrez la session pour afficher la première question.</p>
+                  <h2>{t("adminSessionReady")}</h2>
+                  <p>{t("adminSessionReadyDesc")}</p>
                 </div>
               )}
 
               {sessionStatus === "In Progress" && !currentQuestion && (
                 <div className="session-status-card">
-                  <h2>En attente de la question suivante</h2>
-                  <p>Lancez la prochaine question quand vous êtes prêt.</p>
+                  <h2>{t("gameWaitingNextQuestion")}</h2>
+                  <p>{t("adminLaunchNextWhenReady")}</p>
                 </div>
               )}
 
@@ -621,11 +690,16 @@ function AdminGameControl() {
                   }`}
                 >
                   <div className="question-header">
-                    Question {questionIndex}/{totalQuestions}:
+                    {renderTemplate("gameQuestionCounter", {
+                      current: questionIndex,
+                      total: totalQuestions,
+                    })}
                     <img
                       className="question-type-avatar"
                       src={`/avatars/${currentQuestion.type}.svg`}
-                      alt={`${currentQuestion.type} Avatar`}
+                      alt={renderTemplate("gameQuestionTypeAvatarAlt", {
+                        type: currentQuestion.type,
+                      })}
                     />
                     <div
                       className={`question-label ${
@@ -641,7 +715,7 @@ function AdminGameControl() {
                   <h3 style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
                     {currentQuestion.title}
                   </h3>
-                  <p>Réponse attendue: {currentQuestion.expected_answer}</p>
+                  <p>{t("sessionExpectedAnswer")}: {currentQuestion.expected_answer}</p>
                   <div className={`timer-circle ${timerVisualState}`}>
                     <svg className="progress-ring" width="112" height="112">
                       <circle
@@ -661,25 +735,25 @@ function AdminGameControl() {
                       />
                     </svg>
                     <div className={`timer-text ${timerVisualState}`}>
-                      {timer > 0 ? `${timer}s` : "Time's Up!"}
+                      {timer > 0 ? `${timer}s` : t("gameTimerExpired")}
                     </div>
                   </div>
                   <div className={`timer-status ${timerVisualState}`}>
                     {timerVisualState === "critical"
-                      ? "Critical - validate quickly"
+                      ? t("adminTimerCritical")
                       : timerVisualState === "warning"
-                      ? "Warning - time is running out"
+                      ? t("adminTimerWarning")
                       : timerVisualState === "expired"
-                      ? "Timer expired"
-                      : "Timer running"}
+                      ? t("gameTimerExpired")
+                      : t("adminTimerRunning")}
                   </div>
-                  {isTimeUp && <h3>Time's Up!</h3>}
+                  {isTimeUp && <h3>{t("adminTimeUp")}</h3>}
                   {stoppedTimerGroup && (
-                    <h4>Le timer a été arrêté par: {stoppedTimerGroup.groupName}</h4>
+                    <h4>{t("gameTimerStoppedBy")} {stoppedTimerGroup.groupName}</h4>
                   )}
                   {currentQuestion.response_type === "Question à choix unique" && (
                     <div>
-                      <h4>Options:</h4>
+                      <h4>{t("sessionOptions")}</h4>
                       <ul className="options-list">
                         {questionOptions.map((option, index) => (
                           <li key={index}>{option.option_text}</li>
@@ -692,16 +766,16 @@ function AdminGameControl() {
 
               {answers && answers.length > 0 && (
                 <>
-                  <h2 className="session-panel-title">Réponses soumises</h2>
+                  <h2 className="session-panel-title">{t("adminSubmittedAnswers")}</h2>
                   <ul className="answers-list">
                     {answers.map((answer, index) => (
                       <li key={answer._answerId || index} className={`answer-item${validatedAnswers[answer.groupId] ? ` answer-${validatedAnswers[answer.groupId]}` : ""}${latestAnswerId === answer._answerId ? " answer-new" : ""}`}>
                         <div className="answer-header">
                           <strong>{answer.groupName}</strong>: {answer.answer}
-                          {answer.stoppedTimer && <em> (Stopped Timer)</em>}
+                          {answer.stoppedTimer && <em> ({t("adminStoppedTimer")})</em>}
                           {validatedAnswers[answer.groupId] && (
                             <span className={`validation-badge ${validatedAnswers[answer.groupId]}`}>
-                              {validatedAnswers[answer.groupId] === "correct" ? "✓ Correcte" : "✕ Incorrecte"}
+                              {validatedAnswers[answer.groupId] === "correct" ? `✓ ${t("adminCorrect")}` : `✕ ${t("adminIncorrect")}`}
                             </span>
                           )}
                         </div>
@@ -710,7 +784,7 @@ function AdminGameControl() {
                             className="validate-button correct"
                             onClick={() => validateAnswer(answer, answer.groupId, true)}
                           >
-                            Correcte
+                            {t("adminCorrect")}
                           </button>
                           <button
                             className="validate-button correct"
@@ -718,7 +792,7 @@ function AdminGameControl() {
                               validateAnswerNoPoints(answer, answer.groupId, true)
                             }
                           >
-                            Correcte (manuel)
+                            {t("adminCorrectManual")}
                           </button>
                           {answer.stoppedTimer && (
                             <button
@@ -727,7 +801,7 @@ function AdminGameControl() {
                                 validateAnswer(answer, answer.groupId, false)
                               }
                             >
-                              Incorrecte
+                              {t("adminIncorrect")}
                             </button>
                           )}
                           {answer.stoppedTimer && (
@@ -737,7 +811,7 @@ function AdminGameControl() {
                                 validateAnswerNoPoints(answer, answer.groupId, false)
                               }
                             >
-                              Incorrecte (manuel)
+                              {t("adminIncorrectManual")}
                             </button>
                           )}
                         </div>
@@ -750,7 +824,7 @@ function AdminGameControl() {
 
             <aside className="session-score-sidebar">
               <div className="session-score-sidebar-inner">
-                <h2 className="session-panel-title">Scores</h2>
+                <h2 className="session-panel-title">{t("gameScores")}</h2>
                 <ul className="pie-chart-list session-score-list">
                   {camemberts.map((cam) => (
                     <li key={cam.group_id}>
@@ -758,7 +832,7 @@ function AdminGameControl() {
                         <h3>{cam.name}</h3>
                         <img
                           src={cam.avatar_url}
-                          alt={`${cam.name} Avatar`}
+                          alt={renderTemplate("gameGroupAvatarAlt", { name: cam.name })}
                           className="group-avatar"
                         />
                         <div className="points-control">
@@ -770,7 +844,7 @@ function AdminGameControl() {
                               -
                             </button>
                             <span className="points-display">
-                              Rouge: {cam.red_triangles}
+                              {t("adminRed")}: {cam.red_triangles}
                             </span>
                             <button
                               className="plus-button"
@@ -788,7 +862,7 @@ function AdminGameControl() {
                               -
                             </button>
                             <span className="points-display">
-                              Vert: {cam.green_triangles}
+                              {t("adminGreen")}: {cam.green_triangles}
                             </span>
                             <button
                               className="plus-button"
