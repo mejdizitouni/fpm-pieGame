@@ -1,61 +1,80 @@
-<svg width="360" height="360" viewBox="0 0 360 360" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="360" height="360" fill="transparent"/>
+<svg width="480" height="480" viewBox="0 0 480 480" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="480" height="480" fill="transparent"/>
 
-  <g opacity="0.26" stroke="#0f766e" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+  <defs>
     <g id="pill">
-      <rect x="0" y="0" width="54" height="24" rx="12"/>
-      <line x1="27" y1="2" x2="27" y2="22"/>
+      <rect x="0" y="0" width="56" height="24" rx="12"/>
+      <line x1="28" y1="2" x2="28" y2="22"/>
     </g>
-
+    <g id="capsule">
+      <path d="M2 16c0-7.7 6.3-14 14-14h20c7.7 0 14 6.3 14 14s-6.3 14-14 14H16C8.3 30 2 23.7 2 16z"/>
+      <line x1="25" y1="3" x2="25" y2="29"/>
+    </g>
     <g id="cross">
       <line x1="0" y1="12" x2="24" y2="12"/>
       <line x1="12" y1="0" x2="12" y2="24"/>
     </g>
-
     <g id="flask">
       <path d="M8 2h16"/>
       <path d="M14 2v10L5 24h22L18 12V2"/>
       <path d="M9 19h14"/>
     </g>
-
-    <g id="microscope">
-      <path d="M8 24h18"/>
-      <path d="M10 6h8l-2 4h-6z"/>
-      <path d="M14 10v6"/>
-      <path d="M10 18c0-3 2-5 5-5h5"/>
-      <circle cx="20" cy="14" r="3"/>
+    <g id="mortar">
+      <path d="M4 18h30l-2 6H6z"/>
+      <path d="M10 18c2-6 6-9 14-9 5 0 8 2 10 5"/>
+      <path d="M31 3l10 10"/>
     </g>
+    <g id="drop">
+      <path d="M12 2c4 6 8 10 8 15a8 8 0 1 1-16 0c0-5 4-9 8-15z"/>
+    </g>
+  </defs>
+
+  <g stroke="#0f766e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.28">
+    <use href="#capsule" x="24" y="26"/>
+    <use href="#cross" x="118" y="44"/>
+    <use href="#flask" x="208" y="30"/>
+    <use href="#mortar" x="300" y="22"/>
+    <use href="#pill" x="392" y="38"/>
+
+    <use href="#drop" x="42" y="124"/>
+    <use href="#pill" x="122" y="132"/>
+    <use href="#capsule" x="214" y="126"/>
+    <use href="#cross" x="328" y="138"/>
+    <use href="#flask" x="410" y="126"/>
+
+    <use href="#mortar" x="28" y="214"/>
+    <use href="#cross" x="146" y="230"/>
+    <use href="#drop" x="236" y="220"/>
+    <use href="#capsule" x="302" y="224"/>
+    <use href="#pill" x="398" y="232"/>
+
+    <use href="#flask" x="48" y="322"/>
+    <use href="#pill" x="130" y="318"/>
+    <use href="#mortar" x="216" y="314"/>
+    <use href="#cross" x="334" y="330"/>
+    <use href="#drop" x="416" y="318"/>
+
+    <use href="#capsule" x="28" y="414"/>
+    <use href="#cross" x="146" y="424"/>
+    <use href="#pill" x="220" y="420"/>
+    <use href="#flask" x="312" y="414"/>
+    <use href="#mortar" x="390" y="406"/>
   </g>
 
-  <g opacity="0.23" stroke="#d97706" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
-    <use href="#pill" x="14" y="22"/>
-    <use href="#cross" x="84" y="30"/>
-    <use href="#flask" x="152" y="18"/>
-    <use href="#microscope" x="222" y="28"/>
-    <use href="#cross" x="302" y="16"/>
+  <g stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.22">
+    <use href="#cross" x="70" y="84"/>
+    <use href="#drop" x="176" y="92"/>
+    <use href="#pill" x="268" y="84"/>
+    <use href="#flask" x="360" y="88"/>
 
-    <use href="#flask" x="26" y="90"/>
-    <use href="#pill" x="92" y="98"/>
-    <use href="#microscope" x="162" y="86"/>
-    <use href="#cross" x="236" y="96"/>
-    <use href="#pill" x="290" y="90"/>
+    <use href="#mortar" x="94" y="270"/>
+    <use href="#capsule" x="186" y="276"/>
+    <use href="#cross" x="284" y="286"/>
+    <use href="#drop" x="372" y="274"/>
 
-    <use href="#cross" x="12" y="162"/>
-    <use href="#microscope" x="76" y="154"/>
-    <use href="#pill" x="146" y="164"/>
-    <use href="#flask" x="214" y="156"/>
-    <use href="#cross" x="292" y="166"/>
-
-    <use href="#pill" x="30" y="232"/>
-    <use href="#flask" x="100" y="226"/>
-    <use href="#cross" x="166" y="238"/>
-    <use href="#microscope" x="236" y="228"/>
-    <use href="#pill" x="306" y="234"/>
-
-    <use href="#microscope" x="16" y="300"/>
-    <use href="#cross" x="88" y="306"/>
-    <use href="#pill" x="158" y="300"/>
-    <use href="#flask" x="226" y="306"/>
-    <use href="#cross" x="300" y="296"/>
+    <use href="#flask" x="92" y="372"/>
+    <use href="#pill" x="182" y="370"/>
+    <use href="#cross" x="278" y="382"/>
+    <use href="#capsule" x="362" y="372"/>
   </g>
 </svg>
