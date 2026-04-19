@@ -12,9 +12,7 @@ const createMailTransporter = () => {
   const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_SECURE } = process.env;
 
   if (!SMTP_HOST || !SMTP_PORT || !SMTP_USER || !SMTP_PASS) {
-    throw new Error(
-      "SMTP configuration is missing. Set SMTP_HOST, SMTP_PORT, SMTP_USER and SMTP_PASS."
-    );
+    return null;
   }
 
   return nodemailer.createTransport({
@@ -401,9 +399,34 @@ const registerAuthRoutes = ({ app, db, authLimiter, jwtSecret }) => {
 
           const baseUrl = process.env.PUBLIC_APP_URL || `http://localhost:${process.env.PORT || 5000}`;
           const resetLink = `${baseUrl}/reset-password?token=${token}`;
+          const isProduction = process.env.NODE_ENV === "production";
 
           try {
             const transporter = createMailTransporter();
+
+            if (!transporter) {
+              const genericMessage = "If this email exists, a reset link has been generated.";
+
+              // Local/dev fallback: allow password reset without SMTP infra.
+              if (!isProduction) {
+                console.warn(
+                  "SMTP is not configured. Returning reset link in response for non-production use.",
+                  { email, resetLink }
+                );
+                return res.json({
+                  message: `${genericMessage} SMTP is not configured, using local reset link fallback.`,
+                  resetLink,
+                });
+              }
+
+              console.error(
+                "SMTP is not configured in production. Set SMTP_HOST, SMTP_PORT, SMTP_USER and SMTP_PASS."
+              );
+              return res.status(503).json({
+                message: "Password reset email service is not configured.",
+              });
+            }
+
             await transporter.sendMail({
               from: PASSWORD_RESET_FROM,
               to: email,

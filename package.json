@@ -27,11 +27,11 @@
     "sass": "^1.56.1",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
-    "sqlite3": "^6.0.1",
+    "sqlite3": "5.1.7",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "postinstall": "npm rebuild sqlite3 --update-binary",
+    "postinstall": "node scripts/rebuild-sqlite.js",
     "start": "node server.js",
     "start:local": "concurrently \"npm run build\" \"node server.js\"",
     "build": "react-scripts build",
