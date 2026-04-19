@@ -47,6 +47,9 @@ function AdminGameControl() {
   const [latestAnswerId, setLatestAnswerId] = useState(null);
   const [adminReaction, setAdminReaction] = useState(null);
   const [adminFeed, setAdminFeed] = useState([]);
+  const [pendingAction, setPendingAction] = useState("");
+  const [isOptionsLoading, setIsOptionsLoading] = useState(false);
+  const [sessionErrorKey, setSessionErrorKey] = useState(null);
 
   // Keep WebSocket instance in a ref to prevent reinitialization
   const socketRef = useRef(null);
@@ -69,13 +72,36 @@ function AdminGameControl() {
     setAdminFeed((prev) => [nextItem, ...prev].slice(0, 5));
   };
 
+  const withPendingAction = async (label, action) => {
+    setPendingAction(label);
+    try {
+      await action();
+    } finally {
+      setPendingAction("");
+    }
+  };
+
+  const getSessionErrorKeyFromStatus = (status) => {
+    if (status === 404) {
+      return "sessionErrorNotFound";
+    }
+
+    if (status === 401 || status === 403) {
+      return "sessionErrorUnauthorized";
+    }
+
+    return "sessionErrorGeneric";
+  };
+
   const applyRuntimeQuestion = async (question, token) => {
     if (!question) {
+      setIsOptionsLoading(false);
       setQuestionOptions([]);
       return;
     }
 
     if (question.response_type === "Question à choix unique") {
+      setIsOptionsLoading(true);
       try {
         const optionsRes = await fetch(
           `${API_URL}/questions/${question.id}/options`,
@@ -87,10 +113,13 @@ function AdminGameControl() {
       } catch (err) {
         console.error("Failed to fetch question options:", err);
         setQuestionOptions([]);
+      } finally {
+        setIsOptionsLoading(false);
       }
       return;
     }
 
+    setIsOptionsLoading(false);
     setQuestionOptions([]);
   };
 
@@ -107,6 +136,7 @@ function AdminGameControl() {
       });
 
       if (!response.ok) {
+        setSessionErrorKey(getSessionErrorKeyFromStatus(response.status));
         throw new Error("Failed to fetch runtime state");
       }
 
@@ -121,6 +151,7 @@ function AdminGameControl() {
       setCorrectAnswer(runtime.correctAnswer || null);
       setIsTimeUp(Boolean(runtime.currentQuestion) && (runtime.timer || 0) <= 0);
       await applyRuntimeQuestion(runtime.currentQuestion, token);
+      setSessionErrorKey(null);
     } catch (err) {
       console.error("Failed to restore runtime state:", err);
     }
@@ -278,7 +309,22 @@ function AdminGameControl() {
         const response = await fetch(`${API_URL}/sessions/${sessionId}`, {
           headers: { Authorization: token },
         });
+
+        if (!response.ok) {
+          setSessionStatus("Error");
+          setSessionErrorKey(getSessionErrorKeyFromStatus(response.status));
+          return;
+        }
+
         const data = await response.json();
+
+        if (!data || !data.id) {
+          setSessionStatus("Error");
+          setSessionErrorKey("sessionErrorNotFound");
+          return;
+        }
+
+        setSessionErrorKey(null);
 
         setSessionDetails(data);
         if (data.status === "Activated") {
@@ -289,6 +335,7 @@ function AdminGameControl() {
       } catch (err) {
         console.error("Failed to fetch session status:", err);
         setSessionStatus("Error");
+        setSessionErrorKey((previous) => previous || "sessionErrorGeneric");
       }
     };
 
@@ -346,45 +393,49 @@ function AdminGameControl() {
   const startGame = async () => {
     const token = localStorage.getItem("token");
 
-    try {
-      // API call to update session status to "In Progress"
-      const response = await fetch(`${API_URL}/sessions/${sessionId}/start`, {
-        method: "POST",
-        headers: {
-          Authorization: token,
-          "Content-Type": "application/json",
-        },
-      });
+    await withPendingAction("Starting session...", async () => {
+      try {
+        // API call to update session status to "In Progress"
+        const response = await fetch(`${API_URL}/sessions/${sessionId}/start`, {
+          method: "POST",
+          headers: {
+            Authorization: token,
+            "Content-Type": "application/json",
+          },
+        });
 
-      if (!response.ok) {
-        throw new Error("Failed to update session status.");
+        if (!response.ok) {
+          throw new Error("Failed to update session status.");
+        }
+        // Emit socket event to notify players that the game has started
+        socketRef.current.emit("startGame", sessionId);
+      } catch (err) {
+        console.error("Error starting the game:", err);
       }
-      // Emit socket event to notify players that the game has started
-      socketRef.current.emit("startGame", sessionId);
-    } catch (err) {
-      console.error("Error starting the game:", err);
-    }
+    });
   };
 
   const endGame = async () => {
     const token = localStorage.getItem("token");
 
-    try {
-      // API call to update session status to "In Progress"
-      const response = await fetch(`${API_URL}/sessions/${sessionId}/end`, {
-        method: "POST",
-        headers: {
-          Authorization: token,
-          "Content-Type": "application/json",
-        },
-      });
+    await withPendingAction("Stopping session...", async () => {
+      try {
+        // API call to update session status to "In Progress"
+        const response = await fetch(`${API_URL}/sessions/${sessionId}/end`, {
+          method: "POST",
+          headers: {
+            Authorization: token,
+            "Content-Type": "application/json",
+          },
+        });
 
-      if (!response.ok) {
-        throw new Error("Failed to end session .");
+        if (!response.ok) {
+          throw new Error("Failed to end session .");
+        }
+      } catch (err) {
+        console.error("Error ending the game:", err);
       }
-    } catch (err) {
-      console.error("Error ending the game:", err);
-    }
+    });
   }
 
   const validateAnswer = (answer, groupId, isCorrect) => {
@@ -470,53 +521,56 @@ function AdminGameControl() {
     console.log("typeof groupId", typeof groupId, " and value is ", groupId);
     console.log("typeof color", typeof color, " and value is ", color);
     console.log("typeof change", typeof change, " and value is ", change);
-    try {
-      const response = await fetch(
-        `${API_URL}/sessions/${sessionId}/update-points`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: token,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ groupId, color, change }),
+
+    await withPendingAction("Updating scores...", async () => {
+      try {
+        const response = await fetch(
+          `${API_URL}/sessions/${sessionId}/update-points`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: token,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ groupId, color, change }),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to update points");
         }
-      );
 
-      if (!response.ok) {
-        throw new Error("Failed to update points");
+        const data = await response.json();
+
+        // Update the camemberts state with the new points
+        setCamemberts((prev) =>
+          prev.map((cam) =>
+            cam.group_id === groupId
+              ? {
+                  ...cam,
+                  red_triangles:
+                    color === "red"
+                      ? data.updatedGroup.red_triangles
+                      : cam.red_triangles,
+                  green_triangles:
+                    color === "green"
+                      ? data.updatedGroup.green_triangles
+                      : cam.green_triangles,
+                }
+              : cam
+          )
+        );
+
+        if (change > 0) {
+          popConfetti();
+          showAdminReaction(`✨ +1 point ${color === "red" ? "rouge" : "vert"}`, "success");
+        } else {
+          showAdminReaction(`😕 -1 point ${color === "red" ? "rouge" : "vert"}`, "warning");
+        }
+      } catch (err) {
+        console.error("Error updating points:", err);
       }
-
-      const data = await response.json();
-
-      // Update the camemberts state with the new points
-      setCamemberts((prev) =>
-        prev.map((cam) =>
-          cam.group_id === groupId
-            ? {
-                ...cam,
-                red_triangles:
-                  color === "red"
-                    ? data.updatedGroup.red_triangles
-                    : cam.red_triangles,
-                green_triangles:
-                  color === "green"
-                    ? data.updatedGroup.green_triangles
-                    : cam.green_triangles,
-              }
-            : cam
-        )
-      );
-
-      if (change > 0) {
-        popConfetti();
-        showAdminReaction(`✨ +1 point ${color === "red" ? "rouge" : "vert"}`, "success");
-      } else {
-        showAdminReaction(`😕 -1 point ${color === "red" ? "rouge" : "vert"}`, "warning");
-      }
-    } catch (err) {
-      console.error("Error updating points:", err);
-    }
+    });
   };
 
   const getTimerVisualState = () => {
@@ -543,7 +597,27 @@ function AdminGameControl() {
   const timerVisualState = getTimerVisualState();
 
   if (sessionStatus === null) {
-    return <h1>{t("gameLoadingSession")}</h1>;
+    return (
+      <div className="admin-loading-state" role="status" aria-live="polite">
+        <div className="loading-spinner" aria-hidden="true" />
+        <h1>{t("gameLoadingSession")}</h1>
+      </div>
+    );
+  }
+
+  if (sessionErrorKey || sessionStatus === "Error") {
+    return (
+      <>
+        <Header />
+        <div className="admin-game-control-container">
+          <div className="admin-state-message" role="alert" aria-live="assertive">
+            <h2>{t("sessionErrorTitle")}</h2>
+            <p>{t(sessionErrorKey || "sessionErrorGeneric")}</p>
+          </div>
+        </div>
+        <Footer />
+      </>
+    );
   }
 
   if (sessionStatus === "Draft") {
@@ -554,6 +628,13 @@ function AdminGameControl() {
     <>
       <Header />
       <div className="admin-game-control-container">
+        {pendingAction && (
+          <div className="operation-loader" role="status" aria-live="polite">
+            <div className="loading-spinner" aria-hidden="true" />
+            <span>{pendingAction}</span>
+          </div>
+        )}
+
         {gameOverModal.open && (
           <div className="modal-overlay" role="dialog" aria-modal="true">
             <div className="modal-content game-over-modal-content">
@@ -638,13 +719,13 @@ function AdminGameControl() {
 
               <div className="admin-session-toolbar">
                 {sessionStatus === "Activated" && (
-                  <button className="start-game-button" onClick={startGame}>
+                  <button className="start-game-button" onClick={startGame} disabled={Boolean(pendingAction)}>
                     {t("adminStartSession")}
                   </button>
                 )}
 
                 {sessionStatus === "In Progress" && (
-                  <button className="end-game-button" onClick={endGame}>
+                  <button className="end-game-button" onClick={endGame} disabled={Boolean(pendingAction)}>
                     {t("adminStopSession")}
                   </button>
                 )}
@@ -653,6 +734,7 @@ function AdminGameControl() {
                   <button
                     className="next-question-button"
                     onClick={nextQuestion}
+                    disabled={Boolean(pendingAction)}
                   >
                     {t("adminNextQuestion")}
                   </button>
@@ -662,7 +744,7 @@ function AdminGameControl() {
                   <button
                     className="reveal-answer-button"
                     onClick={revealAnswer}
-                    disabled={correctAnswer}
+                    disabled={Boolean(pendingAction) || correctAnswer}
                   >
                     {t("adminRevealAnswer")}
                   </button>
@@ -707,10 +789,11 @@ function AdminGameControl() {
                           ? "green-label"
                           : "red-label"
                       }`}
-                    ></div>
-                    {currentQuestion && currentQuestion.type === "green"
-                      ? sessionDetails.green_questions_label
-                      : sessionDetails.red_questions_label}
+                    >
+                      {currentQuestion && currentQuestion.type === "green"
+                        ? sessionDetails.green_questions_label
+                        : sessionDetails.red_questions_label}
+                    </div>
                   </div>
                   <h3 style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
                     {currentQuestion.title}
@@ -754,6 +837,12 @@ function AdminGameControl() {
                   {currentQuestion.response_type === "Question à choix unique" && (
                     <div>
                       <h4>{t("sessionOptions")}</h4>
+                      {isOptionsLoading && (
+                        <div className="inline-loader" role="status" aria-live="polite">
+                          <div className="loading-spinner small" aria-hidden="true" />
+                          <span>{t("gameLoadingSession")}</span>
+                        </div>
+                      )}
                       <ul className="options-list">
                         {questionOptions.map((option, index) => (
                           <li key={index}>{option.option_text}</li>
@@ -840,6 +929,7 @@ function AdminGameControl() {
                             <button
                               className="minus-button"
                               onClick={() => updatePoints(cam.group_id, "red", -1)}
+                              disabled={Boolean(pendingAction)}
                             >
                               -
                             </button>
@@ -849,6 +939,7 @@ function AdminGameControl() {
                             <button
                               className="plus-button"
                               onClick={() => updatePoints(cam.group_id, "red", 1)}
+                              disabled={Boolean(pendingAction)}
                             >
                               +
                             </button>
@@ -858,6 +949,7 @@ function AdminGameControl() {
                             <button
                               className="minus-button"
                               onClick={() => updatePoints(cam.group_id, "green", -1)}
+                              disabled={Boolean(pendingAction)}
                             >
                               -
                             </button>
@@ -867,6 +959,7 @@ function AdminGameControl() {
                             <button
                               className="plus-button"
                               onClick={() => updatePoints(cam.group_id, "green", 1)}
+                              disabled={Boolean(pendingAction)}
                             >
                               +
                             </button>

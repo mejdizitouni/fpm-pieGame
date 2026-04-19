@@ -9,6 +9,27 @@
   text-align: center;
 }
 
+.game-state-message {
+  margin: 24px auto;
+  width: min(100%, 760px);
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: var(--shadow-soft);
+}
+
+.game-state-message h2 {
+  margin: 0;
+  color: var(--brand-strong);
+}
+
+.game-state-message p {
+  margin: 10px 0 0;
+  color: var(--ink-1);
+  font-weight: 600;
+}
+
 .player-live-layout {
   display: block;
   margin-top: 14px;

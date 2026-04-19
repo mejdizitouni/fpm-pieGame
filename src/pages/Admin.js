@@ -16,6 +16,7 @@ function Admin() {
   const [savingUser, setSavingUser] = useState(false);
   const [editingUserId, setEditingUserId] = useState(null);
   const [togglingUserId, setTogglingUserId] = useState(null);
+  const [showUserForm, setShowUserForm] = useState(false);
   const [newUser, setNewUser] = useState({
     firstName: "",
     lastName: "",
@@ -41,6 +42,18 @@ function Admin() {
   const activeView = new URLSearchParams(location.search).get("view") || "sessions";
   const showSessionsManagement = activeView !== "users";
   const showUsersManagement = currentUser?.role === "Admin" && activeView === "users";
+
+  const getSessionStatusLabel = (status) => {
+    const statusKeyMap = {
+      Draft: "sessionStatusDraft",
+      Activated: "sessionStatusActivated",
+      "In Progress": "sessionStatusInProgress",
+      "Game Over": "sessionStatusGameOver",
+    };
+
+    const translationKey = statusKeyMap[status];
+    return translationKey ? t(translationKey) : status;
+  };
 
   const withLanguageParam = (baseUrl) => {
     if (!baseUrl) {
@@ -375,6 +388,7 @@ function Admin() {
 
   const resetUserForm = () => {
     setEditingUserId(null);
+    setShowUserForm(false);
     setNewUser({
       firstName: "",
       lastName: "",
@@ -388,6 +402,7 @@ function Admin() {
 
   const handleEditUser = (user) => {
     setEditingUserId(user.id);
+    setShowUserForm(true);
     setNewUser({
       firstName: user.first_name || "",
       lastName: user.last_name || "",
@@ -512,7 +527,7 @@ function Admin() {
                   <td>{session.last_modified_by_full_name?.trim() || session.last_modified_by_username || "-"}</td>
                   <td>
                     <span className={`status-badge status-${session.status?.toLowerCase().replace(/\s+/g, "-")}`}>
-                      {session.status}
+                      {getSessionStatusLabel(session.status)}
                     </span>
                   </td>
                   <td className="actions">
@@ -661,95 +676,31 @@ function Admin() {
 
         {showUsersManagement && (
           <>
-            <h2 className="title">{t("adminUserManagementTitle")}</h2>
-            <form className="user-form" onSubmit={handleSaveUser}>
-              <label htmlFor="new-user-first-name">{t("adminUserFirstName")}</label>
-              <input
-                id="new-user-first-name"
-                type="text"
-                value={newUser.firstName}
-                onChange={(e) =>
-                  setNewUser({ ...newUser, firstName: e.target.value })
-                }
-                required
-              />
-              <label htmlFor="new-user-last-name">{t("adminUserLastName")}</label>
-              <input
-                id="new-user-last-name"
-                type="text"
-                value={newUser.lastName}
-                onChange={(e) =>
-                  setNewUser({ ...newUser, lastName: e.target.value })
-                }
-                required
-              />
-              <label htmlFor="new-user-username">{t("adminUserUsername")}</label>
-              <input
-                id="new-user-username"
-                type="text"
-                value={newUser.username}
-                onChange={(e) =>
-                  setNewUser({ ...newUser, username: e.target.value })
-                }
-                required
-              />
-              <label htmlFor="new-user-email">{t("adminUserEmail")}</label>
-              <input
-                id="new-user-email"
-                type="email"
-                value={newUser.email}
-                onChange={(e) =>
-                  setNewUser({ ...newUser, email: e.target.value })
-                }
-                required
-              />
-              <label htmlFor="new-user-password">{t("adminUserPassword")}</label>
-              <input
-                id="new-user-password"
-                type="password"
-                minLength={8}
-                value={newUser.password}
-                onChange={(e) =>
-                  setNewUser({ ...newUser, password: e.target.value })
-                }
-                required={!editingUserId}
-              />
-              <label htmlFor="new-user-role">{t("adminUserRole")}</label>
-              <select
-                id="new-user-role"
-                value={newUser.role}
-                onChange={(e) =>
-                  setNewUser({ ...newUser, role: e.target.value })
-                }
+            <div className="session-header-container">
+              <h2 className="title">{t("adminUserManagementTitle")}</h2>
+              <button
+                className="admin-button"
+                onClick={() => {
+                  if (showUserForm) {
+                    resetUserForm();
+                    return;
+                  }
+                  setEditingUserId(null);
+                  setNewUser({
+                    firstName: "",
+                    lastName: "",
+                    username: "",
+                    email: "",
+                    password: "",
+                    role: "Enseignant",
+                    isActive: true,
+                  });
+                  setShowUserForm(true);
+                }}
               >
-                <option value="Admin">Admin</option>
-                <option value="Enseignant">Enseignant</option>
-              </select>
-              <label htmlFor="new-user-active">{t("adminUserStatus")}</label>
-              <select
-                id="new-user-active"
-                value={newUser.isActive ? "1" : "0"}
-                onChange={(e) =>
-                  setNewUser({ ...newUser, isActive: e.target.value === "1" })
-                }
-                disabled={!editingUserId}
-              >
-                <option value="1">{t("adminUserActive")}</option>
-                <option value="0">{t("adminUserInactive")}</option>
-              </select>
-              <button className="admin-button" type="submit" disabled={savingUser}>
-                {savingUser
-                  ? t("adminUserSaving")
-                  : editingUserId
-                  ? t("adminUserUpdate")
-                  : t("adminUserCreate")}
+                {showUserForm ? t("commonCancel") : t("adminUserCreate")}
               </button>
-              {editingUserId && (
-                <button className="admin-button" type="button" onClick={resetUserForm}>
-                  {t("commonCancel")}
-                </button>
-              )}
-            </form>
+            </div>
 
             <table>
               <thead>
@@ -797,6 +748,92 @@ function Admin() {
                 )}
               </tbody>
             </table>
+
+            {showUserForm && (
+              <form className="user-form" onSubmit={handleSaveUser}>
+                <label htmlFor="new-user-first-name">{t("adminUserFirstName")}</label>
+                <input
+                  id="new-user-first-name"
+                  type="text"
+                  value={newUser.firstName}
+                  onChange={(e) =>
+                    setNewUser({ ...newUser, firstName: e.target.value })
+                  }
+                  required
+                />
+                <label htmlFor="new-user-last-name">{t("adminUserLastName")}</label>
+                <input
+                  id="new-user-last-name"
+                  type="text"
+                  value={newUser.lastName}
+                  onChange={(e) =>
+                    setNewUser({ ...newUser, lastName: e.target.value })
+                  }
+                  required
+                />
+                <label htmlFor="new-user-username">{t("adminUserUsername")}</label>
+                <input
+                  id="new-user-username"
+                  type="text"
+                  value={newUser.username}
+                  onChange={(e) =>
+                    setNewUser({ ...newUser, username: e.target.value })
+                  }
+                  required
+                />
+                <label htmlFor="new-user-email">{t("adminUserEmail")}</label>
+                <input
+                  id="new-user-email"
+                  type="email"
+                  value={newUser.email}
+                  onChange={(e) =>
+                    setNewUser({ ...newUser, email: e.target.value })
+                  }
+                  required
+                />
+                <label htmlFor="new-user-password">{t("adminUserPassword")}</label>
+                <input
+                  id="new-user-password"
+                  type="password"
+                  minLength={8}
+                  value={newUser.password}
+                  onChange={(e) =>
+                    setNewUser({ ...newUser, password: e.target.value })
+                  }
+                  required={!editingUserId}
+                />
+                <label htmlFor="new-user-role">{t("adminUserRole")}</label>
+                <select
+                  id="new-user-role"
+                  value={newUser.role}
+                  onChange={(e) =>
+                    setNewUser({ ...newUser, role: e.target.value })
+                  }
+                >
+                  <option value="Admin">Admin</option>
+                  <option value="Enseignant">Enseignant</option>
+                </select>
+                <label htmlFor="new-user-active">{t("adminUserStatus")}</label>
+                <select
+                  id="new-user-active"
+                  value={newUser.isActive ? "1" : "0"}
+                  onChange={(e) =>
+                    setNewUser({ ...newUser, isActive: e.target.value === "1" })
+                  }
+                  disabled={!editingUserId}
+                >
+                  <option value="1">{t("adminUserActive")}</option>
+                  <option value="0">{t("adminUserInactive")}</option>
+                </select>
+                <button className="admin-button" type="submit" disabled={savingUser}>
+                  {savingUser
+                    ? t("adminUserSaving")
+                    : editingUserId
+                    ? t("adminUserUpdate")
+                    : t("adminUserCreate")}
+                </button>
+              </form>
+            )}
           </>
         )}
 

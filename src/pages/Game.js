@@ -42,6 +42,7 @@ function Game() {
   const [showRules, setShowRules] = useState(false); // Manage rules popup visibility
   const [liveNotice, setLiveNotice] = useState(null);
   const [playerFeed, setPlayerFeed] = useState([]);
+  const [sessionErrorKey, setSessionErrorKey] = useState(null);
   const submittedAnswerRef = useRef(null);
   const stoppedTimerGroupRef = useRef(null);
 
@@ -69,6 +70,18 @@ function Game() {
       text = text.replaceAll(`{${paramKey}}`, String(value));
     });
     return text;
+  };
+
+  const getSessionErrorKeyFromStatus = (status) => {
+    if (status === 404) {
+      return "sessionErrorNotFound";
+    }
+
+    if (status === 401 || status === 403) {
+      return "sessionErrorUnauthorized";
+    }
+
+    return "sessionErrorGeneric";
   };
 
   const applyQuestionState = async (nextQuestion) => {
@@ -107,6 +120,7 @@ function Game() {
       );
 
       if (!response.ok) {
+        setSessionErrorKey(getSessionErrorKeyFromStatus(response.status));
         throw new Error("Failed to fetch player runtime state");
       }
 
@@ -123,6 +137,7 @@ function Game() {
         setLiveNotice(null);
       }
       await applyQuestionState(runtime.currentQuestion || null);
+      setSessionErrorKey(null);
     } catch (err) {
       console.error("Failed to restore player runtime state:", err);
     }
@@ -149,7 +164,22 @@ function Game() {
             headers: { Authorization: token },
           }
         );
+
+        if (!response.ok) {
+          setSessionStatus("Error");
+          setSessionErrorKey(getSessionErrorKeyFromStatus(response.status));
+          return;
+        }
+
         const data = await response.json();
+
+        if (!data || !data.id) {
+          setSessionStatus("Error");
+          setSessionErrorKey("sessionErrorNotFound");
+          return;
+        }
+
+        setSessionErrorKey(null);
         setSessionDetails(data);
 
         if (data.status === "Activated") {
@@ -160,6 +190,7 @@ function Game() {
       } catch (err) {
         console.error("Failed to fetch session status:", err);
         setSessionStatus("Error");
+        setSessionErrorKey((previous) => previous || "sessionErrorGeneric");
       }
     };
 
@@ -192,10 +223,28 @@ function Game() {
         const response = await fetch(
           `${API_URL}/sessions/${sessionId}/groups/${groupId}`
         );
+
+        if (!response.ok) {
+          setSessionErrorKey(
+            response.status === 404
+              ? "sessionErrorInvalidLink"
+              : getSessionErrorKeyFromStatus(response.status)
+          );
+          return;
+        }
+
         const data = await response.json();
+
+        if (!data || !data.id) {
+          setSessionErrorKey("sessionErrorInvalidLink");
+          return;
+        }
+
+        setSessionErrorKey(null);
         setGroup(data);
       } catch (err) {
         console.error("Failed to fetch group data:", err);
+        setSessionErrorKey((previous) => previous || "sessionErrorGeneric");
       }
     };
 
@@ -526,6 +575,25 @@ function Game() {
           logoTargetPath={null}
         />
         <h1>{t("gameLoadingSession")}</h1>
+      </>
+    );
+  }
+
+  if (sessionErrorKey || sessionStatus === "Error") {
+    return (
+      <>
+        <Header
+          showHomeButton={false}
+          showAdminButton={false}
+          showLogoutButton={false}
+          logoTargetPath={null}
+        />
+        <div className="game-container">
+          <div className="game-state-message" role="alert" aria-live="assertive">
+            <h2>{t("sessionErrorTitle")}</h2>
+            <p>{t(sessionErrorKey || "sessionErrorGeneric")}</p>
+          </div>
+        </div>
       </>
     );
   }
