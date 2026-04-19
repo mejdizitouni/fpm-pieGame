@@ -6,7 +6,7 @@
 }
 
 .login-card {
-  width: min(96vw, 860px);
+  width: min(94vw, 760px);
   border-radius: var(--radius-xl);
   border: 1px solid var(--line);
   background: linear-gradient(160deg, rgba(255, 255, 255, 0.95), rgba(245, 250, 233, 0.84));
@@ -117,6 +117,8 @@
   margin-top: 14px;
   padding-top: 12px;
   border-top: 1px dashed var(--line);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .login-meta p {
@@ -129,6 +131,8 @@
 .login-meta-names {
   font-weight: 600;
   white-space: nowrap;
+  display: inline-block;
+  min-width: max-content;
 }
 
 .login-meta-audience {
@@ -147,15 +151,22 @@
   }
 }
 
+@media (max-width: 768px) {
+  .login-card {
+    width: min(100%, 620px);
+    padding: 18px 16px;
+  }
+}
+
 @media (max-width: 480px) {
   .login-container {
-    padding: 12px;
+    padding: 10px;
   }
 
   .login-card {
     width: 100%;
     border-radius: 22px;
-    padding: 18px 14px;
+    padding: 14px 12px;
   }
 
   .game-name {
