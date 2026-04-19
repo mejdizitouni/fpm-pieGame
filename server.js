@@ -4,6 +4,12 @@ const db = require("./server/db");
 const { createApp } = require("./server/app");
 const { createHttpServer } = require("./server/httpServer");
 const { AVATAR_OPTIONS } = require("./server/constants");
+const {
+  hasJsonBody,
+  requireFields,
+  validateNonEmptyString,
+  validatePositiveInteger,
+} = require("./server/middleware/validation.middleware");
 const { getEnv } = require("./server/config/env");
 const { buildCorsOptions, createLimiters } = require("./server/config/security");
 const {
@@ -25,7 +31,7 @@ const normalizeAuthHeader = (headerValue = "") =>
   headerValue.startsWith("Bearer ") ? headerValue.slice(7) : headerValue;
 
 const corsOptions = buildCorsOptions(allowedOrigins);
-const { authLimiter, mutationLimiter } = createLimiters();
+const { authLimiter, loginLimiter, passwordResetLimiter, mutationLimiter } = createLimiters();
 const app = createApp({
   corsOptions,
   mutationLimiter,
@@ -57,6 +63,8 @@ registerAuthRoutes({
   app,
   db,
   authLimiter,
+  loginLimiter,
+  passwordResetLimiter,
   jwtSecret,
 });
 
@@ -107,7 +115,12 @@ app.get("/game-sessions", (req, res) => {
 });
 
 // Add a new game session
-app.post("/game-sessions", (req, res) => {
+app.post(
+  "/game-sessions",
+  hasJsonBody,
+  requireFields(["title", "green_questions_label", "red_questions_label", "date"]),
+  validateNonEmptyString("title", "title"),
+  (req, res) => {
   const token = normalizeAuthHeader(req.headers["authorization"]);
   if (!token) {
     return res.status(401).json({ message: "Access denied" });
@@ -140,7 +153,8 @@ app.post("/game-sessions", (req, res) => {
       }
     );
   });
-});
+}
+);
 
 // Fetch question details by ID
 app.get("/questions/:id", (req, res) => {
@@ -178,7 +192,13 @@ app.get("/questions/:id", (req, res) => {
 });
 
 // Add a new question
-app.post("/questions", (req, res) => {
+app.post(
+  "/questions",
+  hasJsonBody,
+  requireFields(["type", "response_type", "title", "expected_answer", "allocated_time"]),
+  validateNonEmptyString("title", "title"),
+  validatePositiveInteger("allocated_time", "allocated_time"),
+  (req, res) => {
   const token = req.headers["authorization"];
   if (!token) {
     return res.status(401).json({ message: "Access denied" });
@@ -212,7 +232,8 @@ app.post("/questions", (req, res) => {
       }
     );
   });
-});
+}
+);
 
 // Update a question
 app.put("/questions/:id", (req, res) => {
@@ -312,9 +333,18 @@ app.get("/sessions/:id/groups/:groupId", (req, res) => {
 });
 
 // Add a new group to a session
-app.post("/sessions/:id/groups", (req, res) => {
+app.post(
+  "/sessions/:id/groups",
+  hasJsonBody,
+  requireFields(["name", "avatar_name"]),
+  validateNonEmptyString("name", "name"),
+  (req, res) => {
   const sessionId = req.params.id;
   const { name, description, avatar_name } = req.body;
+
+  if (!Number.isInteger(Number(sessionId)) || Number(sessionId) <= 0) {
+    return res.status(400).json({ message: "Invalid session id" });
+  }
 
   if (!avatar_name) {
     return res.status(400).json({ message: "Avatar name is required" });
@@ -359,7 +389,8 @@ app.post("/sessions/:id/groups", (req, res) => {
       );
     }
   );
-});
+}
+);
 
 // Delete a group from the database
 app.delete("/sessions/:sessionId/groups/:groupId", (req, res) => {
@@ -699,7 +730,13 @@ app.get("/sessions/:id/questions", (req, res) => {
 });
 
 // Add a new question to a session
-app.post("/sessions/:id/questions", (req, res) => {
+app.post(
+  "/sessions/:id/questions",
+  hasJsonBody,
+  requireFields(["question_id", "question_order"]),
+  validatePositiveInteger("question_id", "question_id"),
+  validatePositiveInteger("question_order", "question_order"),
+  (req, res) => {
   const token = req.headers["authorization"];
   if (!token) {
     return res.status(401).json({ message: "Access denied" });
@@ -733,7 +770,8 @@ app.post("/sessions/:id/questions", (req, res) => {
       }
     );
   });
-});
+}
+);
 
 // Activate a session
 app.post("/sessions/:id/activate", (req, res) => {

@@ -36,9 +36,10 @@
     "start:local": "concurrently \"npm run build\" \"node server.js\"",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "check:i18n": "node scripts/check-i18n-parity.js",
     "test:frontend": "react-scripts test --watchAll=false",
     "test:backend": "node --test tests/backend",
-    "test:all": "npm run test:backend && npm run test:frontend",
+    "test:all": "npm run check:i18n && npm run test:backend && npm run test:frontend",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
