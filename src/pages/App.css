@@ -48,12 +48,32 @@
   color: var(--brand-strong);
 }
 
+.login-hero-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: clamp(12px, 2.2vw, 20px);
+}
+
+.login-hero-copy {
+  min-width: 0;
+  flex: 1;
+}
+
 .game-name {
   margin: 12px 0 8px;
   font-size: clamp(2rem, 8vw, 4.2rem);
   line-height: 0.95;
   color: #143921;
   text-shadow: 0 6px 24px rgba(17, 57, 33, 0.15);
+}
+
+.login-hero-camembert {
+  width: clamp(88px, 14vw, 148px);
+  height: clamp(88px, 14vw, 148px);
+  flex: 0 0 auto;
+  border-radius: 18px;
+  box-shadow: 0 10px 24px rgba(15, 118, 110, 0.22);
 }
 
 .login-subtitle {
@@ -202,6 +222,11 @@
     width: min(100%, 620px);
     padding: 16px 14px;
   }
+
+  .login-hero-camembert {
+    width: clamp(72px, 16vw, 116px);
+    height: clamp(72px, 16vw, 116px);
+  }
 }
 
 @media (max-width: 480px) {
@@ -224,6 +249,16 @@
 
   .game-name {
     font-size: clamp(1.65rem, 10.2vw, 2.2rem);
+  }
+
+  .login-hero-row {
+    gap: 10px;
+  }
+
+  .login-hero-camembert {
+    width: clamp(64px, 21vw, 86px);
+    height: clamp(64px, 21vw, 86px);
+    border-radius: 14px;
   }
 
   .login-subtitle {
