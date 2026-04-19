@@ -1,6 +1,7 @@
 import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import Game from "./Game";
+import { QUESTION_RESPONSE_TYPES } from "../constants/questionResponseTypes";
 
 window.alert = jest.fn();
 
@@ -102,7 +103,7 @@ describe("Game page", () => {
         title: "2 + 2 = ?",
         expected_answer: "4",
         allocated_time: 30,
-        response_type: "Question à choix unique",
+        response_type: QUESTION_RESPONSE_TYPES.SINGLE_CHOICE,
       },
       timer: 30,
       questionIndex: 1,

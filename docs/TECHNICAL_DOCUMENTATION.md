@@ -34,6 +34,7 @@ Les dependances exactes sont declarees dans package.json.
   - provider central dans src/i18n
   - dictionnaires multilingues
   - fallback automatique sur langue par defaut pour cles absentes
+  - regle de dev: aucun texte utilisateur ne doit etre code en dur dans les composants (labels, placeholders, aria-label, alt). Toute chaine UI passe par les cles de traduction.
 
 ### 3.2 Backend
 - Entree principale: server.js

@@ -7,6 +7,7 @@ import Footer from "../components/layout/Footer";
 import PieChart from "../components/charts/PieChart";
 import { toast } from "../components/toast/toast";
 import { useLanguage } from "../i18n/LanguageProvider";
+import { QUESTION_RESPONSE_TYPES } from "../constants/questionResponseTypes";
 import "./AdminGameControl.css"; // Import the CSS file for styling
 
 function AdminGameControl() {
@@ -100,7 +101,7 @@ function AdminGameControl() {
       return;
     }
 
-    if (question.response_type === "Question à choix unique") {
+    if (question.response_type === QUESTION_RESPONSE_TYPES.SINGLE_CHOICE) {
       setIsOptionsLoading(true);
       try {
         const optionsRes = await fetch(
@@ -201,7 +202,7 @@ function AdminGameControl() {
         setLatestAnswerId(null);
         setAdminFeed([]);
 
-        if (question.response_type === "Question à choix unique") {
+        if (question.response_type === QUESTION_RESPONSE_TYPES.SINGLE_CHOICE) {
           const token = localStorage.getItem("token");
           await applyRuntimeQuestion(question, token);
         } else {
@@ -636,8 +637,18 @@ function AdminGameControl() {
         )}
 
         {gameOverModal.open && (
-          <div className="modal-overlay" role="dialog" aria-modal="true">
-            <div className="modal-content game-over-modal-content">
+          <div
+            className="modal-overlay"
+            role="dialog"
+            aria-modal="true"
+            onClick={() =>
+              setGameOverModal((prev) => ({
+                ...prev,
+                open: false,
+              }))
+            }
+          >
+            <div className="modal-content game-over-modal-content" onClick={(e) => e.stopPropagation()}>
               <h2>{t("gameOverTitle")}</h2>
               <p>{gameOverModal.message}</p>
               {gameOverModal.winners.length > 0 && (
@@ -834,7 +845,7 @@ function AdminGameControl() {
                   {stoppedTimerGroup && (
                     <h4>{t("gameTimerStoppedBy")} {stoppedTimerGroup.groupName}</h4>
                   )}
-                  {currentQuestion.response_type === "Question à choix unique" && (
+                  {currentQuestion.response_type === QUESTION_RESPONSE_TYPES.SINGLE_CHOICE && (
                     <div>
                       <h4>{t("sessionOptions")}</h4>
                       {isOptionsLoading && (

@@ -6,6 +6,7 @@ import PieChart from "../components/charts/PieChart";
 import Header from "../components/layout/Header";
 import { toast } from "../components/toast/toast";
 import { useLanguage } from "../i18n/LanguageProvider";
+import { QUESTION_RESPONSE_TYPES } from "../constants/questionResponseTypes";
 import "./Game.css"; // Import the CSS file for styling
 
 const socket = io(process.env.REACT_APP_API_URL);
@@ -92,7 +93,7 @@ function Game() {
       return;
     }
 
-    if (nextQuestion.response_type === "Question à choix unique") {
+    if (nextQuestion.response_type === QUESTION_RESPONSE_TYPES.SINGLE_CHOICE) {
       if (Array.isArray(nextQuestion.options) && nextQuestion.options.length > 0) {
         setQuestionOptions(nextQuestion.options);
         return;
@@ -628,8 +629,8 @@ function Game() {
 
       {/* Rules Modal */}
       {showRules && (
-        <div className="modal-overlay">
-          <div className="modal-content">
+        <div className="modal-overlay" onClick={() => setShowRules(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2>{t("gameRules")}</h2>
             <br></br>
             <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
@@ -641,8 +642,18 @@ function Game() {
       )}
 
       {gameOverModal.open && (
-        <div className="modal-overlay" role="dialog" aria-modal="true">
-          <div className="modal-content game-over-modal-content">
+        <div
+          className="modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          onClick={() =>
+            setGameOverModal((prev) => ({
+              ...prev,
+              open: false,
+            }))
+          }
+        >
+          <div className="modal-content game-over-modal-content" onClick={(e) => e.stopPropagation()}>
             <h2>{t("gameOverTitle")}</h2>
             <p>{gameOverModal.message}</p>
             {gameOverModal.winners.length > 0 && (
@@ -790,7 +801,7 @@ function Game() {
 
                   {!stoppedTimerGroup && !submittedAnswer && timer > 0 && (
                     <div>
-                      {question.response_type === "Question à choix unique" ? (
+                      {question.response_type === QUESTION_RESPONSE_TYPES.SINGLE_CHOICE ? (
                         <div>
                           <h4>{t("gameChooseOption")}</h4>
                           <form>

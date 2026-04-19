@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { toastEmitter } from "./toast";
+import { useLanguage } from "../../i18n/LanguageProvider";
 import "./Toast.css";
 
 export default function ToastContainer() {
+  const { t } = useLanguage();
   const [toasts, setToasts] = useState([]);
 
   useEffect(() => {
@@ -39,7 +41,7 @@ export default function ToastContainer() {
             onClick={() =>
               setToasts((prev) => prev.filter((x) => x.id !== t.id))
             }
-            aria-label="Fermer"
+            aria-label={t("toastCloseAria")}
           >
             ×
           </button>

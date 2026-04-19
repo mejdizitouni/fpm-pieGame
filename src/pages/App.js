@@ -95,13 +95,13 @@ function App() {
           <div className="login-brand-logos" aria-hidden="true">
             <img
               src="/assets/branding/logo-fpm-v2.png"
-              alt="FPM"
+              alt={t("loginLogoFpmAlt")}
               className="login-brand-logo"
               onClick={() => navigate("/admin")}
             />
             <img
               src="/assets/branding/logo-universite-v2.png"
-              alt="Université"
+              alt={t("loginLogoUniversityAlt")}
               className="login-brand-logo login-brand-logo-university"
               onClick={() => navigate("/admin")}
             />

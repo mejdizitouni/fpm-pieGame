@@ -122,7 +122,7 @@ function Header({
       <div className="header-left">
         <img
           src="/assets/branding/logo-universite-v2.png"
-          alt="Université Logo"
+          alt={t("logoUniversityAlt")}
           className="header-logo header-logo-university"
           onClick={resolvedLogoTarget ? () => handleNavigate(resolvedLogoTarget) : undefined}
         />
@@ -224,7 +224,7 @@ function Header({
       <div className="header-brand-right">
         <img
           src="/assets/branding/logo-fpm-v2.png"
-          alt="FPM Logo"
+          alt={t("logoFpmAlt")}
           className="header-logo header-logo-fpm"
           onClick={resolvedLogoTarget ? () => handleNavigate(resolvedLogoTarget) : undefined}
         />

@@ -34,6 +34,7 @@ It provides:
 - Built-in language selector in the header.
 - Translations for French, English, Spanish, German, Portuguese, Russian, Arabic, Simplified Chinese, and Traditional Chinese.
 - Automatic fallback to default-language keys for missing translations.
+- UI text policy: no user-facing labels are hardcoded in components; labels, placeholders, aria labels, and alt text must use translation keys from src/i18n/translations.js.
 
 ## Tech Stack
 
