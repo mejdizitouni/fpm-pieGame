@@ -1,21 +1,28 @@
 import { useState, useEffect } from "react";
 import { toastEmitter } from "./toast";
 import { useLanguage } from "../../i18n/LanguageProvider";
+import { DEFAULT_LANGUAGE, TRANSLATIONS } from "../../i18n/translations";
 import "./Toast.css";
 
 export default function ToastContainer() {
-  const { t } = useLanguage();
+  const { language } = useLanguage();
   const [toasts, setToasts] = useState([]);
+  const closeToastAriaLabel =
+    TRANSLATIONS[language]?.toastCloseAria ??
+    TRANSLATIONS[DEFAULT_LANGUAGE]?.toastCloseAria ??
+    "Close notification";
 
   useEffect(() => {
     const unsub = toastEmitter.subscribe(({ id, message, type, duration = 3000 }) => {
       setToasts((prev) => [...prev, { id, message, type, duration, visible: true }]);
       setTimeout(() => {
         setToasts((prev) =>
-          prev.map((t) => (t.id === id ? { ...t, visible: false } : t))
+            prev.map((toastItem) =>
+              toastItem.id === id ? { ...toastItem, visible: false } : toastItem
+            )
         );
         setTimeout(() => {
-          setToasts((prev) => prev.filter((t) => t.id !== id));
+            setToasts((prev) => prev.filter((toastItem) => toastItem.id !== id));
         }, 350);
       }, duration);
     });
@@ -26,22 +33,28 @@ export default function ToastContainer() {
 
   return (
     <div className="toast-container" aria-live="polite">
-      {toasts.map((t) => (
+      {toasts.map((toastItem) => (
         <div
-          key={t.id}
-          className={`toast toast-${t.type} ${t.visible ? "toast-enter" : "toast-exit"}`}
+          key={toastItem.id}
+          className={`toast toast-${toastItem.type} ${toastItem.visible ? "toast-enter" : "toast-exit"}`}
           role="alert"
         >
           <span className="toast-icon">
-            {t.type === "success" ? "✓" : t.type === "error" ? "✕" : t.type === "warning" ? "⚠" : "ℹ"}
+            {toastItem.type === "success"
+              ? "✓"
+              : toastItem.type === "error"
+                ? "✕"
+                : toastItem.type === "warning"
+                  ? "⚠"
+                  : "ℹ"}
           </span>
-          <span className="toast-message">{t.message}</span>
+          <span className="toast-message">{toastItem.message}</span>
           <button
             className="toast-close"
             onClick={() =>
-              setToasts((prev) => prev.filter((x) => x.id !== t.id))
+              setToasts((prev) => prev.filter((x) => x.id !== toastItem.id))
             }
-            aria-label={t("toastCloseAria")}
+            aria-label={closeToastAriaLabel}
           >
             ×
           </button>

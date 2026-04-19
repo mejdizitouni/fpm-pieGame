@@ -49,6 +49,8 @@ const createScoringService = ({ db, io, sessionState, markSessionTouched }) => {
 
   const handleGameOver = (sessionId) => {
     determineGameWinner(sessionId, (winners) => {
+      const normalizedWinners = Array.isArray(winners) ? winners : [];
+
       if (sessionState[sessionId]) {
         sessionState[sessionId].currentQuestion = null;
         sessionState[sessionId].currentQuestionStartedAt = null;
@@ -56,13 +58,16 @@ const createScoringService = ({ db, io, sessionState, markSessionTouched }) => {
         sessionState[sessionId].submittedAnswers = [];
         sessionState[sessionId].stoppedTimerGroup = null;
         sessionState[sessionId].revealedAnswer = null;
-        sessionState[sessionId].winners = winners;
+        sessionState[sessionId].winners = normalizedWinners;
         markSessionTouched(sessionId);
       }
 
       io.to(sessionId).emit("gameOver", {
-        winners: winners.length > 1 ? winners : winners[0] || null,
-        isTie: winners.length > 1,
+        winners:
+          normalizedWinners.length > 1
+            ? normalizedWinners
+            : normalizedWinners[0] || null,
+        isTie: normalizedWinners.length > 1,
       });
 
       db.run(

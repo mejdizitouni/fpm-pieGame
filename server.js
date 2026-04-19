@@ -1229,7 +1229,7 @@ app.post("/sessions/:id/end", (req, res) => {
     const sessionId = req.params.id;
 
     handleGameOver(sessionId);
-    return;
+    return res.json({ message: "Session ended successfully" });
   });
 });
 

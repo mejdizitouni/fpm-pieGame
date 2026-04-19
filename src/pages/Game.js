@@ -73,6 +73,36 @@ function Game() {
     return text;
   };
 
+  const normalizeWinnerEntries = (winnersPayload) => {
+    const winnersList = Array.isArray(winnersPayload)
+      ? winnersPayload
+      : winnersPayload
+        ? [winnersPayload]
+        : [];
+
+    return winnersList
+      .map((winner, index) => {
+        if (winner && typeof winner === "object") {
+          return {
+            group_id: winner.group_id ?? winner.groupId ?? winner.id ?? `winner-${index}`,
+            name: winner.name ?? winner.group_name ?? t("gameWinner"),
+            avatar_url: winner.avatar_url ?? winner.avatarUrl ?? null,
+          };
+        }
+
+        if (winner === null || winner === undefined || winner === "") {
+          return null;
+        }
+
+        return {
+          group_id: `winner-${index}`,
+          name: String(winner),
+          avatar_url: null,
+        };
+      })
+      .filter(Boolean);
+  };
+
   const getSessionErrorKeyFromStatus = (status) => {
     if (status === 404) {
       return "sessionErrorNotFound";
@@ -425,15 +455,9 @@ function Game() {
       setLiveNotice(null);
       setWaitingValidation(false);
       setCorrectAnswer(null);
-      let winnersArray = [];
-  
-      if (Array.isArray(data.winners)) {
-        winnersArray = data.winners; // Multiple winners
-      } else if (data.winners) {
-        winnersArray = [data.winners]; // Convert single winner to an array
-      }
+      const winnersArray = normalizeWinnerEntries(data?.winners);
 
-    setWinningGroups(winnersArray.map((w) => w.group_id)); // Store winning group IDs
+    setWinningGroups(winnersArray.map((winner) => winner.group_id));
 
     if (winnersArray.length > 1) {
       const tieMessage = renderTemplate("gameAlertTie", {

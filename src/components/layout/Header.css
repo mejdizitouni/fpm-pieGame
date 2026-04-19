@@ -283,6 +283,7 @@ header img {
     min-width: 0;
     max-width: none;
     display: grid;
+    justify-items: center;
     gap: 8px;
     box-shadow: none;
     margin-top: 0;
@@ -311,29 +312,39 @@ header img {
   }
 
   .language-picker {
-    width: 100%;
-    justify-content: flex-start;
+    width: min(100%, 320px);
+    margin: 0 auto;
+    justify-content: center;
     flex-direction: column;
-    align-items: stretch;
+    align-items: center;
     gap: 6px;
   }
 
   .accessibility-picker {
-    width: 100%;
-    justify-content: flex-start;
+    width: min(100%, 320px);
+    margin: 0 auto;
+    justify-content: center;
     flex-direction: column;
-    align-items: stretch;
+    align-items: center;
     gap: 6px;
   }
 
   .language-select {
-    width: 100%;
+    width: min(100%, 320px);
     min-width: 0;
+    margin: 0 auto;
+    display: block;
+    text-align: center;
+    text-align-last: center;
   }
 
   .accessibility-select {
-    width: 100%;
+    width: min(100%, 320px);
     min-width: 0;
+    margin: 0 auto;
+    display: block;
+    text-align: center;
+    text-align-last: center;
   }
 
   .language-label {
@@ -412,10 +423,14 @@ header img {
 
   .language-picker {
     gap: 4px;
+    align-items: center;
+    width: min(100%, 280px);
   }
 
   .accessibility-picker {
     gap: 4px;
+    align-items: center;
+    width: min(100%, 280px);
   }
 
   .language-label {
@@ -423,17 +438,23 @@ header img {
   }
 
   .language-select {
-    width: 100%;
+    width: min(100%, 280px);
     min-width: 0;
     font-size: 11px;
     padding: 5px 7px;
+    margin: 0 auto;
+    text-align: center;
+    text-align-last: center;
   }
 
   .accessibility-select {
-    width: 100%;
+    width: min(100%, 280px);
     min-width: 0;
     font-size: 11px;
     padding: 5px 7px;
+    margin: 0 auto;
+    text-align: center;
+    text-align-last: center;
   }
 }
   
