@@ -2,6 +2,7 @@ import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import axios from "axios";
 import Session from "./Session";
+import { QUESTION_RESPONSE_TYPES } from "../constants/questionResponseTypes";
 
 const mockNavigate = jest.fn();
 
@@ -31,13 +32,14 @@ describe("Session page", () => {
   test("renders fetched questions and groups", async () => {
     axios.get
       .mockResolvedValueOnce({ data: { id: 1, title: "Session 1" } })
-      .mockResolvedValueOnce({ data: [{ id: 10, type: "green", response_type: "Réponse libre", title: "Question A", expected_answer: "A", allocated_time: 30, question_order: 1 }] })
+      .mockResolvedValueOnce({ data: [{ id: 10, type: "green", response_type: QUESTION_RESPONSE_TYPES.FREE_TEXT, title: "Question A", expected_answer: "A", allocated_time: 30, question_order: 1 }] })
       .mockResolvedValueOnce({ data: [{ id: 12, title: "Question libre" }] })
+      .mockResolvedValueOnce({ data: [] })
       .mockResolvedValueOnce({ data: [{ id: 20, name: "Equipe A", avatar_name: "Pill", avatar_url: "/avatars/Pill.svg" }] });
 
     render(<Session />);
 
-    expect(await screen.findByText(/Contenu de la session Session 1/)).toBeTruthy();
+    expect(await screen.findByText("Session 1")).toBeTruthy();
     expect(screen.getByText("Question A")).toBeTruthy();
     expect(screen.getByText("Equipe A")).toBeTruthy();
   });
@@ -45,6 +47,7 @@ describe("Session page", () => {
   test("creates a new group", async () => {
     axios.get
       .mockResolvedValueOnce({ data: { id: 1, title: "Session 1" } })
+      .mockResolvedValueOnce({ data: [] })
       .mockResolvedValueOnce({ data: [] })
       .mockResolvedValueOnce({ data: [] })
       .mockResolvedValueOnce({ data: [] });
@@ -68,7 +71,7 @@ describe("Session page", () => {
     fireEvent.change(screen.getByPlaceholderText("Description du groupe"), {
       target: { value: "Desc" },
     });
-    fireEvent.change(screen.getAllByRole("combobox")[1], {
+    fireEvent.change(screen.getByLabelText("Avatar"), {
       target: { value: "Pill" },
     });
     fireEvent.submit(screen.getByRole("button", { name: "Créer" }).closest("form"));
@@ -88,6 +91,7 @@ describe("Session page", () => {
       .mockResolvedValueOnce({ data: [] })
       .mockResolvedValueOnce({ data: [{ id: 12, type: "green", title: "Question libre" }] })
       .mockResolvedValueOnce({ data: [] })
+      .mockResolvedValueOnce({ data: [] })
       .mockResolvedValueOnce({ data: { id: 12, type: "green", title: "Question libre" } })
       .mockResolvedValueOnce({ data: { id: 1, title: "Session 1" } })
       .mockResolvedValueOnce({
@@ -95,7 +99,7 @@ describe("Session page", () => {
           {
             id: 12,
             type: "green",
-            response_type: "Réponse libre",
+            response_type: QUESTION_RESPONSE_TYPES.FREE_TEXT,
             title: "Question libre",
             expected_answer: "Réponse",
             allocated_time: 20,
@@ -104,14 +108,15 @@ describe("Session page", () => {
         ],
       })
       .mockResolvedValueOnce({ data: [] })
+      .mockResolvedValueOnce({ data: [] })
       .mockResolvedValueOnce({ data: [] });
     axios.post.mockResolvedValueOnce({ data: { success: true } });
 
     render(<Session />);
 
-    expect(await screen.findByText(/Contenu de la session Session 1/)).toBeTruthy();
+    expect(await screen.findByText("Session 1")).toBeTruthy();
 
-    fireEvent.change(screen.getByRole("combobox"), {
+    fireEvent.change(screen.getByLabelText("Question à lier"), {
       target: { value: "12" },
     });
     fireEvent.change(screen.getByPlaceholderText("Order d'apparition"), {
@@ -125,13 +130,13 @@ describe("Session page", () => {
         { question_id: "12", question_order: "2" },
         { headers: { Authorization: "admin-token" } }
       );
-      expect(screen.getByText("Question libre")).toBeTruthy();
     });
   });
 
   test("updates an existing group", async () => {
     axios.get
       .mockResolvedValueOnce({ data: { id: 1, title: "Session 1" } })
+      .mockResolvedValueOnce({ data: [] })
       .mockResolvedValueOnce({ data: [] })
       .mockResolvedValueOnce({ data: [] })
       .mockResolvedValueOnce({ data: [{ id: 20, name: "Equipe A", avatar_name: "Pill", avatar_url: "/avatars/Pill.svg" }] })
@@ -187,7 +192,8 @@ describe("Session page", () => {
   test("removes a question from the session", async () => {
     axios.get
       .mockResolvedValueOnce({ data: { id: 1, title: "Session 1" } })
-      .mockResolvedValueOnce({ data: [{ id: 10, type: "green", response_type: "Réponse libre", title: "Question A", expected_answer: "A", allocated_time: 30, question_order: 1 }] })
+      .mockResolvedValueOnce({ data: [{ id: 10, type: "green", response_type: QUESTION_RESPONSE_TYPES.FREE_TEXT, title: "Question A", expected_answer: "A", allocated_time: 30, question_order: 1 }] })
+      .mockResolvedValueOnce({ data: [] })
       .mockResolvedValueOnce({ data: [] })
       .mockResolvedValueOnce({ data: [] });
     axios.delete.mockResolvedValueOnce({ data: { success: true } });

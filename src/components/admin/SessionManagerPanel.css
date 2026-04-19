@@ -1,0 +1,36 @@
+.session-manager-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.session-manager-panel-embedded {
+  padding-bottom: 12px;
+}
+
+.session-manager-header {
+  display: grid;
+  gap: 6px;
+}
+
+.session-manager-header h1 {
+  margin: 0;
+  color: var(--brand-strong);
+  font-size: clamp(1.2rem, 2vw, 1.6rem);
+}
+
+.session-manager-subtitle {
+  margin: 0;
+  color: rgba(20, 57, 33, 0.8);
+}
+
+.session-manager-toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.session-manager-pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+  font-family: inherit;
+}

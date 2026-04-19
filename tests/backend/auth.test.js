@@ -4,6 +4,11 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { io: createClient } = require("socket.io-client");
 
+const QUESTION_RESPONSE_TYPES = {
+  SINGLE_CHOICE: "Question à choix unique",
+  FREE_TEXT: "Réponse libre",
+};
+
 process.env.NODE_ENV = "test";
 process.env.JWT_SECRET = "test-secret-key";
 
@@ -77,7 +82,7 @@ const createGroup = async (sessionId, overrides = {}) => {
 const createQuestion = async (overrides = {}) => {
   const questionPayload = {
     type: "green",
-    response_type: "Réponse libre",
+    response_type: QUESTION_RESPONSE_TYPES.FREE_TEXT,
     title: `Question ${Date.now()}${Math.random()}`,
     expected_answer: "Expected",
     allocated_time: 30,
@@ -210,7 +215,7 @@ test("session CRUD and group/question linking routes work end-to-end", async () 
 
   const createdQuestion = await createQuestion({
     type: "red",
-    response_type: "Question à choix unique",
+    response_type: QUESTION_RESPONSE_TYPES.SINGLE_CHOICE,
     title: "Combien font 2 + 2 ?",
     expected_answer: "4",
     allocated_time: 45,

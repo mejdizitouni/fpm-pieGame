@@ -2,6 +2,7 @@ import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import axios from "axios";
 import App from "./App";
+import { DEFAULT_LANGUAGE, TRANSLATIONS } from "../i18n/translations";
 
 const mockNavigate = jest.fn();
 
@@ -17,6 +18,8 @@ jest.mock("../components/layout/Header", () => () => <div>Header</div>);
 jest.mock("../components/layout/Footer", () => () => <div>Footer</div>);
 
 describe("App page", () => {
+  const tr = TRANSLATIONS[DEFAULT_LANGUAGE];
+
   beforeEach(() => {
     process.env.REACT_APP_API_URL = "http://localhost:3001";
     mockNavigate.mockReset();
@@ -27,10 +30,10 @@ describe("App page", () => {
   test("renders login UI", () => {
     render(<App />);
 
-    expect(screen.getByText("Trivial Chem")).toBeTruthy();
-    expect(screen.getByPlaceholderText("Nom d'utilisateur")).toBeTruthy();
-    expect(screen.getByPlaceholderText("Mot de passe")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Se connecter" })).toBeTruthy();
+    expect(screen.getByText(tr.loginTitle)).toBeTruthy();
+    expect(screen.getByPlaceholderText(tr.loginUsernamePlaceholder)).toBeTruthy();
+    expect(screen.getByPlaceholderText(tr.loginPasswordPlaceholder)).toBeTruthy();
+    expect(screen.getByRole("button", { name: tr.loginSubmit })).toBeTruthy();
   });
 
   test("submits credentials and redirects on success", async () => {
@@ -38,13 +41,13 @@ describe("App page", () => {
 
     render(<App />);
 
-    fireEvent.change(screen.getByPlaceholderText("Nom d'utilisateur"), {
+    fireEvent.change(screen.getByPlaceholderText(tr.loginUsernamePlaceholder), {
       target: { value: "admin" },
     });
-    fireEvent.change(screen.getByPlaceholderText("Mot de passe"), {
+    fireEvent.change(screen.getByPlaceholderText(tr.loginPasswordPlaceholder), {
       target: { value: "WelcomeAdmin2024" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Se connecter" }));
+    fireEvent.click(screen.getByRole("button", { name: tr.loginSubmit }));
 
     await waitFor(() => {
       expect(axios.post).toHaveBeenCalledWith("http://localhost:3001/login", {
@@ -61,14 +64,14 @@ describe("App page", () => {
 
     render(<App />);
 
-    fireEvent.change(screen.getByPlaceholderText("Nom d'utilisateur"), {
+    fireEvent.change(screen.getByPlaceholderText(tr.loginUsernamePlaceholder), {
       target: { value: "admin" },
     });
-    fireEvent.change(screen.getByPlaceholderText("Mot de passe"), {
+    fireEvent.change(screen.getByPlaceholderText(tr.loginPasswordPlaceholder), {
       target: { value: "wrong" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Se connecter" }));
+    fireEvent.click(screen.getByRole("button", { name: tr.loginSubmit }));
 
-    expect(await screen.findByText("Identifiants invalides")).toBeTruthy();
+    expect(await screen.findByText(tr.loginInvalidCredentials)).toBeTruthy();
   });
 });

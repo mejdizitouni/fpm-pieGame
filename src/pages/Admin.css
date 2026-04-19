@@ -9,6 +9,18 @@
   box-shadow: var(--shadow-soft);
 }
 
+.admin-page-title {
+  margin: 0 0 24px;
+  color: var(--brand-strong);
+  font-size: clamp(1.4rem, 3vw, 1.8rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.admin-view-switcher {
+  display: none;
+}
+
 .session-header-container {
   display: flex;
   justify-content: space-between;
@@ -45,6 +57,31 @@
   background: linear-gradient(135deg, #c62828, #8f1d1d);
 }
 
+.admin-ghost-button {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--brand-strong);
+  font-weight: 700;
+  padding: 9px 15px;
+  cursor: pointer;
+}
+
+.admin-link-button {
+  border: none;
+  background: none;
+  color: var(--brand-strong);
+  font-weight: 700;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.admin-link-button:disabled {
+  color: #64748b;
+  cursor: default;
+}
+
 table {
   width: 100%;
   border-collapse: separate;
@@ -55,7 +92,6 @@ table {
   background: rgba(255, 255, 255, 0.9);
 }
 
-/* Keep rounded corners on first/last cells instead of overflow:hidden */
 table thead tr th:first-child { border-top-left-radius: var(--radius-lg); }
 table thead tr th:last-child  { border-top-right-radius: var(--radius-lg); }
 table tbody tr:last-child td:first-child { border-bottom-left-radius: var(--radius-lg); }
@@ -142,59 +178,6 @@ ul {
   border-radius: 0;
 }
 
-@media (max-width: 768px) {
-  .admin-container {
-    width: calc(100vw - 20px);
-    margin: 14px auto;
-    padding: 12px;
-  }
-
-  .mobile-table-scroll table {
-    min-width: 760px;
-  }
-
-  .mobile-table-scroll table th,
-  .mobile-table-scroll table td {
-    white-space: nowrap;
-  }
-
-  .admin-button {
-    width: 100%;
-  }
-
-  .actions {
-    min-width: 320px;
-  }
-
-  .actions .admin-button {
-    width: auto;
-    white-space: nowrap;
-  }
-}
-
-@media (max-width: 480px) {
-  .admin-container {
-    width: calc(100vw - 12px);
-    padding: 10px;
-  }
-
-  .session-header-container {
-    gap: 8px;
-  }
-
-  table th,
-  table td {
-    padding: 8px;
-    font-size: 12px;
-  }
-
-  .admin-button {
-    padding: 8px 12px;
-    font-size: 12px;
-  }
-}
-
-/* ── Status badges ──────────────────────────────────── */
 .status-badge {
   display: inline-block;
   padding: 3px 10px;
@@ -209,7 +192,6 @@ ul {
 .status-in-progress { background: rgba(234,179,8,0.15);   color: #ca8a04; }
 .status-game-over   { background: rgba(239,68,68,0.15);   color: #ef4444; }
 
-/* ── Action dropdown menu ───────────────────────────── */
 .action-menu-wrapper {
   position: relative;
   display: inline-block;
@@ -285,7 +267,6 @@ ul {
   margin: 4px 0;
 }
 
-/* ── Animated form wrapper ──────────────────────────── */
 .session-form {
   display: grid;
   gap: 10px;
@@ -297,12 +278,127 @@ ul {
   animation: formFadeIn 0.25s ease;
 }
 
+.admin-modal-shell {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(8, 16, 12, 0.5);
+  overflow: hidden;
+}
+
+.admin-modal-card {
+  width: min(92vw, 720px);
+  max-height: calc(100vh - 36px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: #fff;
+  box-shadow: var(--shadow-strong);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.admin-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  flex-shrink: 0;
+}
+
+.admin-modal-header h3 {
+  margin: 0;
+  color: var(--brand-strong);
+}
+
+.admin-modal-body {
+  padding: 18px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.admin-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 12px;
+}
+
+.admin-drawer-shell {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(8, 16, 12, 0.5);
+  overflow: hidden;
+}
+
+.admin-drawer {
+  width: min(98vw, 1280px);
+  max-height: calc(100vh - 36px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: linear-gradient(180deg, #f6fbf8, #fff);
+  box-shadow: var(--shadow-strong);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.admin-drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px 22px;
+  background: linear-gradient(180deg, #f6fbf8, #f0f8f4);
+  border-bottom: 1px solid var(--line);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  flex-shrink: 0;
+}
+
+.admin-drawer-header h2 {
+  margin: 0;
+  color: var(--brand-strong);
+}
+
+.admin-drawer-body {
+  overflow-y: auto;
+  flex: 1;
+}
+
+.admin-drawer-eyebrow {
+  margin: 0 0 4px;
+  color: rgba(20, 57, 33, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
 @keyframes formFadeIn {
   from { opacity: 0; transform: translateY(-8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Loading spinner ────────────────────────────────── */
 .btn-spinner {
   display: inline-block;
   width: 12px;
@@ -316,4 +412,81 @@ ul {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+  .admin-container {
+    width: calc(100vw - 20px);
+    margin: 14px auto;
+    padding: 12px;
+  }
+
+  .admin-view-switcher {
+    display: grid;
+    width: 100%;
+  }
+
+  .admin-view-tab {
+    width: 100%;
+  }
+
+  .mobile-table-scroll table {
+    min-width: 760px;
+  }
+
+  .mobile-table-scroll table th,
+  .mobile-table-scroll table td {
+    white-space: nowrap;
+  }
+
+  .admin-button {
+    width: 100%;
+  }
+
+  .actions {
+    min-width: 320px;
+  }
+
+  .actions .admin-button {
+    width: auto;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-container {
+    width: calc(100vw - 12px);
+    padding: 10px;
+  }
+
+  .session-header-container {
+    gap: 8px;
+  }
+
+  table th,
+  table td {
+    padding: 8px;
+    font-size: 12px;
+  }
+
+  .admin-button {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .admin-modal-shell {
+    padding: 10px;
+  }
+
+  .admin-modal-card,
+  .admin-drawer {
+    width: calc(100vw - 12px);
+  }
+
+  .admin-drawer-header,
+  .admin-modal-header,
+  .admin-modal-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }

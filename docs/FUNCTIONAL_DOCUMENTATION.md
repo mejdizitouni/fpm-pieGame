@@ -82,6 +82,7 @@ FPM Pie Game permet d'animer des sessions de quiz en direct avec plusieurs group
 - Langues supportees: fr, en, es, de, pt, ru, ar, zh-Hans, zh-Hant.
 - Le changement de langue est possible depuis l'entete.
 - Les cles manquantes dans une locale retombent automatiquement sur la langue par defaut.
+- Les libelles visibles (boutons, en-tetes, placeholders, textes d'accessibilite) sont centralises dans le dictionnaire de traduction et ne sont pas codes en dur dans les ecrans.
 
 ## 9. Donnees fonctionnelles principales
 - Session: titre, date, labels, regles, statut, createur, dernier modificateur.

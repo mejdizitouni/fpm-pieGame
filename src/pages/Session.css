@@ -153,23 +153,54 @@ ul li {
 
 .modal-overlay {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
   background: rgba(8, 16, 12, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  overflow: hidden;
+  padding: 18px;
 }
 
 .modal-content {
   width: min(94vw, 760px);
-  max-height: 84vh;
-  overflow: auto;
+  max-height: calc(100vh - 36px);
   background: #fff;
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-strong);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-sticky-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  flex-shrink: 0;
+}
+
+.modal-sticky-header h3 {
+  margin: 0;
+  color: var(--brand-strong);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.modal-body {
   padding: 18px;
+  overflow-y: auto;
+  flex: 1;
 }
 
 .flex-buttons-container {

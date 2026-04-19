@@ -7,6 +7,7 @@ import Footer from "../components/layout/Footer";
 import PieChart from "../components/charts/PieChart";
 import { toast } from "../components/toast/toast";
 import { useLanguage } from "../i18n/LanguageProvider";
+import { QUESTION_RESPONSE_TYPES } from "../constants/questionResponseTypes";
 import "./AdminGameControl.css"; // Import the CSS file for styling
 
 function AdminGameControl() {
@@ -21,6 +22,36 @@ function AdminGameControl() {
       text = text.replaceAll(`{${paramKey}}`, String(value));
     });
     return text;
+  };
+
+  const normalizeWinnerEntries = (winnersPayload) => {
+    const winnersList = Array.isArray(winnersPayload)
+      ? winnersPayload
+      : winnersPayload
+        ? [winnersPayload]
+        : [];
+
+    return winnersList
+      .map((winner, index) => {
+        if (winner && typeof winner === "object") {
+          return {
+            group_id: winner.group_id ?? winner.groupId ?? winner.id ?? `winner-${index}`,
+            name: winner.name ?? winner.group_name ?? t("gameWinner"),
+            avatar_url: winner.avatar_url ?? winner.avatarUrl ?? null,
+          };
+        }
+
+        if (winner === null || winner === undefined || winner === "") {
+          return null;
+        }
+
+        return {
+          group_id: `winner-${index}`,
+          name: String(winner),
+          avatar_url: null,
+        };
+      })
+      .filter(Boolean);
   };
 
   const [sessionDetails, setSessionDetails] = useState(null); // To store session details
@@ -100,7 +131,7 @@ function AdminGameControl() {
       return;
     }
 
-    if (question.response_type === "Question à choix unique") {
+    if (question.response_type === QUESTION_RESPONSE_TYPES.SINGLE_CHOICE) {
       setIsOptionsLoading(true);
       try {
         const optionsRes = await fetch(
@@ -201,7 +232,7 @@ function AdminGameControl() {
         setLatestAnswerId(null);
         setAdminFeed([]);
 
-        if (question.response_type === "Question à choix unique") {
+        if (question.response_type === QUESTION_RESPONSE_TYPES.SINGLE_CHOICE) {
           const token = localStorage.getItem("token");
           await applyRuntimeQuestion(question, token);
         } else {
@@ -244,12 +275,7 @@ function AdminGameControl() {
         setCorrectAnswer(null);
         setStoppedTimerGroup(null);
 
-        let winnersArray = [];
-        if (Array.isArray(data.winners)) {
-          winnersArray = data.winners;
-        } else if (data.winners) {
-          winnersArray = [data.winners];
-        }
+        const winnersArray = normalizeWinnerEntries(data?.winners);
 
         setWinningGroups(winnersArray.map((w) => w.group_id));
 
@@ -636,8 +662,18 @@ function AdminGameControl() {
         )}
 
         {gameOverModal.open && (
-          <div className="modal-overlay" role="dialog" aria-modal="true">
-            <div className="modal-content game-over-modal-content">
+          <div
+            className="modal-overlay"
+            role="dialog"
+            aria-modal="true"
+            onClick={() =>
+              setGameOverModal((prev) => ({
+                ...prev,
+                open: false,
+              }))
+            }
+          >
+            <div className="modal-content game-over-modal-content" onClick={(e) => e.stopPropagation()}>
               <h2>{t("gameOverTitle")}</h2>
               <p>{gameOverModal.message}</p>
               {gameOverModal.winners.length > 0 && (
@@ -834,7 +870,7 @@ function AdminGameControl() {
                   {stoppedTimerGroup && (
                     <h4>{t("gameTimerStoppedBy")} {stoppedTimerGroup.groupName}</h4>
                   )}
-                  {currentQuestion.response_type === "Question à choix unique" && (
+                  {currentQuestion.response_type === QUESTION_RESPONSE_TYPES.SINGLE_CHOICE && (
                     <div>
                       <h4>{t("sessionOptions")}</h4>
                       {isOptionsLoading && (
