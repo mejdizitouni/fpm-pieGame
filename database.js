@@ -82,6 +82,19 @@ const checkColumnExists = (tableName, columnName) => {
   });
 };
 
+const hasDefaultSeedSession = () => {
+  return new Promise((resolve, reject) => {
+    db.get(
+      `SELECT 1 AS found FROM game_sessions WHERE title IN (?, ?) LIMIT 1`,
+      ["Test Session", "Protométrie en milieux aqueux"],
+      (err, row) => {
+        if (err) return reject(err);
+        resolve(Boolean(row));
+      }
+    );
+  });
+};
+
 // Function to delete default seeded session and related data
 const deleteTestSession = () => {
   return new Promise((resolve, reject) => {
@@ -1079,18 +1092,31 @@ const dbReady = (async () => {
     await migrateLegacyGroupAvatars();
     await migrateLegacyGroupNames();
 
-    const shouldSeedTestSession =
-      process.env.SEED_TEST_SESSION === "true" ||
-      (process.env.NODE_ENV !== "production" && process.env.NODE_ENV !== "test");
+    const forceSeed = process.env.SEED_TEST_SESSION === "true";
+    const skipSeed = process.env.SEED_TEST_SESSION === "false";
+    const isTest = process.env.NODE_ENV === "test";
+    const isProduction = process.env.NODE_ENV === "production";
 
-    if (shouldSeedTestSession) {
+    if (forceSeed) {
       console.log("Deleting existing default session...");
       await deleteTestSession(); // Delete existing Test Session
 
       console.log("Creating new default session...");
       createTestSession(); // Insert new Test Session
+    } else if (skipSeed || isTest) {
+      console.log("Skipping default session seed.");
+    } else if (isProduction) {
+      const defaultSessionExists = await hasDefaultSeedSession();
+      if (defaultSessionExists) {
+        console.log("Default session already exists; skipping production seed.");
+      } else {
+        console.log("Default session missing in production, creating it now...");
+        createTestSession();
+      }
     } else {
-      console.log("Skipping Test Session seed in production mode.");
+      console.log("Refreshing default session in non-production environment...");
+      await deleteTestSession();
+      createTestSession();
     }
   } catch (error) {
     console.error("Error in setup:", error);
