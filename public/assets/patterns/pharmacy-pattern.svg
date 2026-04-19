@@ -1,0 +1,105 @@
+<svg width="1200" height="900" viewBox="0 0 1200 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="900" fill="transparent" />
+
+  <defs>
+    <g id="pill" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="10" y="26" width="80" height="28" rx="14"/>
+      <line x1="50" y1="28" x2="50" y2="52"/>
+    </g>
+    <g id="capsule" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14 40c0-13 10-23 23-23h26c13 0 23 10 23 23s-10 23-23 23H37C24 63 14 53 14 40z"/>
+      <line x1="50" y1="18" x2="50" y2="62"/>
+    </g>
+    <g id="firstaid" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="18" y="18" width="64" height="44" rx="8"/>
+      <line x1="32" y1="40" x2="68" y2="40"/>
+      <line x1="50" y1="26" x2="50" y2="54"/>
+    </g>
+    <g id="microscope" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M58 18h16"/>
+      <path d="M40 20l20 20"/>
+      <path d="M54 34l-10 16"/>
+      <path d="M24 60h52"/>
+      <circle cx="42" cy="50" r="4"/>
+    </g>
+    <g id="mortar" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M16 50h68l-5 14H21z"/>
+      <path d="M24 50c4-12 14-20 31-20 12 0 20 5 24 12"/>
+      <path d="M70 18l18 18"/>
+    </g>
+    <g id="caduceus" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="50" y1="14" x2="50" y2="66"/>
+      <path d="M30 30c5-7 14-8 20 0 6-8 15-7 20 0"/>
+      <path d="M30 50c5-7 14-8 20 0 6-8 15-7 20 0"/>
+      <path d="M50 14l-8 8h16z"/>
+    </g>
+    <g id="dna" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M30 16c18 12 18 40 0 52"/>
+      <path d="M70 16c-18 12-18 40 0 52"/>
+      <line x1="38" y1="22" x2="62" y2="30"/>
+      <line x1="38" y1="32" x2="62" y2="40"/>
+      <line x1="38" y1="42" x2="62" y2="50"/>
+    </g>
+    <g id="heartbeat" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14 42h18l8-14 10 28 10-20h26"/>
+    </g>
+    <g id="stethoscope" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M28 18v20a12 12 0 0 0 24 0V18"/>
+      <path d="M52 38a14 14 0 0 0 28 0"/>
+      <circle cx="84" cy="42" r="8"/>
+    </g>
+    <g id="syringe" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 56l24-24"/>
+      <rect x="44" y="26" width="24" height="14" rx="3"/>
+      <line x1="68" y1="33" x2="82" y2="19"/>
+      <line x1="18" y1="58" x2="10" y2="66"/>
+      <line x1="58" y1="26" x2="58" y2="40"/>
+    </g>
+    <g id="red" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="50" cy="40" r="24"/>
+      <line x1="38" y1="28" x2="62" y2="52"/>
+      <line x1="62" y1="28" x2="38" y2="52"/>
+    </g>
+    <g id="green" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="50" cy="40" r="24"/>
+      <path d="M36 42l10 10 18-20"/>
+    </g>
+  </defs>
+
+  <g stroke="#0f766e" stroke-width="3.5" opacity="0.24">
+    <use href="#pill" x="60" y="46"/>
+    <use href="#capsule" x="250" y="48"/>
+    <use href="#firstaid" x="440" y="50"/>
+    <use href="#microscope" x="630" y="54"/>
+    <use href="#mortar" x="820" y="52"/>
+    <use href="#caduceus" x="1010" y="48"/>
+
+    <use href="#dna" x="60" y="232"/>
+    <use href="#heartbeat" x="250" y="236"/>
+    <use href="#stethoscope" x="440" y="234"/>
+    <use href="#syringe" x="630" y="236"/>
+    <use href="#red" x="820" y="234"/>
+    <use href="#green" x="1010" y="236"/>
+
+    <use href="#firstaid" x="60" y="418"/>
+    <use href="#pill" x="250" y="420"/>
+    <use href="#microscope" x="440" y="422"/>
+    <use href="#heartbeat" x="630" y="424"/>
+    <use href="#caduceus" x="820" y="420"/>
+    <use href="#capsule" x="1010" y="418"/>
+
+    <use href="#mortar" x="60" y="604"/>
+    <use href="#dna" x="250" y="608"/>
+    <use href="#stethoscope" x="440" y="606"/>
+    <use href="#syringe" x="630" y="608"/>
+    <use href="#green" x="820" y="606"/>
+    <use href="#red" x="1010" y="604"/>
+  </g>
+
+  <g stroke="#d97706" stroke-width="2.5" opacity="0.16" stroke-linecap="round">
+    <path d="M0 190H1200"/>
+    <path d="M0 380H1200"/>
+    <path d="M0 570H1200"/>
+    <path d="M0 760H1200"/>
+  </g>
+</svg>

@@ -1,21 +1,11 @@
 {
-  "short_name": "Game Pie",
-  "name": "Create Game Pie Sample",
+  "short_name": "Trivial Chem",
+  "name": "Trivial Chem",
   "icons": [
     {
-      "src": "favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
-    },
-    {
-      "src": "logo192.png",
-      "type": "image/png",
-      "sizes": "192x192"
-    },
-    {
-      "src": "logo512.png",
-      "type": "image/png",
-      "sizes": "512x512"
+      "src": "assets/icons/pills.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
     }
   ],
   "start_url": ".",

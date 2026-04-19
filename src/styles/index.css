@@ -1,0 +1,108 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap");
+
+:root {
+  --app-font: "Manrope", "Segoe UI", Tahoma, sans-serif;
+  --bg-0: #f7f8ef;
+  --bg-1: #fffdf4;
+  --bg-2: #f0f4df;
+  --ink-0: #151a13;
+  --ink-1: #384132;
+  --muted: #65705a;
+  --line: rgba(24, 34, 20, 0.14);
+  --brand: #0f766e;
+  --brand-strong: #0b4f4a;
+  --accent: #d97706;
+  --danger: #d62828;
+  --success: #3a7d44;
+  --surface: rgba(255, 255, 255, 0.84);
+  --shadow-soft: 0 10px 30px rgba(31, 47, 27, 0.12);
+  --shadow-strong: 0 18px 42px rgba(31, 47, 27, 0.2);
+  --radius-xl: 28px;
+  --radius-lg: 18px;
+  --radius-md: 12px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  font-family: var(--app-font);
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--ink-0);
+  background:
+    radial-gradient(1200px 500px at 0% 0%, rgba(217, 119, 6, 0.18), transparent 70%),
+    radial-gradient(900px 400px at 100% 100%, rgba(15, 118, 110, 0.15), transparent 70%),
+    linear-gradient(155deg, var(--bg-0), var(--bg-1) 45%, var(--bg-2));
+  font-family: var(--app-font);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+#root {
+  position: relative;
+}
+
+.global-backdrop {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background-size:
+    40px 40px,
+    40px 40px,
+    960px 720px;
+  background-position:
+    0 0,
+    0 0,
+    40px 26px;
+  background-repeat:
+    repeat,
+    repeat,
+    repeat;
+  opacity: 0.28;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--app-font);
+  letter-spacing: -0.01em;
+}
+
+a {
+  color: var(--brand-strong);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+img,
+svg,
+canvas,
+video {
+  max-width: 100%;
+}
+
+/* Global page rhythm: keep comfortable spacing between major blocks */
+.admin-container > * + *,
+.session-container > * + *,
+.game-container > * + *,
+.admin-game-control-container > * + *,
+.login-card > * + * {
+  margin-top: clamp(10px, 1.6vw, 18px);
+}

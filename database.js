@@ -10,6 +10,35 @@ db.serialize(() => {
   db.run("PRAGMA busy_timeout = 5000");
 });
 
+const MEDICAL_AVATAR_NAMES = [
+  "Pill",
+  "Capsule",
+  "Syringe",
+  "Stethoscope",
+  "Microscope",
+  "Mortar",
+  "Caduceus",
+  "FirstAid",
+  "DNA",
+  "Heartbeat",
+];
+
+const LEGACY_AVATAR_MAP = {
+  Afroboy: "Pill",
+  Chaplin: "Capsule",
+  Cloud: "Stethoscope",
+  Helmet: "Microscope",
+  Indian: "FirstAid",
+  Marilyn: "DNA",
+};
+
+const LEGACY_GROUP_NAME_MAP = {
+  "Group Alpha": "Equipe Officine",
+  "Group Beta": "Equipe Galenique",
+  "Group Gamma": "Equipe Pharmacologie",
+  "Group Delta": "Equipe Toxicologie",
+};
+
 // Function to check if a table exists
 const checkTableExists = (tableName) => {
   return new Promise((resolve, reject) => {
@@ -86,6 +115,93 @@ const migrateLegacySessionLabels = () => {
           resolve();
         }
       );
+    });
+  });
+};
+
+const migrateLegacyGroupAvatars = () => {
+  return new Promise((resolve, reject) => {
+    db.serialize(() => {
+      const entries = Object.entries(LEGACY_AVATAR_MAP);
+
+      const updateMappedAvatars = (index) => {
+        if (index >= entries.length) {
+          db.run(
+            `UPDATE groups
+             SET avatar_name = 'Pill', avatar_url = '/avatars/Pill.svg'
+             WHERE avatar_name IS NULL OR TRIM(avatar_name) = ''`,
+            (err) => {
+              if (err) return reject(err);
+
+              const placeholders = MEDICAL_AVATAR_NAMES.map(() => "?").join(", ");
+              db.run(
+                `UPDATE groups
+                 SET avatar_name = 'Pill', avatar_url = '/avatars/Pill.svg'
+                 WHERE avatar_name NOT IN (${placeholders})`,
+                MEDICAL_AVATAR_NAMES,
+                (invalidErr) => {
+                  if (invalidErr) return reject(invalidErr);
+
+                  db.run(
+                    `UPDATE groups
+                     SET avatar_url = '/avatars/' || avatar_name || '.svg'
+                     WHERE avatar_name IN (${placeholders})`,
+                    MEDICAL_AVATAR_NAMES,
+                    (syncErr) => {
+                      if (syncErr) return reject(syncErr);
+                      resolve();
+                    }
+                  );
+                }
+              );
+            }
+          );
+          return;
+        }
+
+        const [legacyName, newName] = entries[index];
+        db.run(
+          `UPDATE groups
+           SET avatar_name = ?, avatar_url = ?
+           WHERE avatar_name = ?`,
+          [newName, `/avatars/${newName}.svg`, legacyName],
+          (err) => {
+            if (err) return reject(err);
+            updateMappedAvatars(index + 1);
+          }
+        );
+      };
+
+      updateMappedAvatars(0);
+    });
+  });
+};
+
+const migrateLegacyGroupNames = () => {
+  return new Promise((resolve, reject) => {
+    db.serialize(() => {
+      const entries = Object.entries(LEGACY_GROUP_NAME_MAP);
+
+      const updateName = (index) => {
+        if (index >= entries.length) {
+          resolve();
+          return;
+        }
+
+        const [legacyName, nextName] = entries[index];
+        db.run(
+          `UPDATE groups
+           SET name = ?
+           WHERE name = ?`,
+          [nextName, legacyName],
+          (err) => {
+            if (err) return reject(err);
+            updateName(index + 1);
+          }
+        );
+      };
+
+      updateName(0);
     });
   });
 };
@@ -726,10 +842,10 @@ Certaines réponses soumises comme correctes ne sont pas suffisantes pour être 
       });
       
       const groups = [
-        { name: "Group Alpha", avatar_name: "Afroboy" },
-        { name: "Group Beta", avatar_name: "Chaplin" },
-        { name: "Group Gamma", avatar_name: "Cloud" },
-        { name: "Group Delta", avatar_name: "Helmet" },
+        { name: "Equipe Officine", avatar_name: "Pill" },
+        { name: "Equipe Galenique", avatar_name: "Capsule" },
+        { name: "Equipe Pharmacologie", avatar_name: "Stethoscope" },
+        { name: "Equipe Toxicologie", avatar_name: "Microscope" },
       ];
 
       groups.forEach((g) => {
@@ -758,6 +874,8 @@ Certaines réponses soumises comme correctes ne sont pas suffisantes pour être 
     await createTables(); // Create tables if they don't exist
     createIndexes(); // Ensure indexes exist for current and future databases
     await migrateLegacySessionLabels();
+    await migrateLegacyGroupAvatars();
+    await migrateLegacyGroupNames();
 
     const shouldSeedTestSession =
       process.env.SEED_TEST_SESSION === "true" ||
