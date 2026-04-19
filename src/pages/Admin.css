@@ -95,10 +95,16 @@ form {
 }
 
 form input[type="text"],
+form input[type="email"],
+form input[type="password"],
 form input[type="date"],
+form select,
 form textarea,
 .session-form input[type="text"],
+.session-form input[type="email"],
+.session-form input[type="password"],
 .session-form input[type="date"],
+.session-form select,
 .session-form textarea {
   width: 100%;
   border: 1px solid var(--line);

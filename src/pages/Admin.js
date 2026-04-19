@@ -1,15 +1,30 @@
 import { useEffect, useState } from "react";
 import ReactDOM from "react-dom";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import ConfirmDialog from "../components/dialogs/ConfirmDialog";
 import { toast } from "../components/toast/toast";
+import { useLanguage } from "../i18n/LanguageProvider";
 import "./Admin.css"; // Import the CSS file for styling
 
 function Admin() {
   const API_URL = process.env.REACT_APP_API_URL;
+  const [currentUser, setCurrentUser] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [savingUser, setSavingUser] = useState(false);
+  const [editingUserId, setEditingUserId] = useState(null);
+  const [togglingUserId, setTogglingUserId] = useState(null);
+  const [newUser, setNewUser] = useState({
+    firstName: "",
+    lastName: "",
+    username: "",
+    email: "",
+    password: "",
+    role: "Enseignant",
+    isActive: true,
+  });
   const [gameSessions, setGameSessions] = useState([]);
   const [adminSessionLink, setAdminSessionLink] = useState(""); // Admin session link
   const [activeSessionGroups, setActiveSessionGroups] = useState([]);
@@ -20,7 +35,33 @@ function Admin() {
   const [openMenuId, setOpenMenuId] = useState(null); // Track which action menu is open
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 }); // Portal menu position
   const [pendingAction, setPendingAction] = useState(null); // Confirm dialog state
+  const location = useLocation();
   const navigate = useNavigate();
+  const { t, language } = useLanguage();
+  const activeView = new URLSearchParams(location.search).get("view") || "sessions";
+  const showSessionsManagement = activeView !== "users";
+  const showUsersManagement = currentUser?.role === "Admin" && activeView === "users";
+
+  const withLanguageParam = (baseUrl) => {
+    if (!baseUrl) {
+      return "";
+    }
+
+    try {
+      const url = new URL(baseUrl, window.location.origin);
+      url.searchParams.set("lang", language);
+      return url.toString();
+    } catch (error) {
+      return `${baseUrl}${baseUrl.includes("?") ? "&" : "?"}lang=${encodeURIComponent(language)}`;
+    }
+  };
+
+  const fetchUsers = async (token) => {
+    const usersResponse = await axios.get(`${API_URL}/users`, {
+      headers: { Authorization: token },
+    });
+    setUsers(usersResponse.data || []);
+  };
 
   useEffect(() => {
     const fetchAdminData = async () => {
@@ -31,9 +72,10 @@ function Admin() {
       }
 
       try {
-        await axios.get(`${API_URL}/admin-check`, {
+        const adminCheckResponse = await axios.get(`${API_URL}/admin-check`, {
           headers: { Authorization: token },
         });
+        setCurrentUser(adminCheckResponse.data?.user || null);
 
         // Fetch game sessions
         const sessionsResponse = await axios.get(`${API_URL}/game-sessions`, {
@@ -41,6 +83,10 @@ function Admin() {
         });
 
         setGameSessions(sessionsResponse.data);
+
+        if (adminCheckResponse.data?.user?.role === "Admin") {
+          await fetchUsers(token);
+        }
       } catch (err) {
         console.error("Error Fetching Game Sessions:", err);
         navigate("/");
@@ -92,12 +138,12 @@ function Admin() {
   const resetSession = async (sessionId) => {
     const token = localStorage.getItem("token");
     if (!token) {
-      toast.error("Non autorisé. Veuillez vous reconnecter.");
+      toast.error(t("adminUnauthorized"));
       return;
     }
 
     setPendingAction({
-      message: "Êtes-vous sûr de vouloir réinitialiser cette session ?",
+      message: t("adminConfirmReset"),
       danger: false,
       onConfirm: async () => {
         setPendingAction(null);
@@ -110,10 +156,10 @@ function Admin() {
               session.id === sessionId ? { ...session, status: "Draft" } : session
             )
           );
-          toast.success("Session réinitialisée avec succès !");
+          toast.success(t("adminResetSuccess"));
         } catch (err) {
           console.error("Failed to reset session:", err);
-          toast.error("Erreur lors de la réinitialisation de la session.");
+          toast.error(t("adminResetError"));
         }
       },
     });
@@ -122,14 +168,14 @@ function Admin() {
   const deleteSession = async (sessionId) => {
     const token = localStorage.getItem("token");
     if (!token) {
-      toast.error("Non autorisé. Veuillez vous reconnecter.");
+      toast.error(t("adminUnauthorized"));
       return;
     }
   
     setPendingAction({
-      message: "Êtes-vous sûr de vouloir supprimer cette session ? Cette action est irréversible.",
+      message: t("adminConfirmDelete"),
       danger: true,
-      confirmLabel: "Supprimer",
+      confirmLabel: t("adminDelete"),
       onConfirm: async () => {
         setPendingAction(null);
         try {
@@ -137,10 +183,10 @@ function Admin() {
             headers: { Authorization: token },
           });
           setGameSessions((prevSessions) => prevSessions.filter((session) => session.id !== sessionId));
-          toast.success("Session supprimée avec succès !");
+          toast.success(t("adminDeleteSuccess"));
         } catch (err) {
           console.error("Failed to delete session:", err);
-          toast.error("Erreur lors de la suppression de la session.");
+          toast.error(t("adminDeleteError"));
         }
       },
     });
@@ -235,7 +281,7 @@ function Admin() {
         headers: { Authorization: token },
       });
       setGameSessions(sessionsResponse.data); // Update the state with the latest sessions
-      toast.success("Session clonée avec succès !");
+      toast.success(t("adminCloneSuccess"));
     } catch (err) {
       console.error("Failed to clone session", err);
       toast.error("Erreur lors du clonage de la session.");
@@ -257,7 +303,7 @@ function Admin() {
       );
 
       setActiveSessionGroups(response.data.updatedGroups);
-      setAdminSessionLink(`${window.location.origin}/admin/game/${sessionId}`);
+      setAdminSessionLink(withLanguageParam(`${window.location.origin}/admin/game/${sessionId}`));
 
       const sessionsResponse = await axios.get(`${API_URL}/game-sessions`, {
         headers: { Authorization: token },
@@ -280,10 +326,10 @@ function Admin() {
       );
 
       setActiveSessionGroups(response.data);
-      toast.success("Liens de jeu récupérés !");
+      toast.success(t("adminLinksFetched"));
     } catch (err) {
       console.error("Failed to fetch group URLs", err);
-      toast.error("Erreur lors de la récupération des liens.");
+      toast.error(t("adminLinksFetchError"));
     }
   };
 
@@ -316,7 +362,7 @@ function Admin() {
       setEditingSession(null); // Clear editing session
       setNewSession({ title: "", date: "" }); // Clear form
       setShowForm(false); // Hide the form
-      toast.success("Session mise à jour avec succès !");
+      toast.success(t("adminUpdateSuccess"));
       // Fetch the updated session list
       const sessionsResponse = await axios.get(`${API_URL}/game-sessions`, {
         headers: { Authorization: token },
@@ -324,6 +370,96 @@ function Admin() {
       setGameSessions(sessionsResponse.data); // Update the state with the latest sessions
     } catch (err) {
       console.error("Failed to update session", err);
+    }
+  };
+
+  const resetUserForm = () => {
+    setEditingUserId(null);
+    setNewUser({
+      firstName: "",
+      lastName: "",
+      username: "",
+      email: "",
+      password: "",
+      role: "Enseignant",
+      isActive: true,
+    });
+  };
+
+  const handleEditUser = (user) => {
+    setEditingUserId(user.id);
+    setNewUser({
+      firstName: user.first_name || "",
+      lastName: user.last_name || "",
+      username: user.username || "",
+      email: user.email || "",
+      password: "",
+      role: user.role || "Enseignant",
+      isActive: Number(user.is_active) === 1,
+    });
+  };
+
+  const handleToggleUserActive = async (user) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      toast.error(t("adminUnauthorized"));
+      return;
+    }
+
+    setTogglingUserId(user.id);
+    try {
+      await axios.patch(
+        `${API_URL}/users/${user.id}/active`,
+        { isActive: Number(user.is_active) !== 1 },
+        { headers: { Authorization: token } }
+      );
+      await fetchUsers(token);
+      toast.success(t("adminUserStatusUpdated"));
+    } catch (err) {
+      toast.error(err?.response?.data?.message || t("adminUserStatusUpdateError"));
+    } finally {
+      setTogglingUserId(null);
+    }
+  };
+
+  const handleSaveUser = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem("token");
+    if (!token) {
+      toast.error(t("adminUnauthorized"));
+      return;
+    }
+
+    setSavingUser(true);
+    try {
+      if (editingUserId) {
+        await axios.put(
+          `${API_URL}/users/${editingUserId}`,
+          {
+            firstName: newUser.firstName,
+            lastName: newUser.lastName,
+            username: newUser.username,
+            email: newUser.email,
+            role: newUser.role,
+            password: newUser.password,
+          },
+          { headers: { Authorization: token } }
+        );
+      } else {
+        await axios.post(`${API_URL}/users`, newUser, {
+          headers: { Authorization: token },
+        });
+      }
+
+      resetUserForm();
+      await fetchUsers(token);
+      toast.success(editingUserId ? t("adminUserUpdateSuccess") : t("adminUserCreateSuccess"));
+    } catch (err) {
+      const errorMessage =
+        err?.response?.data?.message || (editingUserId ? t("adminUserUpdateError") : t("adminUserCreateError"));
+      toast.error(errorMessage);
+    } finally {
+      setSavingUser(false);
     }
   };
 
@@ -340,22 +476,28 @@ function Admin() {
         />
       )}
       <div className="admin-container" onClick={() => setOpenMenuId(null)}>
-        <div className="session-header-container"> 
-          <h2 className="title">Sessions de jeu</h2>
+        {showSessionsManagement && (
+          <div className="session-header-container"> 
+          <h2 className="title">{t("adminSessionsTitle")}</h2>
           <button className="admin-button" onClick={() => setShowForm(!showForm)}>
-            {showForm ? "Annuler" : "Créer une nouvelle session"}
+            {showForm ? t("commonCancel") : t("adminCreateNewSession")}
           </button>
-        </div>
+          </div>
+        )}
          
+        {showSessionsManagement && (
+          <>
         <table>
           <thead>
             <tr>
               <th>Nom</th>
-              <th>Catégorie 1</th>
-              <th>Catégorie 2</th>
+              <th>{t("adminCategory1")}</th>
+              <th>{t("adminCategory2")}</th>
               <th>Date de la session</th>
+              <th>{t("adminCreatedBy")}</th>
+              <th>{t("adminLastModifiedBy")}</th>
               <th>Statut</th>
-              <th>Actions</th>
+              <th>{t("adminActions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -366,6 +508,8 @@ function Admin() {
                   <td>{session.green_questions_label}</td>
                   <td>{session.red_questions_label}</td>
                   <td>{session.date}</td>
+                  <td>{session.created_by_full_name?.trim() || session.created_by_username || "-"}</td>
+                  <td>{session.last_modified_by_full_name?.trim() || session.last_modified_by_username || "-"}</td>
                   <td>
                     <span className={`status-badge status-${session.status?.toLowerCase().replace(/\s+/g, "-")}`}>
                       {session.status}
@@ -384,7 +528,7 @@ function Admin() {
                             setOpenMenuId(session.id);
                           }
                         }}
-                        aria-label="Actions"
+                        aria-label={t("adminActions")}
                       >
                         ⋮
                       </button>
@@ -396,25 +540,25 @@ function Admin() {
                         onClick={(e) => e.stopPropagation()}
                       >
                         <button className="action-menu-item" onClick={() => { handleEdit(session); setOpenMenuId(null); }}>
-                          ✏️ Modifier
+                          ✏️ {t("commonEdit")}
                         </button>
                         {session.status === "Draft" && (
                           <>
                             <button className="action-menu-item" onClick={() => { navigate(`/session/${session.id}`); setOpenMenuId(null); }}>
-                              📋 Contenu
+                              📋 {t("adminContent")}
                             </button>
                             <button className="action-menu-item" onClick={() => { activateSession(session.id); setOpenMenuId(null); }}>
-                              ▶️ Activer
+                              ▶️ {t("adminActivate")}
                             </button>
                           </>
                         )}
                         {session.status !== "Draft" && (
                           <>
-                            <button className="action-menu-item" onClick={() => { navigate(`/admin/game/${session.id}`); setOpenMenuId(null); }}>
-                              🎮 Contrôle
+                            <button className="action-menu-item" onClick={() => { navigate(`/admin/game/${session.id}?lang=${encodeURIComponent(language)}`); setOpenMenuId(null); }}>
+                              🎮 {t("adminControl")}
                             </button>
                             <button className="action-menu-item" onClick={() => { fetchGroupURLs(session.id); setOpenMenuId(null); }}>
-                              🔗 Liens de jeu
+                              🔗 {t("adminGameLinks")}
                             </button>
                           </>
                         )}
@@ -425,14 +569,14 @@ function Admin() {
                         >
                           {cloningId === session.id ? (
                             <><span className="btn-spinner" /> Clonage…</>
-                          ) : "📑 Cloner"}
+                          ) : `📑 ${t("adminClone")}`}
                         </button>
                         <button className="action-menu-item" onClick={() => { resetSession(session.id); setOpenMenuId(null); }}>
-                          🔄 Réinitialiser
+                          🔄 {t("adminReset")}
                         </button>
                         <div className="action-menu-divider" />
                         <button className="action-menu-item action-menu-danger" onClick={() => { deleteSession(session.id); setOpenMenuId(null); }}>
-                          🗑 Supprimer
+                          🗑 {t("adminDelete")}
                         </button>
                       </div>,
                       document.body
@@ -442,18 +586,22 @@ function Admin() {
               ))
             ) : (
               <tr>
-                <td colSpan="6">Aucune session de jeu trouvée.</td>
+                <td colSpan="8">{t("adminNoSessions")}</td>
               </tr>
             )}
           </tbody>
         </table>
+          </>
+        )}
 
-        {showForm && (
+        {showSessionsManagement && showForm && (
           <form
             className="session-form"
             onSubmit={editingSession ? handleUpdateSession : createSession}
           >
+            <label htmlFor="session-title">Nom de la session</label>
             <input
+              id="session-title"
               type="text"
               placeholder="Nom"
               value={newSession.title}
@@ -462,25 +610,31 @@ function Admin() {
               }
               required
             />
+            <label htmlFor="session-category-1">{t("adminCategory1")}</label>
             <input
+              id="session-category-1"
               type="text"
-              placeholder="Catégorie 1"
+              placeholder={t("adminCategory1")}
               value={newSession.green_questions_label}
               onChange={(e) =>
                 setNewSession({ ...newSession, green_questions_label: e.target.value })
               }
               required
             />
+            <label htmlFor="session-category-2">{t("adminCategory2")}</label>
             <input
+              id="session-category-2"
               type="text"
-              placeholder="Catégorie 2"
+              placeholder={t("adminCategory2")}
               value={newSession.red_questions_label}
               onChange={(e) =>
                 setNewSession({ ...newSession, red_questions_label: e.target.value })
               }
               required
             />
+            <label htmlFor="session-date">Date</label>
             <input
+              id="session-date"
               type="date"
               value={newSession.date}
               onChange={(e) =>
@@ -488,8 +642,10 @@ function Admin() {
               }
               required
             />
+            <label htmlFor="session-rules">{t("adminGameRules")}</label>
             <textarea
-              placeholder="Règles du jeu"
+              id="session-rules"
+              placeholder={t("adminGameRules")}
               value={newSession.session_rules}
               onChange={(e) =>
                 setNewSession({ ...newSession, session_rules: e.target.value })
@@ -498,14 +654,155 @@ function Admin() {
               required
             />
             <button className="admin-button" type="submit">
-              {editingSession ? "Mettre à jour" : "Créer"} la session
+              {editingSession ? t("commonUpdate") : t("commonCreate")} {t("adminSessionWord")}
             </button>
           </form>
         )}
 
-        {activeSessionGroups.length > 0 && (
+        {showUsersManagement && (
           <>
-            <h2 className="title">Liens joueurs</h2>
+            <h2 className="title">{t("adminUserManagementTitle")}</h2>
+            <form className="user-form" onSubmit={handleSaveUser}>
+              <label htmlFor="new-user-first-name">{t("adminUserFirstName")}</label>
+              <input
+                id="new-user-first-name"
+                type="text"
+                value={newUser.firstName}
+                onChange={(e) =>
+                  setNewUser({ ...newUser, firstName: e.target.value })
+                }
+                required
+              />
+              <label htmlFor="new-user-last-name">{t("adminUserLastName")}</label>
+              <input
+                id="new-user-last-name"
+                type="text"
+                value={newUser.lastName}
+                onChange={(e) =>
+                  setNewUser({ ...newUser, lastName: e.target.value })
+                }
+                required
+              />
+              <label htmlFor="new-user-username">{t("adminUserUsername")}</label>
+              <input
+                id="new-user-username"
+                type="text"
+                value={newUser.username}
+                onChange={(e) =>
+                  setNewUser({ ...newUser, username: e.target.value })
+                }
+                required
+              />
+              <label htmlFor="new-user-email">{t("adminUserEmail")}</label>
+              <input
+                id="new-user-email"
+                type="email"
+                value={newUser.email}
+                onChange={(e) =>
+                  setNewUser({ ...newUser, email: e.target.value })
+                }
+                required
+              />
+              <label htmlFor="new-user-password">{t("adminUserPassword")}</label>
+              <input
+                id="new-user-password"
+                type="password"
+                minLength={8}
+                value={newUser.password}
+                onChange={(e) =>
+                  setNewUser({ ...newUser, password: e.target.value })
+                }
+                required={!editingUserId}
+              />
+              <label htmlFor="new-user-role">{t("adminUserRole")}</label>
+              <select
+                id="new-user-role"
+                value={newUser.role}
+                onChange={(e) =>
+                  setNewUser({ ...newUser, role: e.target.value })
+                }
+              >
+                <option value="Admin">Admin</option>
+                <option value="Enseignant">Enseignant</option>
+              </select>
+              <label htmlFor="new-user-active">{t("adminUserStatus")}</label>
+              <select
+                id="new-user-active"
+                value={newUser.isActive ? "1" : "0"}
+                onChange={(e) =>
+                  setNewUser({ ...newUser, isActive: e.target.value === "1" })
+                }
+                disabled={!editingUserId}
+              >
+                <option value="1">{t("adminUserActive")}</option>
+                <option value="0">{t("adminUserInactive")}</option>
+              </select>
+              <button className="admin-button" type="submit" disabled={savingUser}>
+                {savingUser
+                  ? t("adminUserSaving")
+                  : editingUserId
+                  ? t("adminUserUpdate")
+                  : t("adminUserCreate")}
+              </button>
+              {editingUserId && (
+                <button className="admin-button" type="button" onClick={resetUserForm}>
+                  {t("commonCancel")}
+                </button>
+              )}
+            </form>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>{t("adminUserId")}</th>
+                  <th>{t("adminUserFirstName")}</th>
+                  <th>{t("adminUserLastName")}</th>
+                  <th>{t("adminUserUsername")}</th>
+                  <th>{t("adminUserEmail")}</th>
+                  <th>{t("adminUserRole")}</th>
+                  <th>{t("adminUserStatus")}</th>
+                  <th>{t("adminActions")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.length > 0 ? (
+                  users.map((user) => (
+                    <tr key={user.id}>
+                      <td>{user.id}</td>
+                      <td>{user.first_name || "-"}</td>
+                      <td>{user.last_name || "-"}</td>
+                      <td>{user.username}</td>
+                      <td>{user.email || "-"}</td>
+                      <td>{user.role}</td>
+                      <td>{Number(user.is_active) === 1 ? t("adminUserActive") : t("adminUserInactive")}</td>
+                      <td>
+                        <button className="admin-button" type="button" onClick={() => handleEditUser(user)}>
+                          {t("commonEdit")}
+                        </button>
+                        <button
+                          className="admin-button"
+                          type="button"
+                          onClick={() => handleToggleUserActive(user)}
+                          disabled={togglingUserId === user.id}
+                        >
+                          {Number(user.is_active) === 1 ? t("adminUserDeactivate") : t("adminUserActivate")}
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="8">{t("adminUserNoUsers")}</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </>
+        )}
+
+        {showSessionsManagement && activeSessionGroups.length > 0 && (
+          <>
+            <h2 className="title">{t("adminPlayerLinks")}</h2>
             <ul>
               {activeSessionGroups.map((group) => (
                 <li className="urls" key={group.id}>
@@ -515,16 +812,17 @@ function Admin() {
                       (group.session_id
                         ? `${window.location.origin}/game/${group.session_id}/${group.id}`
                         : "");
+                    const localizedGroupUrl = withLanguageParam(groupUrl);
 
                     return (
                       <>
                         <strong>{group.name}:</strong>{" "}
-                        {groupUrl ? (
-                          <a href={groupUrl} target="_blank" rel="noreferrer">
-                            {groupUrl}
+                        {localizedGroupUrl ? (
+                          <a href={localizedGroupUrl} target="_blank" rel="noreferrer">
+                            {localizedGroupUrl}
                           </a>
                         ) : (
-                          <span>Lien indisponible</span>
+                          <span>{t("adminLinkUnavailable")}</span>
                         )}
                       </>
                     );
@@ -535,9 +833,9 @@ function Admin() {
           </>
         )}
 
-        {adminSessionLink && (
+        {showSessionsManagement && adminSessionLink && (
           <>
-            <h2 className="title">Lien administrateur</h2>
+            <h2 className="title">{t("adminAdminLink")}</h2>
             <ul>
               <li className="urls" >
                 <a href={adminSessionLink} target="_blank" rel="noreferrer">

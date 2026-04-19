@@ -1,8 +1,26 @@
 const sqlite3 = require("sqlite3").verbose();
 const path = require("path");
+const fs = require("fs");
+const bcrypt = require("bcryptjs");
 
-// Create or open the database
-const dbPath = path.resolve(__dirname, "users.db");
+// Prefer a dedicated data directory for local database files.
+const dataDir = path.resolve(__dirname, "data");
+const defaultDbPath = path.join(dataDir, "users.db");
+const legacyDbPath = path.resolve(__dirname, "users.db");
+
+let dbPath;
+if (process.env.DB_PATH) {
+  dbPath = path.resolve(process.env.DB_PATH);
+} else if (fs.existsSync(defaultDbPath)) {
+  dbPath = defaultDbPath;
+} else if (fs.existsSync(legacyDbPath)) {
+  dbPath = legacyDbPath;
+} else {
+  dbPath = defaultDbPath;
+}
+
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+
 const db = new sqlite3.Database(dbPath);
 
 db.serialize(() => {
@@ -39,6 +57,8 @@ const LEGACY_GROUP_NAME_MAP = {
   "Group Delta": "Equipe Toxicologie",
 };
 
+const DEFAULT_ADMIN_PASSWORD = "WelcomeAdmin2024";
+
 // Function to check if a table exists
 const checkTableExists = (tableName) => {
   return new Promise((resolve, reject) => {
@@ -50,6 +70,15 @@ const checkTableExists = (tableName) => {
         resolve(!!row); // Returns true if the table exists, otherwise false
       }
     );
+  });
+};
+
+const checkColumnExists = (tableName, columnName) => {
+  return new Promise((resolve, reject) => {
+    db.all(`PRAGMA table_info(${tableName})`, (err, rows) => {
+      if (err) return reject(err);
+      resolve((rows || []).some((row) => row.name === columnName));
+    });
   });
 };
 
@@ -219,18 +248,25 @@ const createTables = async () => {
         CREATE TABLE users (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           username TEXT UNIQUE,
-          password TEXT
+          password TEXT,
+          email TEXT UNIQUE,
+          role TEXT DEFAULT 'Enseignant',
+          is_active INTEGER DEFAULT 1,
+          first_name TEXT,
+          last_name TEXT,
+          reset_token TEXT,
+          reset_token_expires INTEGER
         )
       `);
 
       // Insert default admin user
       db.get(`SELECT username FROM users WHERE username = 'admin'`, (err, row) => {
         if (!row) {
-          const bcrypt = require("bcryptjs");
-          const hashedPassword = bcrypt.hashSync("WelcomeAdmin2024", 10);
-          db.run(`INSERT INTO users (username, password) VALUES ('admin', ?)`, [
-            hashedPassword,
-          ]);
+          const hashedPassword = bcrypt.hashSync(DEFAULT_ADMIN_PASSWORD, 10);
+          db.run(
+            `INSERT INTO users (username, password, email, role, is_active, first_name, last_name) VALUES ('admin', ?, ?, 'Admin', 1, ?, ?)`,
+            [hashedPassword, "mejdi.zitouni@gmail.com", "Mejdi", "Zitouni"]
+          );
         }
       });
 
@@ -243,7 +279,9 @@ const createTables = async () => {
           green_questions_label TEXT,
           red_questions_label TEXT,
           status TEXT DEFAULT 'Draft',
-          session_rules TEXT
+          session_rules TEXT,
+          created_by INTEGER,
+          last_modified_by INTEGER
         )
       `);
 
@@ -344,6 +382,117 @@ const createIndexes = () => {
     db.run(
       `CREATE INDEX IF NOT EXISTS idx_answers_session_group_question ON answers(session_id, group_id, question_id)`
     );
+    db.run(
+      `CREATE INDEX IF NOT EXISTS idx_game_sessions_created_by ON game_sessions(created_by)`
+    );
+    db.run(
+      `CREATE INDEX IF NOT EXISTS idx_game_sessions_last_modified_by ON game_sessions(last_modified_by)`
+    );
+    db.run(
+      `CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`
+    );
+  });
+};
+
+const migrateUserSchemaAndAdmin = async () => {
+  const usersTableExists = await checkTableExists("users");
+  if (!usersTableExists) {
+    return;
+  }
+
+  const needsEmail = !(await checkColumnExists("users", "email"));
+  const needsRole = !(await checkColumnExists("users", "role"));
+  const needsIsActive = !(await checkColumnExists("users", "is_active"));
+  const needsFirstName = !(await checkColumnExists("users", "first_name"));
+  const needsLastName = !(await checkColumnExists("users", "last_name"));
+  const needsResetToken = !(await checkColumnExists("users", "reset_token"));
+  const needsResetTokenExpires = !(await checkColumnExists("users", "reset_token_expires"));
+
+  await new Promise((resolve, reject) => {
+    db.serialize(() => {
+      if (needsEmail) {
+        db.run(`ALTER TABLE users ADD COLUMN email TEXT`);
+      }
+      if (needsRole) {
+        db.run(`ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'Enseignant'`);
+      }
+      if (needsIsActive) {
+        db.run(`ALTER TABLE users ADD COLUMN is_active INTEGER DEFAULT 1`);
+      }
+      if (needsFirstName) {
+        db.run(`ALTER TABLE users ADD COLUMN first_name TEXT`);
+      }
+      if (needsLastName) {
+        db.run(`ALTER TABLE users ADD COLUMN last_name TEXT`);
+      }
+      if (needsResetToken) {
+        db.run(`ALTER TABLE users ADD COLUMN reset_token TEXT`);
+      }
+      if (needsResetTokenExpires) {
+        db.run(`ALTER TABLE users ADD COLUMN reset_token_expires INTEGER`);
+      }
+
+      db.run(`UPDATE users SET role = 'Enseignant' WHERE role IS NULL OR TRIM(role) = ''`);
+      db.run(`UPDATE users SET is_active = 1 WHERE is_active IS NULL`);
+      db.run(`UPDATE users SET role = 'Admin' WHERE username = 'admin'`);
+      db.run(
+        `UPDATE users SET email = 'mejdi.zitouni@gmail.com' WHERE username = 'admin' AND (email IS NULL OR TRIM(email) = '')`
+      );
+      db.run(
+        `UPDATE users SET first_name = 'Mejdi', last_name = 'Zitouni' WHERE username = 'admin'`
+      );
+
+      const hashedPassword = bcrypt.hashSync(DEFAULT_ADMIN_PASSWORD, 10);
+      db.run(
+        `UPDATE users SET password = ?, email = 'mejdi.zitouni@gmail.com', role = 'Admin', first_name = 'Mejdi', last_name = 'Zitouni' WHERE username = 'admin'`,
+        [hashedPassword],
+        (err) => {
+          if (err) return reject(err);
+          resolve();
+        }
+      );
+    });
+  });
+};
+
+const migrateSessionOwnershipSchema = async () => {
+  const sessionsTableExists = await checkTableExists("game_sessions");
+  if (!sessionsTableExists) {
+    return;
+  }
+
+  const needsCreatedBy = !(await checkColumnExists("game_sessions", "created_by"));
+  const needsLastModifiedBy = !(await checkColumnExists("game_sessions", "last_modified_by"));
+
+  await new Promise((resolve, reject) => {
+    db.serialize(() => {
+      if (needsCreatedBy) {
+        db.run(`ALTER TABLE game_sessions ADD COLUMN created_by INTEGER`);
+      }
+      if (needsLastModifiedBy) {
+        db.run(`ALTER TABLE game_sessions ADD COLUMN last_modified_by INTEGER`);
+      }
+
+      db.get(`SELECT id FROM users WHERE username = 'admin'`, (err, adminUser) => {
+        if (err) return reject(err);
+        if (!adminUser) return resolve();
+
+        db.run(
+          `UPDATE game_sessions SET created_by = ? WHERE created_by IS NULL`,
+          [adminUser.id],
+          (updateErr) => {
+            if (updateErr) return reject(updateErr);
+            db.run(
+              `UPDATE game_sessions SET last_modified_by = created_by WHERE last_modified_by IS NULL`,
+              (lastUpdateErr) => {
+                if (lastUpdateErr) return reject(lastUpdateErr);
+                resolve();
+              }
+            );
+          }
+        );
+      });
+    });
   });
 };
 
@@ -351,7 +500,7 @@ const createIndexes = () => {
 const createTestSession = () => {
   db.run(
     `INSERT INTO game_sessions 
-(title, date, green_questions_label, red_questions_label, status, session_rules) 
+(title, date, green_questions_label, red_questions_label, status, session_rules, created_by, last_modified_by) 
 VALUES 
 ('Protométrie en milieux aqueux', '2024-01-01', 'Flash réponse', 'Expert calcul', 'Draft', 
 'Vous êtes invités à répondre tous en même temps à des questions chronométrées qui vont défiler sous forme de cartes de jeu rouges, de type Expert calcul (basée sur le calcul), et vertes, de type Flash réponse (basée sur les connaissances), de façon alternée.\n\n
@@ -359,7 +508,9 @@ Une récompense sous forme d’un triangle de la même couleur que la carte vous
 Vous avez la possibilité, si vous êtes sûrs de votre réponse, de la soumettre et d’arrêter le chronomètre. Si votre réponse est juste, vous gagnerez deux triangles de la couleur de votre choix. Si elle est fausse, vous perdrez un triangle de la même couleur que la carte.\n\n
 Pour le cas où le groupe qui a arrêté le chronomètre a répondu faux, vous aurez la chance de gagner deux triangles de la couleur de votre choix si vous êtes les premiers à avoir répondu juste, et un triangle de la couleur de la carte si vous et tous les autres groupes n’ont soumis de réponse.\n\n
 Les triangles ainsi collectés vous permettront de remplir un camembert composé de huit triangles (quatre rouges et quatre verts). Le gagnant sera le groupe ayant rempli le plus de camemberts à la fin du jeu. En cas d’égalité sur le nombre de camemberts entre les groupes, le gagnant sera celui qui a répondu au plus grand nombre de questions.\n\n
-Certaines réponses soumises comme correctes ne sont pas suffisantes pour être validées comme telles et nécessitent un passage au tableau pour fournir une explication. Si l’explication est fausse, on validera la réponse du sous-groupe suivant ayant répondu juste et fait une démonstration correcte.');
+Certaines réponses soumises comme correctes ne sont pas suffisantes pour être validées comme telles et nécessitent un passage au tableau pour fournir une explication. Si l’explication est fausse, on validera la réponse du sous-groupe suivant ayant répondu juste et fait une démonstration correcte.',
+(SELECT id FROM users WHERE username = 'admin'),
+(SELECT id FROM users WHERE username = 'admin'));
 )`,
     function (err) {
       if (err) return console.error("Error creating Test Session:", err);
@@ -868,10 +1019,12 @@ Certaines réponses soumises comme correctes ne sont pas suffisantes pour être 
 };
 
 // Run the setup
-(async () => {
+const dbReady = (async () => {
   try {
     console.log("Checking for existing tables...");
     await createTables(); // Create tables if they don't exist
+    await migrateUserSchemaAndAdmin();
+    await migrateSessionOwnershipSchema();
     createIndexes(); // Ensure indexes exist for current and future databases
     await migrateLegacySessionLabels();
     await migrateLegacyGroupAvatars();
@@ -879,7 +1032,7 @@ Certaines réponses soumises comme correctes ne sont pas suffisantes pour être 
 
     const shouldSeedTestSession =
       process.env.SEED_TEST_SESSION === "true" ||
-      process.env.NODE_ENV !== "production";
+      (process.env.NODE_ENV !== "production" && process.env.NODE_ENV !== "test");
 
     if (shouldSeedTestSession) {
       console.log("Deleting existing default session...");
@@ -896,3 +1049,4 @@ Certaines réponses soumises comme correctes ne sont pas suffisantes pour être 
 })();
 
 module.exports = db;
+module.exports.ready = dbReady;

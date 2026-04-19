@@ -91,6 +91,14 @@ select {
   font: inherit;
 }
 
+form label {
+  display: block;
+  margin: 6px 0 2px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--ink-1);
+}
+
 img,
 svg,
 canvas,

@@ -1,116 +1,93 @@
-# Documentation technique - Trivial Chem
+# Documentation technique - FPM Pie Game
 
-## 1. Vue d’ensemble technique
-Application web temps réel composée de:
-- Frontend React (single page app).
-- Backend Node.js/Express.
-- Communication temps réel via Socket.IO.
-- Base de données SQLite locale.
+## 1. Vue d'ensemble
+FPM Pie Game est une application web temps reel composee de:
+- un frontend React,
+- une API Express,
+- un bus temps reel Socket.IO,
+- une base SQLite locale.
 
-## 2. Stack et dépendances
-- Node.js 18.x
-- React 18
-- Express 4
-- Socket.IO 4 (serveur et client)
-- SQLite3
-- Axios
-- JWT (jsonwebtoken)
-- bcryptjs
-- helmet
-- express-rate-limit
-- cors
+Le serveur Node sert a la fois l'API et le build frontend en mode deploiement classique mono-service.
 
-Défini dans package.json.
+## 2. Stack technique
+- Runtime: Node.js 18+
+- Frontend: React 18, react-router-dom
+- Backend: Express 4, Socket.IO 4
+- Data: SQLite3
+- Auth: jsonwebtoken + bcryptjs
+- Hardening: helmet, express-rate-limit, CORS
+- Tests: node:test + React Testing Library
 
-## 3. Architecture
+Les dependances exactes sont declarees dans package.json.
+
+## 3. Architecture applicative
 
 ### 3.1 Frontend
-- Point d’entrée: src/index.js
-- Routage:
-  - / : page de connexion
-  - /admin : tableau de bord administrateur
-  - /session/:id : édition de contenu de session
-  - /admin/game/:sessionId : console de contrôle live
-  - /game/:sessionId/:groupId : interface joueur
+- Point d'entree: src/index.js
+- Pages principales:
+  - Authentification
+  - Administration sessions
+  - Controle live d'une session
+  - Gestion session (questions/groupes)
+  - Interface joueur
+- i18n:
+  - provider central dans src/i18n
+  - dictionnaires multilingues
+  - fallback automatique sur langue par defaut pour cles absentes
 
 ### 3.2 Backend
-- Point d’entrée: server.js
-- Serveur HTTP Express + Socket.IO attaché au même serveur.
-- Sert également le build statique React en production.
+- Entree principale: server.js
+- Routes auth/utilisateurs: server/routes/auth.routes.js
+- Initialisation DB: database.js
+- Serveur HTTP + Socket.IO partage le meme processus
 
-### 3.3 Base de données
-- SQLite fichier users.db
-- Initialisation/migrations/seed dans database.js
+### 3.3 Temps reel
+Socket.IO gere le cycle de jeu:
+- emission des questions,
+- reception des reponses,
+- validation admin,
+- mise a jour des scores,
+- reveal et fin de partie.
 
-## 4. Configuration et variables d’environnement
+L'etat runtime de session est maintenu en memoire par processus avec mecanisme de purge TTL.
 
-### 4.1 Backend
-- PORT: port HTTP, défaut 3001.
-- JWT_SECRET: clé de signature JWT. Si absente, génération aléatoire en mémoire au démarrage (les tokens précédents deviennent invalides après redémarrage).
-- CORS_ORIGINS: liste d’origines autorisées séparées par virgules.
-- NODE_ENV: influe sur le seed par défaut.
-- SEED_TEST_SESSION: force le seed si true.
+## 4. Modele de donnees
 
-### 4.2 Frontend
-- REACT_APP_API_URL: URL de l’API et du serveur Socket.IO.
+### 4.1 Tables principales
+- users
+  - id, username, email, password, role
+  - first_name, last_name
+  - is_active
+- game_sessions
+  - metadonnees session (titre, labels, date, statut, regles)
+  - created_by
+  - last_modified_by
+- questions
+- question_options
+- session_questions
+- groups
+- answers
+- camembert_progress
 
-## 5. Modèle de données
+### 4.2 Audit et ownership
+- created_by est renseigne a la creation de session.
+- last_modified_by est mis a jour a chaque edition de session.
+- les listes et details sessions exposent username/full name du createur et du dernier modificateur via jointures users.
 
-### 5.1 Tables
-- users: authentification administrateur.
-- game_sessions: métadonnées session, labels catégories, statut, règles.
-- questions: banque de questions (type, réponse attendue, temps, type de réponse).
-- question_options: options des questions à choix unique.
-- groups: équipes participantes par session.
-- session_questions: association session-question avec ordre d’apparition.
-- answers: traces des réponses soumises.
-- camembert_progress: scores rouges/verts par groupe.
+## 5. API REST
 
-### 5.2 Index
-- Index ajoutés sur tables relationnelles critiques (session_questions, question_options, groups, camembert_progress, answers).
-
-## 6. Mécanisme temps réel
-
-### 6.1 Événements émis par clients
-- startGame
-- submitAnswer
-- validateAnswer
-- validateAnswerNoPoints
-- revealAnswer
-- nextQuestion
-- joinSession
-
-### 6.2 Événements émis par serveur
-- newQuestion
-- answerSubmitted
-- timerStopped
-- camembertUpdated
-- answerValidated
-- answerValidatedNoPoints
-- revealAnswer
-- gameOver
-
-### 6.3 État runtime en mémoire
-Serveur maintient un état par session dans un objet en mémoire:
-- index courant
-- questions déjà servies
-- question courante
-- début et durée du timer
-- réponses soumises
-- groupe ayant stoppé le timer
-- bonne réponse révélée
-- gagnants
-
-Un mécanisme TTL nettoie les sessions inactives périodiquement.
-
-## 7. API REST
-
-### 7.1 Authentification
+### 5.1 Auth
 - POST /login
 - POST /verify-token
 - GET /admin-check
 
-### 7.2 Sessions
+### 5.2 Utilisateurs (admin)
+- GET /users
+- POST /users
+- PUT /users/:id
+- PATCH /users/:id/active
+
+### 5.3 Sessions
 - GET /game-sessions
 - POST /game-sessions
 - GET /sessions/:id
@@ -123,87 +100,80 @@ Un mécanisme TTL nettoie les sessions inactives périodiquement.
 - GET /sessions/:id/runtime-state
 - GET /sessions/:id/player-runtime-state/:groupId
 
-### 7.3 Groupes
-- GET /sessions/:id/groups
-- GET /sessions/:id/groups/:groupId
-- POST /sessions/:id/groups
-- PUT /sessions/:sessionId/groups/:groupId
-- DELETE /sessions/:sessionId/groups/:groupId
+### 5.4 Questions et groupes
+- GET/POST/PUT/DELETE sur questions et associations session_questions
+- GET/POST/PUT/DELETE sur groupes par session
 
-### 7.4 Questions
-- GET /questions/:id
-- POST /questions
-- PUT /questions/:id
-- GET /questions/:id/options
-- POST /questions/:id/options
-- GET /sessions/:id/questions
-- GET /sessions/:id/available-questions
-- POST /sessions/:id/questions
-- PUT /sessions/:sessionId/questions/:questionId
-- DELETE /sessions/:sessionId/questions/:questionId
-
-### 7.5 Score et réponses
+### 5.5 Scores et reponses
 - GET /sessions/:id/camemberts
 - POST /sessions/:id/update-points
 - POST /sessions/:id/validate
 - GET /sessions/:id/answers
 
-## 8. Sécurité
-- JWT requis sur la majorité des endpoints d’administration.
-- Hachage mot de passe via bcrypt.
-- Rate limiting:
-  - Route login protégée contre brute force.
-  - Limiteur générique sur routes de mutation.
-- Helmet activé (CSP désactivée explicitement).
-- CORS configurable par variable d’environnement.
+## 6. Evenements Socket.IO
 
-## 9. Flux principaux
+### 6.1 Evenements client vers serveur
+- joinSession
+- startGame
+- submitAnswer
+- validateAnswer
+- validateAnswerNoPoints
+- revealAnswer
+- nextQuestion
 
-### 9.1 Démarrage de partie
-1. Admin appelle POST /sessions/:id/start.
-2. Client admin émet startGame via Socket.IO.
-3. Serveur initialise état runtime et diffuse newQuestion.
+### 6.2 Evenements serveur vers clients
+- newQuestion
+- answerSubmitted
+- timerStopped
+- camembertUpdated
+- answerValidated
+- answerValidatedNoPoints
+- revealAnswer
+- gameOver
 
-### 9.2 Soumission et validation
-1. Joueur émet submitAnswer.
-2. Serveur diffuse answerSubmitted.
-3. Admin valide via validateAnswer ou validateAnswerNoPoints.
-4. Serveur met à jour score, diffuse camembertUpdated et answerValidated.
+## 7. Securite
+- JWT requis pour endpoints d'administration.
+- Verification de role Admin pour la gestion utilisateurs.
+- Blocage de connexion pour comptes users inactifs.
+- Hash des mots de passe via bcrypt.
+- Rate limiting sur login et routes sensibles.
+- CORS configurable par environnement.
+- Helmet actif.
 
-### 9.3 Fin de partie
-- Déclenchée automatiquement en fin de questions ou manuellement via POST /sessions/:id/end.
-- Serveur calcule gagnant(s), passe statut à Game Over et diffuse gameOver.
+## 8. Configuration
 
-## 10. Initialisation base et seed
-Au démarrage backend, database.js:
-- crée les tables si absentes,
-- crée les index,
-- applique migrations de labels/avatars/noms historiques,
-- supprime/recrée une session par défaut selon environnement.
+Variables d'environnement principales:
+- PORT
+- JWT_SECRET
+- CORS_ORIGINS
+- REACT_APP_API_URL
+- DB_PATH (optionnel)
 
-Compte administrateur initial seedé:
-- username: admin
-- mot de passe initial: WelcomeAdmin2024
+## 9. Build, execution, tests
 
-## 11. Build, exécution et déploiement
+### 9.1 Scripts
+- npm start
+- npm run build
+- npm run test:backend
+- npm run test:frontend
+- npm run test:all
 
-### 11.1 Scripts npm
-- npm run build: build frontend.
-- npm start: lance backend Node (et sert build statique si présent).
-- npm run start:local: build puis backend via concurrently.
+### 9.2 Strategie de test
+- Backend: tests d'integration API + flux Socket.IO.
+- Frontend: tests unitaires/composants sur pages et widgets critiques.
 
-### 11.2 Déploiement
-Conçu pour déploiement type Render avec serveur Node unique servant API + frontend build.
+## 10. Observabilite et maintenance
+- Journaux applicatifs via console server-side.
+- Migrations DB appliquees au demarrage.
+- Seed admin automatique si compte absent.
 
-## 12. Limitations et points d’attention techniques
-- Deux définitions POST /questions existent dans server.js; la seconde peut créer une ambiguïté de maintenance.
-- Plusieurs endpoints ne vérifient pas systématiquement JWT (exemple lecture session/groupe côté joueur volontairement publique selon usage).
-- L’état live est en mémoire serveur: pas partagé entre plusieurs instances sans mécanisme de synchronisation externe.
-- Le calcul et diffusion du timer est piloté côté clients avec état serveur de référence; sensible aux décalages réseau.
+## 11. Limites connues
+- Etat live en memoire locale (pas partage multi-instance).
+- SQLite adaptee a des charges modestes mono-instance.
+- Certaines routes historiques restent centralisees dans server.js.
 
-## 13. Recommandations d’évolution
-- Unifier les routes questions (éviter doublons).
-- Standardiser la protection JWT selon rôle.
-- Externaliser état temps réel (Redis) pour montée en charge multi-instances.
-- Ajouter tests automatisés API + sockets + flux E2E.
-- Ajouter documentation OpenAPI pour contrat HTTP formel.
+## 12. Pistes d'evolution
+- Externaliser l'etat live (ex: Redis) pour scaler horizontalement.
+- Poursuivre l'extraction modulaire des routes metier.
+- Ajouter une specification OpenAPI.
+- Ajouter un workflow E2E (Cypress/Playwright) pour les parcours critiques.

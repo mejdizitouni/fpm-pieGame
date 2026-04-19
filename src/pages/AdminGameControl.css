@@ -407,6 +407,59 @@
   object-fit: cover;
 }
 
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 16, 12, 0.52);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  width: min(92vw, 760px);
+  max-height: 82vh;
+  overflow: auto;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: #fff;
+  box-shadow: var(--shadow-strong);
+  padding: 18px;
+  text-align: left;
+}
+
+.close-button {
+  margin-top: 12px;
+  background: linear-gradient(135deg, #bf2a2a, #8f1d1d);
+}
+
+.game-over-modal-content {
+  text-align: center;
+}
+
+.game-over-modal-content p {
+  margin-top: 8px;
+  font-weight: 700;
+  color: var(--ink-1);
+}
+
+.game-over-winners-list {
+  list-style: none;
+  margin: 14px 0 4px;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.game-over-winners-list li {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.88);
+  padding: 8px 10px;
+  font-weight: 700;
+}
+
 @media (min-width: 961px) {
   .admin-live-layout {
     display: grid;
@@ -474,6 +527,11 @@
   .session-score-sidebar {
     margin-top: 14px;
   }
+
+  .modal-content {
+    width: calc(100vw - 20px);
+    max-height: 88vh;
+  }
 }
 
 @media (max-width: 480px) {
@@ -507,6 +565,11 @@
 
   .pie-chart-list {
     grid-template-columns: 1fr;
+  }
+
+  .modal-content {
+    width: calc(100vw - 12px);
+    padding: 12px;
   }
 }
 
