@@ -265,7 +265,7 @@ const createTables = async () => {
           const hashedPassword = bcrypt.hashSync(DEFAULT_ADMIN_PASSWORD, 10);
           db.run(
             `INSERT INTO users (username, password, email, role, is_active, first_name, last_name) VALUES ('admin', ?, ?, 'Admin', 1, ?, ?)`,
-            [hashedPassword, "mejdi.zitouni@gmail.com", "Mejdi", "Zitouni"]
+            [hashedPassword, "mejdi.zitouni@gmail.com", "Nesrine", "ZITOUNI"]
           );
         }
       });
@@ -439,12 +439,12 @@ const migrateUserSchemaAndAdmin = async () => {
         `UPDATE users SET email = 'mejdi.zitouni@gmail.com' WHERE username = 'admin' AND (email IS NULL OR TRIM(email) = '')`
       );
       db.run(
-        `UPDATE users SET first_name = 'Mejdi', last_name = 'Zitouni' WHERE username = 'admin'`
+        `UPDATE users SET first_name = 'Nesrine', last_name = 'ZITOUNI' WHERE username = 'admin'`
       );
 
       const hashedPassword = bcrypt.hashSync(DEFAULT_ADMIN_PASSWORD, 10);
       db.run(
-        `UPDATE users SET password = ?, email = 'mejdi.zitouni@gmail.com', role = 'Admin', first_name = 'Mejdi', last_name = 'Zitouni' WHERE username = 'admin'`,
+        `UPDATE users SET password = ?, email = 'mejdi.zitouni@gmail.com', role = 'Admin', first_name = 'Nesrine', last_name = 'ZITOUNI' WHERE username = 'admin'`,
         [hashedPassword],
         (err) => {
           if (err) return reject(err);
