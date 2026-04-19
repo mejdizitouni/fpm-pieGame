@@ -15,11 +15,31 @@ const buildCorsOptions = (allowedOrigins) => ({
 const createLimiters = () => {
   const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 30,
+    max: 40,
     standardHeaders: true,
     legacyHeaders: false,
     message: {
       message: "Too many authentication attempts. Please try again later.",
+    },
+  });
+
+  const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+      message: "Too many login attempts. Please try again later.",
+    },
+  });
+
+  const passwordResetLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 8,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+      message: "Too many password reset attempts. Please try again later.",
     },
   });
 
@@ -32,6 +52,8 @@ const createLimiters = () => {
 
   return {
     authLimiter,
+    loginLimiter,
+    passwordResetLimiter,
     mutationLimiter,
   };
 };

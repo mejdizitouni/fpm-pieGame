@@ -315,6 +315,44 @@ test("session CRUD and group/question linking routes work end-to-end", async () 
   assert.equal(deleteGroupResponse.response.status, 200);
 });
 
+test("GET /sessions/:id/available-questions only includes questions from other sessions", async () => {
+  const currentSession = await createSession({ title: "Current Session" });
+  const otherSession = await createSession({ title: "Other Session" });
+
+  const currentSessionQuestion = await createQuestion({
+    title: `Current session question ${Date.now()}${Math.random()}`,
+  });
+  await linkQuestion(currentSession.id, currentSessionQuestion.id, 1);
+
+  const otherSessionQuestion = await createQuestion({
+    title: `Other session question ${Date.now()}${Math.random()}`,
+  });
+  await linkQuestion(otherSession.id, otherSessionQuestion.id, 1);
+
+  const orphanQuestion = await createQuestion({
+    title: `Orphan question ${Date.now()}${Math.random()}`,
+  });
+
+  const { response, payload } = await request(
+    `/sessions/${currentSession.id}/available-questions`,
+    {
+      headers: { Authorization: authToken },
+    }
+  );
+
+  assert.equal(response.status, 200);
+  assert.ok(Array.isArray(payload));
+  assert.ok(
+    payload.some((question) => Number(question.id) === Number(otherSessionQuestion.id))
+  );
+  assert.ok(
+    payload.every((question) => Number(question.id) !== Number(currentSessionQuestion.id))
+  );
+  assert.ok(
+    payload.every((question) => Number(question.id) !== Number(orphanQuestion.id))
+  );
+});
+
 test("activate, start, update-points, reset and delete session routes work", async () => {
   const session = await createSession({ title: "Lifecycle Session" });
   const sessionId = session.id;

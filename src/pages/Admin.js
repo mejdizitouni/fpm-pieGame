@@ -56,6 +56,16 @@ function Admin() {
     return translationKey ? t(translationKey) : status;
   };
 
+  const getRoleLabel = (role) => {
+    const roleKeyMap = {
+      Admin: "roleAdmin",
+      Enseignant: "roleTeacher",
+    };
+
+    const translationKey = roleKeyMap[role];
+    return translationKey ? t(translationKey) : role;
+  };
+
   const withLanguageParam = (baseUrl) => {
     if (!baseUrl) {
       return "";
@@ -728,7 +738,7 @@ function Admin() {
                       <td>{user.last_name || "-"}</td>
                       <td>{user.username}</td>
                       <td>{user.email || "-"}</td>
-                      <td>{user.role}</td>
+                      <td>{getRoleLabel(user.role)}</td>
                       <td>{Number(user.is_active) === 1 ? t("adminUserActive") : t("adminUserInactive")}</td>
                       <td>
                         <button className="admin-button" type="button" onClick={() => handleEditUser(user)}>
@@ -815,8 +825,8 @@ function Admin() {
                     setNewUser({ ...newUser, role: e.target.value })
                   }
                 >
-                  <option value="Admin">Admin</option>
-                  <option value="Enseignant">Enseignant</option>
+                  <option value="Admin">{t("roleAdmin")}</option>
+                  <option value="Enseignant">{t("roleTeacher")}</option>
                 </select>
                 <label htmlFor="new-user-active">{t("adminUserStatus")}</label>
                 <select

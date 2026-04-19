@@ -26,8 +26,15 @@ const createMailTransporter = () => {
   });
 };
 
-const registerAuthRoutes = ({ app, db, authLimiter, jwtSecret }) => {
-  app.post("/login", authLimiter, (req, res) => {
+const registerAuthRoutes = ({
+  app,
+  db,
+  authLimiter,
+  loginLimiter,
+  passwordResetLimiter,
+  jwtSecret,
+}) => {
+  app.post("/login", loginLimiter || authLimiter, (req, res) => {
     const { username, password } = req.body;
 
     db.get(`SELECT * FROM users WHERE username = ?`, [username], (err, user) => {
@@ -368,7 +375,7 @@ const registerAuthRoutes = ({ app, db, authLimiter, jwtSecret }) => {
     });
   });
 
-  app.post("/forgot-password", authLimiter, (req, res) => {
+  app.post("/forgot-password", passwordResetLimiter || authLimiter, (req, res) => {
     const { email } = req.body;
     if (!email) {
       return res.status(400).json({ message: "Email is required" });
@@ -449,7 +456,7 @@ const registerAuthRoutes = ({ app, db, authLimiter, jwtSecret }) => {
     });
   });
 
-  app.post("/reset-password", authLimiter, (req, res) => {
+  app.post("/reset-password", passwordResetLimiter || authLimiter, (req, res) => {
     const { token, newPassword } = req.body;
     if (!token || !newPassword || String(newPassword).length < 8) {
       return res
