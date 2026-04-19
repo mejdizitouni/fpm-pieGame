@@ -16,13 +16,13 @@
 }
 
 .confirm-dialog {
-  background: var(--surface, #1e2235);
-  border: 1px solid var(--line, rgba(255,255,255,0.08));
+  background: #ffffff;
+  border: 1px solid var(--line, rgba(24, 34, 20, 0.14));
   border-radius: 14px;
   padding: 1.75rem 2rem;
   max-width: 380px;
   width: 90%;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
   animation: dialogSlideUp 0.25s ease;
 }
 
@@ -33,7 +33,9 @@
 
 .confirm-message {
   font-size: 1rem;
-  color: var(--text, #e2e8f0);
+  color: #1a2216 !important;
+  font-weight: 700;
+  text-shadow: none;
   margin: 0 0 1.5rem;
   line-height: 1.5;
   text-align: center;
@@ -50,7 +52,7 @@
   border-radius: 8px;
   font-size: 0.875rem;
   font-weight: 600;
-  border: none;
+  border: 1px solid transparent;
   cursor: pointer;
   transition: transform 0.15s, box-shadow 0.15s;
 }
@@ -60,17 +62,18 @@
 }
 
 .confirm-cancel {
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--text, #e2e8f0);
+  background: #eef3ef !important;
+  color: #1a2216 !important;
+  border: 1px solid rgba(24, 34, 20, 0.18) !important;
 }
 
 .confirm-cancel:hover {
-  background: rgba(255, 255, 255, 0.14);
+  background: #e2e9e4 !important;
 }
 
 .confirm-ok {
   background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-  color: #fff;
+  color: #fff !important;
   box-shadow: 0 2px 10px rgba(59, 130, 246, 0.35);
 }
 
@@ -80,7 +83,13 @@
 
 .confirm-danger {
   background: linear-gradient(135deg, #ef4444, #b91c1c);
+  color: #fff !important;
   box-shadow: 0 2px 10px rgba(239, 68, 68, 0.35);
+}
+
+.confirm-dialog .confirm-message,
+.confirm-dialog .confirm-btn {
+  opacity: 1 !important;
 }
 
 .confirm-danger:hover {

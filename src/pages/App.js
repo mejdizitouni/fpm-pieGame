@@ -105,9 +105,19 @@ function App() {
               onClick={() => navigate("/admin")}
             />
           </div>
-          <p className="eyebrow">{t("loginEyebrow")}</p>
-          <h1 className="game-name">Trivial Chem</h1>
-          <p className="login-subtitle">{t("loginSubtitle")}</p>
+          <div className="login-hero-row">
+            <div className="login-hero-copy">
+              <p className="eyebrow">{t("loginEyebrow")}</p>
+              <h1 className="game-name">Trivial Chem</h1>
+              <p className="login-subtitle">{t("loginSubtitle")}</p>
+            </div>
+            <img
+              src="/assets/icons/pills.svg"
+              alt=""
+              className="login-hero-camembert"
+              aria-hidden="true"
+            />
+          </div>
 
           <form className="login" onSubmit={handleLogin}>
             <label htmlFor="login-username">{t("loginUsernameLabel")}</label>
